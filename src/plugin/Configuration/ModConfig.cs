@@ -93,13 +93,13 @@ namespace MegabonkTogether.Configuration
             AllowSavesDuringNetplay = config.Bind(
                 "Gameplay",
                 "AllowSavesDuringNetplay",
-                false,
+                true,
                 "Allow game saves during netplay sessions."
             );
             EnabledSharedExperience = config.Bind(
                 "Gameplay",
                 "EnabledSharedExperience",
-                false,
+                true,
                 "Enable Host experience (Same XP and pause enabled). Disable for no pause and separate XP."
             );
             RewardWindowInputDelay = config.Bind(

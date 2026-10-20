@@ -35,18 +35,9 @@ namespace MegabonkTogether.Scripts
         private TMP_InputField codeInput;
         private GameObject codeLabel;
 
-        private GameObject saveToggleSetting;
-        private CustomButton saveToggleLeftButton;
-        private CustomButton saveToggleRightButton;
-        private TextMeshProUGUI saveToggleStatusText;
-
         private CustomButton netplayOptionsButton;
         private GameObject netplayOptionsTitle;
         private CustomButton netplayOptionsBackButton;
-        private GameObject sharedExpToggleSetting;
-        private CustomButton sharedExpToggleLeftButton;
-        private CustomButton sharedExpToggleRightButton;
-        private TextMeshProUGUI sharedExpToggleStatusText;
         private readonly System.Collections.Generic.List<GameObject> partySettingRows = [];
 
         protected void Awake()
@@ -156,198 +147,12 @@ namespace MegabonkTogether.Scripts
             labelText.color = Color.white;
         }
 
-        private void CreateSaveToggle()
-        {
-            var settings = mainMenu.settings.GetComponent<Settings>();
-            var settingPrefab = settings.GetSettingPrefab(SettingType.Enum);
-
-            saveToggleSetting = GameObject.Instantiate(settingPrefab, panel.transform);
-
-            var rectTransform = saveToggleSetting.GetComponent<RectTransform>();
-            rectTransform.anchorMin = new Vector2(0.5f, 0.6f);
-            rectTransform.anchorMax = new Vector2(0.5f, 0.6f);
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            rectTransform.anchoredPosition = new Vector2(-360, 25);
-            rectTransform.sizeDelta = new Vector2(700, 60);
-
-            var textComponents = Il2CppFindHelper.RuntimeGetComponentsInChildren<TextMeshProUGUI>(saveToggleSetting);
-            foreach (var textComp in textComponents)
-            {
-                if (textComp.name.StartsWith("Text"))
-                {
-                    textComp.text = "Allow Saving progression\nUse at your own risk";
-                    textComp.fontSize = 20;
-                    textComp.enableWordWrapping = false;
-                }
-                else if (textComp.name.StartsWith("StatusText"))
-                {
-                    saveToggleStatusText = textComp;
-                    saveToggleStatusText.gameObject.SetActive(true);
-                    UpdateSaveToggleStatus();
-                }
-            }
-
-            var buttons = Il2CppFindHelper.RuntimeGetComponentsInChildren<UnityEngine.UI.Button>(saveToggleSetting);
-            foreach (var btn in buttons)
-            {
-                if (btn.name == "B_Left")
-                {
-                    var origButton = btn.GetComponent<MyButtonNormal>();
-                    if (origButton != null)
-                    {
-                        UnityEngine.Object.DestroyImmediate(origButton);
-                    }
-
-                    btn.onClick = new();
-
-                    saveToggleLeftButton = btn.gameObject.AddComponent<CustomButton>();
-                    saveToggleLeftButton.SetOnClickAction(OnSaveToggleLeftClicked);
-                }
-                else if (btn.name == "B_Right")
-                {
-                    var origButton = btn.GetComponent<MyButtonNormal>();
-                    if (origButton != null)
-                    {
-                        UnityEngine.Object.DestroyImmediate(origButton);
-                    }
-
-                    btn.onClick = new();
-
-                    saveToggleRightButton = btn.gameObject.AddComponent<CustomButton>();
-                    saveToggleRightButton.SetOnClickAction(OnSaveToggleRightClicked);
-                }
-            }
-
-            saveToggleSetting.SetActive(false);
-        }
-
-        private void OnSaveToggleLeftClicked()
-        {
-            AudioManager.Instance.PlaySfx(AudioManager.Instance.uiClick.sounds[0]);
-            ToggleSaveOption(false);
-        }
-
-        private void OnSaveToggleRightClicked()
-        {
-            AudioManager.Instance.PlaySfx(AudioManager.Instance.uiClick.sounds[0]);
-            ToggleSaveOption(true);
-        }
-
-        private void ToggleSaveOption(bool isEnabled)
-        {
-            ModConfig.AllowSavesDuringNetplay.Value = isEnabled;
-            ModConfig.Save();
-            UpdateSaveToggleStatus();
-        }
-
-        private void UpdateSaveToggleStatus()
-        {
-            if (saveToggleStatusText != null)
-            {
-                saveToggleStatusText.text = ModConfig.AllowSavesDuringNetplay.Value ? "ON" : "OFF";
-                saveToggleStatusText.color = ModConfig.AllowSavesDuringNetplay.Value ? Color.green : Color.red;
-            }
-        }
-
-        private void CreateSharedExpToggle()
-        {
-            var settings = mainMenu.settings.GetComponent<Settings>();
-            var settingPrefab = settings.GetSettingPrefab(SettingType.Enum);
-
-            sharedExpToggleSetting = GameObject.Instantiate(settingPrefab, panel.transform);
-
-            var rectTransform = sharedExpToggleSetting.GetComponent<RectTransform>();
-            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            rectTransform.anchoredPosition = new Vector2(-360, -50);
-            rectTransform.sizeDelta = new Vector2(700, 60);
-
-            var textComponents = Il2CppFindHelper.RuntimeGetComponentsInChildren<TextMeshProUGUI>(sharedExpToggleSetting);
-            foreach (var textComp in textComponents)
-            {
-                if (textComp.name.StartsWith("Text"))
-                {
-                    textComp.text = "Shared Experience(Experimental)\nXP/Gold/Interaction shared\nActive pause enabled";
-                    textComp.fontSize = 18;
-                    textComp.enableWordWrapping = false;
-                }
-                else if (textComp.name.StartsWith("StatusText"))
-                {
-                    sharedExpToggleStatusText = textComp;
-                    sharedExpToggleStatusText.gameObject.SetActive(true);
-                    UpdateSharedExpToggleStatus();
-                }
-            }
-
-            var buttons = Il2CppFindHelper.RuntimeGetComponentsInChildren<UnityEngine.UI.Button>(sharedExpToggleSetting);
-            foreach (var btn in buttons)
-            {
-                if (btn.name == "B_Left")
-                {
-                    var origButton = btn.GetComponent<MyButtonNormal>();
-                    if (origButton != null)
-                    {
-                        UnityEngine.Object.DestroyImmediate(origButton);
-                    }
-
-                    btn.onClick = new();
-
-                    sharedExpToggleLeftButton = btn.gameObject.AddComponent<CustomButton>();
-                    sharedExpToggleLeftButton.SetOnClickAction(OnSharedExpToggleLeftClicked);
-                }
-                else if (btn.name == "B_Right")
-                {
-                    var origButton = btn.GetComponent<MyButtonNormal>();
-                    if (origButton != null)
-                    {
-                        UnityEngine.Object.DestroyImmediate(origButton);
-                    }
-
-                    btn.onClick = new();
-
-                    sharedExpToggleRightButton = btn.gameObject.AddComponent<CustomButton>();
-                    sharedExpToggleRightButton.SetOnClickAction(OnSharedExpToggleRightClicked);
-                }
-            }
-
-            sharedExpToggleSetting.SetActive(false);
-        }
-
-        private void OnSharedExpToggleLeftClicked()
-        {
-            AudioManager.Instance.PlaySfx(AudioManager.Instance.uiClick.sounds[0]);
-            ToggleSharedExpOption(false);
-        }
-
-        private void OnSharedExpToggleRightClicked()
-        {
-            AudioManager.Instance.PlaySfx(AudioManager.Instance.uiClick.sounds[0]);
-            ToggleSharedExpOption(true);
-        }
-
-        private void ToggleSharedExpOption(bool isEnabled)
-        {
-            ModConfig.EnabledSharedExperience.Value = isEnabled;
-            ModConfig.Save();
-            UpdateSharedExpToggleStatus();
-        }
-
-        private void UpdateSharedExpToggleStatus()
-        {
-            if (sharedExpToggleStatusText != null)
-            {
-                sharedExpToggleStatusText.text = ModConfig.EnabledSharedExperience.Value ? "ON" : "OFF";
-                sharedExpToggleStatusText.color = ModConfig.EnabledSharedExperience.Value ? Color.green : Color.red;
-            }
-        }
-
         /// <summary>
         /// Party rules (host settings, apply to everyone), right column of the netplay options
         /// </summary>
         private void CreatePartySettings()
         {
-            const float x = 360f;
+            const float x = 0f;
             var y = 200f;
 
             CreateCycleSetting("Reward pause\nParty: everyone pauses, Own: no pause", new Vector2(x, y),
@@ -477,8 +282,6 @@ namespace MegabonkTogether.Scripts
 
             netplayOptionsTitle.SetActive(false);
 
-            CreateSaveToggle();
-            CreateSharedExpToggle();
             CreatePartySettings();
 
             var backButtonObj = GameObject.Instantiate(mainMenu.btnPlay.gameObject);
@@ -1109,11 +912,9 @@ namespace MegabonkTogether.Scripts
 
         private void UpdateNetplayOptionsUI(bool isVisible)
         {
-            // Two columns of settings: wider and taller panel while the options are shown
-            panel.GetComponent<RectTransform>().sizeDelta = isVisible ? new Vector2(1460, 820) : PanelSize;
+            // Taller panel while the options are shown
+            panel.GetComponent<RectTransform>().sizeDelta = isVisible ? new Vector2(1000, 820) : PanelSize;
             netplayOptionsTitle.SetActive(isVisible);
-            saveToggleSetting.SetActive(isVisible);
-            sharedExpToggleSetting.SetActive(isVisible);
             foreach (var row in partySettingRows)
             {
                 row.SetActive(isVisible);
