@@ -83,6 +83,75 @@ namespace MegabonkTogether.Steam
 
         public static string GetPersonaName() => PtrToUtf8(SteamAPI_ISteamFriends_GetPersonaName(friends));
 
+        #region Friends
+
+        public const string ROOM_KEY = "megaphonk_room";
+
+        private const int FRIEND_FLAG_IMMEDIATE = 0x04;
+
+        /// <summary>
+        /// Publish (or with null, remove) the room code in the rich presence: friends running the game read it to join
+        /// </summary>
+        public static void SetRoomPresence(string roomCode)
+        {
+            if (!IsAvailable)
+            {
+                return;
+            }
+
+            if (roomCode == null)
+            {
+                SteamAPI_ISteamFriends_SetRichPresence(friends, ROOM_KEY, null);
+            }
+            else
+            {
+                SteamAPI_ISteamFriends_SetRichPresence(friends, ROOM_KEY, roomCode);
+            }
+        }
+
+        /// <summary>
+        /// Steam friends who are in this game and hosting a room: (name, room code)
+        /// </summary>
+        public static List<(string Name, string Code)> GetHostingFriends()
+        {
+            var result = new List<(string, string)>();
+            if (!IsAvailable)
+            {
+                return result;
+            }
+
+            var appId = SteamAPI_ISteamUtils_GetAppID(utils);
+            var count = SteamAPI_ISteamFriends_GetFriendCount(friends, FRIEND_FLAG_IMMEDIATE);
+            var gameInfo = Marshal.AllocHGlobal(32);
+            try
+            {
+                for (var i = 0; i < count; i++)
+                {
+                    var friend = SteamAPI_ISteamFriends_GetFriendByIndex(friends, i, FRIEND_FLAG_IMMEDIATE);
+                    if (!SteamAPI_ISteamFriends_GetFriendGamePlayed(friends, friend, gameInfo)
+                        || (uint)(ulong)Marshal.ReadInt64(gameInfo) != appId)
+                    {
+                        continue;
+                    }
+
+                    SteamAPI_ISteamFriends_RequestFriendRichPresence(friends, friend);
+                    var code = PtrToUtf8(SteamAPI_ISteamFriends_GetFriendRichPresence(friends, friend, ROOM_KEY));
+                    if (!string.IsNullOrEmpty(code))
+                    {
+                        result.Add((PtrToUtf8(SteamAPI_ISteamFriends_GetFriendPersonaName(friends, friend)), code));
+                    }
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(gameInfo);
+            }
+
+            return result;
+        }
+
+        #endregion
+
         #region Room codes
 
         /// <summary>
@@ -282,6 +351,14 @@ namespace MegabonkTogether.Steam
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern ulong SteamAPI_ISteamUser_GetSteamID(IntPtr self);
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern IntPtr SteamAPI_ISteamFriends_GetPersonaName(IntPtr self);
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern uint SteamAPI_ISteamUtils_GetAppID(IntPtr self);
+
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern int SteamAPI_ISteamFriends_GetFriendCount(IntPtr self, int flags);
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern ulong SteamAPI_ISteamFriends_GetFriendByIndex(IntPtr self, int index, int flags);
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern IntPtr SteamAPI_ISteamFriends_GetFriendPersonaName(IntPtr self, ulong steamId);
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool SteamAPI_ISteamFriends_GetFriendGamePlayed(IntPtr self, ulong steamId, IntPtr gameInfo);
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern void SteamAPI_ISteamFriends_RequestFriendRichPresence(IntPtr self, ulong steamId);
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern IntPtr SteamAPI_ISteamFriends_GetFriendRichPresence(IntPtr self, ulong steamId, [MarshalAs(UnmanagedType.LPUTF8Str)] string key);
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool SteamAPI_ISteamFriends_SetRichPresence(IntPtr self, [MarshalAs(UnmanagedType.LPUTF8Str)] string key, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
 
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern int SteamAPI_ISteamNetworkingMessages_SendMessageToUser(IntPtr self, IntPtr identity, IntPtr data, uint size, int flags, int channel);
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern int SteamAPI_ISteamNetworkingMessages_ReceiveMessagesOnChannel(IntPtr self, int channel, [Out] IntPtr[] messages, int maxMessages);

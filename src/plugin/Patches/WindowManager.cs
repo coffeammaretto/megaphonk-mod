@@ -238,7 +238,9 @@ namespace MegabonkTogether.Patches
             textRectTransform.sizeDelta = new Vector2(0f, 250f);
 
             var text = textObj.AddComponent<TextMeshProUGUI>();
-            text.text = $"Role: {roleText}\nCode: ******";
+            // Steam rooms are joined through the friends list, only the server mode still has a code
+            var usesCode = !ModConfig.UseSteamNetworking.Value;
+            text.text = usesCode ? $"Role: {roleText}\nCode: ******" : $"Role: {roleText}";
             var sharedExpValue = Plugin.Instance.Mode.Role == Role.Host ? ModConfig.EnabledSharedExperience.Value : Plugin.Instance.Mode.EnabledSharedExperience;
             if (sharedExpValue.HasValue)
             {
@@ -258,8 +260,11 @@ namespace MegabonkTogether.Patches
                 return;
             }
 
-            CreateInfoButton(btn.gameObject, "CopyCodeButton", "Copy Code", OnCopyCodeClicked, 10f);
-            CreateInfoButton(btn.gameObject, "NetplayOptionsButton", "Netplay Options", OnNetplayOptionsClicked, -35f);
+            if (usesCode)
+            {
+                CreateInfoButton(btn.gameObject, "CopyCodeButton", "Copy Code", OnCopyCodeClicked, 10f);
+            }
+            CreateInfoButton(btn.gameObject, "NetplayOptionsButton", "Netplay Options", OnNetplayOptionsClicked, usesCode ? -35f : 10f);
         }
 
         private static void CreateInfoButton(GameObject template, string name, string label, System.Action onClick, float y)

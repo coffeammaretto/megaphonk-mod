@@ -8,7 +8,7 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
 
 ### Co-op
 - Online co-op for up to 6 players: **MEGAPHONK!** button in the main menu.
-- Friendlies rooms through **Steam**: no matchmaking server, the room code is the host's Steam account (5–7 characters, use the Copy Code button).
+- Rooms through **Steam**: no matchmaking server and no codes. The host presses Host and picks a character; Steam friends who run the mod see the room in MEGAPHONK! → Join.
 - The host runs the game: enemies, damage and the clients' weapons, computed with each client's real stats.
 - Optional shared experience: one level for the whole party.
 - Mod version check: a player with another build cannot join and is told why.
@@ -56,8 +56,8 @@ Settings: `BepInEx\config\MegaphonkMod.cfg` (created on the first launch). The h
 
 ## Playing
 
-- Host: MEGAPHONK! → Friendlies → Host, then share the room code.
-- Others: MEGAPHONK! → Friendlies → enter the code → Join.
+- Host: MEGAPHONK! → Host (opens the character selection, friends can join until the run starts).
+- Others: MEGAPHONK! → Join → pick the friend in the list. Friends must be on your Steam friends list and have the game running.
 
 Random matchmaking is disabled: it relies on the Megabonk Together server, whose players run an incompatible mod.
 
@@ -72,7 +72,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 Кооп-мод для **Megabonk 1.0.69** до 6 игроков, на BepInEx 6 IL2CPP.
 
 ### Что добавляет мод
-- **Кооп** до 6 игроков: кнопка **MEGAPHONK!** в главном меню. Комнаты Friendlies идут через Steam, без сервера: код комнаты — Steam-аккаунт хоста. Хост ведёт игру и считает оружие клиентов с их настоящими статами. Общий опыт по желанию. Игрока с другой версией мода не пустят в комнату и объяснят почему.
+- **Кооп** до 6 игроков: кнопка **MEGAPHONK!** в главном меню. Комнаты идут через Steam, без сервера и без кодов: друзья из Steam видят комнату хоста в списке Join. Хост ведёт игру и считает оружие клиентов с их настоящими статами. Общий опыт по желанию. Игрока с другой версией мода не пустят в комнату и объяснят почему.
 - **Награды:** пока кто-то выбирает награду, пауза у всех (`RewardPauseMode = Own` отключает общую паузу). F8 снимает зависшую паузу. Первую секунду клики в окне награды игнорируются. Уведомление о том, что взял напарник.
 - **Сундуки и золото:** купленный сундук открывается у всех, платит покупатель. Цена растёт с числом игроков. Золото у каждого своё.
 - **Статы:** пассивки персонажей действуют на всю пати по всей карте. Общие удача и сложность. Урон, убийства и эффекты предметов засчитываются их владельцу.
@@ -89,8 +89,8 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 У всех в комнате должна быть одна версия мода. Настройки: `BepInEx\config\MegaphonkMod.cfg`.
 
 ### Как играть
-- Хост: MEGAPHONK! → Friendlies → Host, передать код комнаты.
-- Остальные: MEGAPHONK! → Friendlies → ввести код → Join.
+- Хост: MEGAPHONK! → Host (открывается выбор персонажа, друзья могут войти до старта забега).
+- Остальные: MEGAPHONK! → Join → выбрать друга в списке (друг должен быть в друзьях Steam и запустить игру).
 
 ### Благодарности
 За основу взят мод [Megabonk Together](https://github.com/Fcornaire/megabonk-together) (автор Fcornaire, лицензия GPL-2.0). Megaphonk Mod распространяется под той же лицензией.

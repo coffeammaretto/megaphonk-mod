@@ -18,6 +18,8 @@ namespace MegabonkTogether.Scripts
 
         // Random matchmaking needs the Megabonk Together server, whose players run an incompatible mod
         private const bool IS_RANDOM_MATCHMAKING_ENABLED = false;
+        private const int MAX_FRIEND_ROWS = 4;
+        private const float FRIENDS_REFRESH_SECONDS = 2f;
         private CustomButton friendliesButton;
         private CustomButton closeButton;
         private CustomButton stopButton;
@@ -29,11 +31,12 @@ namespace MegabonkTogether.Scripts
         private ProfanityFilter.ProfanityFilter filter;
 
         private GameObject friendliesTitle;
-        private CustomButton hostButton;
-        private CustomButton joinButton;
+        private CustomButton joinFriendsButton;
+        private GameObject noFriendsLabel;
+        private readonly System.Collections.Generic.List<GameObject> friendRows = [];
+        private float nextFriendsRefreshAt;
+        private bool isFriendsScreenVisible;
         private CustomButton friendliesBackButton;
-        private TMP_InputField codeInput;
-        private GameObject codeLabel;
 
         protected void Awake()
         {
@@ -283,18 +286,20 @@ namespace MegabonkTogether.Scripts
             }
 
             friendliesButton = friendliesButtonObj.AddComponent<CustomButton>();
-            friendliesButton.SetOnClickAction(OnFriendliesClicked);
+            friendliesButton.SetOnClickAction(OnHostClicked);
 
             var friendliesTextWrapper = friendliesButtonObj.GetComponent<ButtonTextWrapper>();
-            friendliesTextWrapper.t_text.text = "Friendlies";
+            friendliesTextWrapper.t_text.text = "Host";
             friendliesTextWrapper.t_text.fontSize = 36;
 
             var friendliesRectTransform = friendliesButtonObj.GetComponent<RectTransform>();
             friendliesRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             friendliesRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             friendliesRectTransform.pivot = new Vector2(0.5f, 0.5f);
-            friendliesRectTransform.anchoredPosition = new Vector2(IS_RANDOM_MATCHMAKING_ENABLED ? 180f : 0f, -100f);
+            friendliesRectTransform.anchoredPosition = new Vector2(IS_RANDOM_MATCHMAKING_ENABLED ? 180f : -170f, -100f);
             friendliesRectTransform.sizeDelta = new Vector2(300, 70);
+
+            joinFriendsButton = CreateMenuButton("Join", 36, new Vector2(170f, -100f), new Vector2(300, 70), OnFriendsClicked);
         }
 
         private void CreateFriendliesUI()
@@ -310,134 +315,12 @@ namespace MegabonkTogether.Scripts
             titleRect.sizeDelta = new Vector2(400, 60);
 
             var titleText = friendliesTitle.AddComponent<TextMeshProUGUI>();
-            titleText.text = "Friendlies";
+            titleText.text = "Friends";
             titleText.alignment = TextAlignmentOptions.Center;
             titleText.fontSize = 60;
             titleText.color = Color.white;
 
             friendliesTitle.SetActive(false);
-
-            var hostButtonObj = GameObject.Instantiate(mainMenu.btnPlay.gameObject);
-            hostButtonObj.transform.SetParent(panel.transform, false);
-
-            var originalHostButton = hostButtonObj.GetComponent<MyButtonNormal>();
-            if (originalHostButton != null)
-            {
-                UnityEngine.Object.DestroyImmediate(originalHostButton);
-            }
-
-            UnityEngine.UI.Button button = hostButtonObj.GetComponentInChildren<UnityEngine.UI.Button>();
-            if (button != null)
-            {
-                button.onClick = new();
-            }
-
-            var localizeStringEvent = hostButtonObj.GetComponentInChildren<LocalizeStringEvent>();
-            if (localizeStringEvent != null)
-            {
-                UnityEngine.Object.DestroyImmediate(localizeStringEvent);
-            }
-
-            hostButton = hostButtonObj.AddComponent<CustomButton>();
-            hostButton.SetOnClickAction(OnHostClicked);
-
-            var hostTextWrapper = hostButtonObj.GetComponent<ButtonTextWrapper>();
-            hostTextWrapper.t_text.text = "Host";
-            hostTextWrapper.t_text.fontSize = 36;
-
-            var hostRectTransform = hostButtonObj.GetComponent<RectTransform>();
-            hostRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            hostRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            hostRectTransform.pivot = new Vector2(0.5f, 0.5f);
-            hostRectTransform.anchoredPosition = new Vector2(0, 50f);
-            hostRectTransform.sizeDelta = new Vector2(300, 70);
-
-            hostButton.gameObject.SetActive(false);
-
-            codeLabel = new GameObject("CodeLabel");
-            codeLabel.transform.SetParent(panel.transform, false);
-
-            var codeLabelRect = codeLabel.AddComponent<RectTransform>();
-            codeLabelRect.anchorMin = new Vector2(0.5f, 0.4f);
-            codeLabelRect.anchorMax = new Vector2(0.5f, 0.4f);
-            codeLabelRect.pivot = new Vector2(0.5f, 0.5f);
-            codeLabelRect.anchoredPosition = new Vector2(0, 25);
-            codeLabelRect.sizeDelta = new Vector2(300, 40);
-
-            var codeLabelText = codeLabel.AddComponent<TextMeshProUGUI>();
-            codeLabelText.text = "Room Code:";
-            codeLabelText.alignment = TextAlignmentOptions.Center;
-            codeLabelText.fontSize = 40;
-            codeLabelText.color = Color.white;
-
-            codeLabel.SetActive(false);
-
-            var codeInputObj = new GameObject("CodeInput");
-            codeInputObj.transform.SetParent(panel.transform, false);
-
-            var codeInputRect = codeInputObj.AddComponent<RectTransform>();
-            codeInputRect.anchorMin = new Vector2(0.5f, 0.35f);
-            codeInputRect.anchorMax = new Vector2(0.5f, 0.35f);
-            codeInputRect.pivot = new Vector2(0.5f, 0.5f);
-            codeInputRect.anchoredPosition = new Vector2(-80f, -20f);
-            codeInputRect.sizeDelta = new Vector2(250, 50);
-
-            var codeInputImage = codeInputObj.AddComponent<Image>();
-            codeInputImage.color = new Color(0.2f, 0.2f, 0.2f, 1f);
-
-            codeInput = codeInputObj.AddComponent<TMP_InputField>();
-            codeInput.textComponent = CreateCodeInputText(codeInputObj);
-            codeInput.placeholder = CreateCodePlaceholderText(codeInputObj);
-            codeInput.characterLimit = 10;
-
-            codeInput.caretWidth = 3;
-            codeInput.caretColor = Color.white;
-            codeInput.customCaretColor = true;
-            codeInput.caretBlinkRate = 0.85f;
-
-            codeInput.selectionColor = new Color(0.65f, 0.8f, 1f, 0.5f);
-
-            codeInput.enabled = false;
-            codeInput.enabled = true;
-
-            codeInput.gameObject.SetActive(false);
-
-            var joinButtonObj = GameObject.Instantiate(mainMenu.btnPlay.gameObject);
-            joinButtonObj.transform.SetParent(panel.transform, false);
-
-            var originalJoinButton = joinButtonObj.GetComponent<MyButtonNormal>();
-            if (originalJoinButton != null)
-            {
-                UnityEngine.Object.DestroyImmediate(originalJoinButton);
-            }
-
-            UnityEngine.UI.Button butt = joinButtonObj.GetComponentInChildren<UnityEngine.UI.Button>();
-            if (butt != null)
-            {
-                butt.onClick = new();
-            }
-
-            var localizeStringEventJoin = joinButtonObj.GetComponentInChildren<LocalizeStringEvent>();
-            if (localizeStringEventJoin != null)
-            {
-                UnityEngine.Object.DestroyImmediate(localizeStringEventJoin);
-            }
-
-            joinButton = joinButtonObj.AddComponent<CustomButton>();
-            joinButton.SetOnClickAction(OnJoinClicked);
-
-            var joinTextWrapper = joinButtonObj.GetComponent<ButtonTextWrapper>();
-            joinTextWrapper.t_text.text = "Join";
-            joinTextWrapper.t_text.fontSize = 36;
-
-            var joinRectTransform = joinButtonObj.GetComponent<RectTransform>();
-            joinRectTransform.anchorMin = new Vector2(0.5f, 0.35f);
-            joinRectTransform.anchorMax = new Vector2(0.5f, 0.35f);
-            joinRectTransform.pivot = new Vector2(0.5f, 0.5f);
-            joinRectTransform.anchoredPosition = new Vector2(140f, -20f);
-            joinRectTransform.sizeDelta = new Vector2(150, 50);
-
-            joinButton.gameObject.SetActive(false);
 
             var backButtonObj = GameObject.Instantiate(mainMenu.btnPlay.gameObject);
             backButtonObj.transform.SetParent(panel.transform, false);
@@ -477,49 +360,6 @@ namespace MegabonkTogether.Scripts
             friendliesBackButton.gameObject.SetActive(false);
         }
 
-        private TextMeshProUGUI CreateCodeInputText(GameObject parent)
-        {
-            var textObj = new GameObject("Text");
-            textObj.transform.SetParent(parent.transform, false);
-
-            var rectTransform = textObj.AddComponent<RectTransform>();
-            rectTransform.anchorMin = Vector2.zero;
-            rectTransform.anchorMax = Vector2.one;
-            rectTransform.sizeDelta = Vector2.zero;
-            rectTransform.anchoredPosition = Vector2.zero;
-
-            var text = textObj.AddComponent<TextMeshProUGUI>();
-            text.alignment = TextAlignmentOptions.Center;
-            text.verticalAlignment = VerticalAlignmentOptions.Middle;
-            text.fontSize = 30;
-            text.color = Color.white;
-            text.margin = new Vector4(10, 0, 10, 0);
-
-            return text;
-        }
-
-        private TextMeshProUGUI CreateCodePlaceholderText(GameObject parent)
-        {
-            var placeholderObj = new GameObject("Placeholder");
-            placeholderObj.transform.SetParent(parent.transform, false);
-
-            var rectTransform = placeholderObj.AddComponent<RectTransform>();
-            rectTransform.anchorMin = Vector2.zero;
-            rectTransform.anchorMax = Vector2.one;
-            rectTransform.sizeDelta = Vector2.zero;
-            rectTransform.anchoredPosition = Vector2.zero;
-
-            var text = placeholderObj.AddComponent<TextMeshProUGUI>();
-            text.text = "Enter code...";
-            text.alignment = TextAlignmentOptions.Center;
-            text.verticalAlignment = VerticalAlignmentOptions.Middle;
-            text.fontSize = 22;
-            text.color = new Color(1f, 1f, 1f, 0.3f);
-            text.margin = new Vector4(10, 0, 10, 0);
-
-            return text;
-        }
-
         protected override void Update()
         {
             base.Update();
@@ -533,6 +373,55 @@ namespace MegabonkTogether.Scripts
                 OnPlayerNameEndEdit();
             }
             wasInputFocused = isFocused;
+
+            if (isFriendsScreenVisible && Time.realtimeSinceStartup >= nextFriendsRefreshAt)
+            {
+                nextFriendsRefreshAt = Time.realtimeSinceStartup + FRIENDS_REFRESH_SECONDS;
+                RefreshFriends();
+            }
+        }
+
+        /// <summary>
+        /// A button cloned from the main menu's play button, with the game's own click logic replaced
+        /// </summary>
+        private CustomButton CreateMenuButton(string text, float fontSize, Vector2 position, Vector2 size, System.Action onClick)
+        {
+            var buttonObj = GameObject.Instantiate(mainMenu.btnPlay.gameObject);
+            buttonObj.transform.SetParent(panel.transform, false);
+
+            var originalButton = buttonObj.GetComponent<MyButtonNormal>();
+            if (originalButton != null)
+            {
+                UnityEngine.Object.DestroyImmediate(originalButton);
+            }
+
+            var button = buttonObj.GetComponentInChildren<UnityEngine.UI.Button>();
+            if (button != null)
+            {
+                button.onClick = new();
+            }
+
+            var localizeStringEvent = buttonObj.GetComponentInChildren<LocalizeStringEvent>();
+            if (localizeStringEvent != null)
+            {
+                UnityEngine.Object.DestroyImmediate(localizeStringEvent);
+            }
+
+            var customButton = buttonObj.AddComponent<CustomButton>();
+            customButton.SetOnClickAction(onClick);
+
+            var textWrapper = buttonObj.GetComponent<ButtonTextWrapper>();
+            textWrapper.t_text.text = text;
+            textWrapper.t_text.fontSize = fontSize;
+
+            var rect = buttonObj.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+
+            return customButton;
         }
 
         private void OnPlayerNameEndEdit()
@@ -580,7 +469,7 @@ namespace MegabonkTogether.Scripts
             connectionCoroutine = CoroutineRunner.Instance.Run(HandleConnectionStatus());
         }
 
-        private void OnFriendliesClicked()
+        private void OnFriendsClicked()
         {
             AudioManager.Instance.PlaySfx(AudioManager.Instance.uiSelect.sounds[0]);
 
@@ -597,7 +486,7 @@ namespace MegabonkTogether.Scripts
             Plugin.Instance.Mode.Mode = NetworkModeType.Friendlies;
             Plugin.Instance.Mode.Role = Role.Host;
 
-            UpdateFriendliesUI(false);
+            UpdateModalContents(false);
 
             ShowLoader("Connecting...");
 
@@ -605,16 +494,9 @@ namespace MegabonkTogether.Scripts
             connectionCoroutine = CoroutineRunner.Instance.Run(HandleFriendlies());
         }
 
-        private void OnJoinClicked()
+        private void OnJoinFriendClicked(string code)
         {
             AudioManager.Instance.PlaySfx(AudioManager.Instance.uiSelect.sounds[0]);
-
-            var code = codeInput.text.Trim().ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(code))
-            {
-                SetStatusText("Please enter a room code");
-                return;
-            }
 
             Plugin.Instance.Mode.Mode = NetworkModeType.Friendlies;
             Plugin.Instance.Mode.Role = Role.Client;
@@ -662,6 +544,7 @@ namespace MegabonkTogether.Scripts
         {
             randomButton.gameObject.SetActive(isVisible && IS_RANDOM_MATCHMAKING_ENABLED);
             friendliesButton.gameObject.SetActive(isVisible);
+            joinFriendsButton.gameObject.SetActive(isVisible);
             closeButton.gameObject.SetActive(isVisible);
             playerNameInput.gameObject.SetActive(isVisible);
             label.SetActive(isVisible);
@@ -669,12 +552,66 @@ namespace MegabonkTogether.Scripts
 
         private void UpdateFriendliesUI(bool isVisible)
         {
+            isFriendsScreenVisible = isVisible;
             friendliesTitle.SetActive(isVisible);
-            hostButton.gameObject.SetActive(isVisible);
-            codeLabel.SetActive(isVisible);
-            codeInput.gameObject.SetActive(isVisible);
-            joinButton.gameObject.SetActive(isVisible);
             friendliesBackButton.gameObject.SetActive(isVisible);
+            if (isVisible)
+            {
+                nextFriendsRefreshAt = 0f;
+            }
+            else
+            {
+                ClearFriendRows();
+            }
+        }
+
+        private void ClearFriendRows()
+        {
+            foreach (var row in friendRows)
+            {
+                Destroy(row);
+            }
+            friendRows.Clear();
+
+            if (noFriendsLabel != null)
+            {
+                Destroy(noFriendsLabel);
+                noFriendsLabel = null;
+            }
+        }
+
+        /// <summary>
+        /// Friends who host a room (published in their Steam rich presence): one button each, refreshed while the screen is open
+        /// </summary>
+        private void RefreshFriends()
+        {
+            ClearFriendRows();
+
+            var hosting = Steam.SteamApi.Initialize() ? Steam.SteamApi.GetHostingFriends() : [];
+            if (hosting.Count == 0)
+            {
+                noFriendsLabel = new GameObject("NoFriendsLabel");
+                noFriendsLabel.transform.SetParent(panel.transform, false);
+                var rect = noFriendsLabel.AddComponent<RectTransform>();
+                rect.anchorMin = new Vector2(0.5f, 0.5f);
+                rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(0f, 40f);
+                rect.sizeDelta = new Vector2(600, 120);
+                var text = noFriendsLabel.AddComponent<TextMeshProUGUI>();
+                text.text = "No Steam friends are hosting right now.\nAsk a friend to press Host.";
+                text.alignment = TextAlignmentOptions.Center;
+                text.fontSize = 28;
+                text.color = Color.white;
+                return;
+            }
+
+            for (var i = 0; i < hosting.Count && i < MAX_FRIEND_ROWS; i++)
+            {
+                var (name, code) = hosting[i];
+                var row = CreateMenuButton(name, 32, new Vector2(0f, 110f - i * 75f), new Vector2(450, 60), () => OnJoinFriendClicked(code));
+                friendRows.Add(row.gameObject);
+            }
         }
 
         private IEnumerator HandleConnectionStatus()
@@ -787,7 +724,7 @@ namespace MegabonkTogether.Scripts
 
                 stopButton.gameObject.SetActive(false);
                 yield return new WaitForSeconds(4f);
-                UpdateFriendliesUI(true);
+                UpdateModalContents(true);
                 SetStatusText("");
 
                 yield break;
@@ -808,7 +745,7 @@ namespace MegabonkTogether.Scripts
                     stopButton.gameObject.SetActive(false);
 
                     yield return new WaitForSeconds(3f);
-                    UpdateFriendliesUI(true);
+                    UpdateModalContents(true);
                     SetStatusText("");
                     yield break;
                 }
@@ -823,7 +760,7 @@ namespace MegabonkTogether.Scripts
                 Plugin.Instance.NetworkHandler.ResetNetworking();
                 stopButton.gameObject.SetActive(false);
                 yield return new WaitForSeconds(4f);
-                UpdateFriendliesUI(true);
+                UpdateModalContents(true);
                 SetStatusText("");
                 yield break;
             }

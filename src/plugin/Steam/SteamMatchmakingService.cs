@@ -104,6 +104,7 @@ namespace MegabonkTogether.Steam
                 SteamApi.SetSessionRequestHandler(sessionRequests.Enqueue);
                 Plugin.Instance.Mode.RoomCode = SteamApi.SteamIdToCode(selfSteamId);
                 Plugin.Log.LogInfo($"Steam room open, code {Plugin.Instance.Mode.RoomCode}");
+                SteamApi.SetRoomPresence(Plugin.Instance.Mode.RoomCode); // Friends see the room in the mod's friends list
 
                 networkHandler.OnConnectedToMatchMaker();
                 StartLoop();
@@ -461,6 +462,7 @@ namespace MegabonkTogether.Steam
 
             // Same as the server's room lock: nobody joins a run in progress
             isRoomLocked = true;
+            SteamApi.SetRoomPresence(null);
             return Task.FromResult(true);
         }
 
@@ -484,6 +486,7 @@ namespace MegabonkTogether.Steam
                 // Tell the others right away instead of letting them time out
                 if (isHost)
                 {
+                    SteamApi.SetRoomPresence(null);
                     SteamApi.SetSessionRequestHandler(null);
                     foreach (var member in members.Keys)
                     {
