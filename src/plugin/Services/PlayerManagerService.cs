@@ -46,6 +46,16 @@ namespace MegabonkTogether.Services
         public NetPlayer GetNetPlayerByNetplayId(uint connectionId);
         public NetPlayer GetNetPlayerByWeapon(WeaponBase weapon);
 
+        /// <summary>
+        /// Weapons were added, toggled or removed somewhere: rebuild the weapon -> net player lookup on next use
+        /// </summary>
+        public void InvalidateWeaponOwners();
+
+        /// <summary>
+        /// Transform enemies chase for this player (local player or net player model), cached. Null if it can't be resolved.
+        /// </summary>
+        public Transform GetTargetTransform(uint connectionId);
+
         public void ResetForNextLevel();
         public void AddPlayerInventory(uint connectionId, PlayerInventory inventory);
         public PlayerInventory GetPlayerInventory(uint connectionId);
@@ -98,6 +108,16 @@ namespace MegabonkTogether.Services
         private ConcurrentQueue<uint> getNetplayerPositionQueue = new();
         private ConcurrentQueue<uint> getNetplayerPositionRequestQueue = new();
         private ConcurrentDictionary<uint, PlayerInventory> playerInventories = new();
+
+        // Weapon (native pointer) -> net player owning it. Asked by every projectile/weapon patch: it used to scan every net
+        // player's weapon dictionary (native calls). Weapons found on no net player (local ones) are remembered as well.
+        // Main thread only, rebuilt after any weapon add/toggle/remove and net player spawn/removal.
+        private readonly Dictionary<IntPtr, NetPlayer> netPlayersByWeapon = [];
+        private readonly HashSet<IntPtr> weaponsWithoutNetPlayer = [];
+        private bool weaponOwnersDirty = true;
+
+        // Transform enemies chase, per connection id (main thread only). Model is kept to notice a replaced net player model.
+        private readonly Dictionary<uint, (GameObject Model, Transform Transform)> targetTransforms = [];
 
         public PlayerManagerService(ManualLogSource logger)
         {
@@ -288,6 +308,9 @@ namespace MegabonkTogether.Services
                 GameObject.Destroy(toDelete.gameObject);
             }
 
+            InvalidateWeaponOwners();
+            targetTransforms.Remove(connectionId);
+
             CleanQueue(projectileToSpawnQueue, connectionId);
             CleanQueue(getNetplayerPositionQueue, connectionId);
             CleanQueue(getNetplayerPositionRequestQueue, connectionId);
@@ -347,6 +370,9 @@ namespace MegabonkTogether.Services
                 spawnedPlayers.TryAdd(other.ConnectionId, player);
                 player.Initialize((ECharacter)other.Character, other.ConnectionId, other.Skin);
             }
+
+            InvalidateWeaponOwners();
+            targetTransforms.Clear();
         }
 
         public IEnumerable<NetPlayer> GetAllSpawnedNetPlayers()
@@ -475,8 +501,144 @@ namespace MegabonkTogether.Services
 
         public NetPlayer GetNetPlayerByWeapon(WeaponBase weapon)
         {
-            return spawnedPlayers.Values
-                .FirstOrDefault(np => np.Inventory.weaponInventory.weapons.ContainsValue(weapon));
+            if (weapon is null)
+            {
+                return FindNetPlayerByWeapon(weapon);
+            }
+
+            if (weaponOwnersDirty)
+            {
+                RebuildWeaponOwners();
+            }
+
+            var pointer = weapon.Pointer;
+            if (netPlayersByWeapon.TryGetValue(pointer, out var owner))
+            {
+                return owner;
+            }
+
+            if (weaponsWithoutNetPlayer.Contains(pointer))
+            {
+                return null;
+            }
+
+            owner = FindNetPlayerByWeapon(weapon); //Not seen yet: same scan as before, then remembered
+            if (owner != null)
+            {
+                netPlayersByWeapon[pointer] = owner;
+            }
+            else
+            {
+                weaponsWithoutNetPlayer.Add(pointer);
+            }
+
+            return owner;
+        }
+
+        private NetPlayer FindNetPlayerByWeapon(WeaponBase weapon)
+        {
+            foreach (var (_, netPlayer) in spawnedPlayers)
+            {
+                if (netPlayer.Inventory.weaponInventory.weapons.ContainsValue(weapon))
+                {
+                    return netPlayer;
+                }
+            }
+
+            return null;
+        }
+
+        private void RebuildWeaponOwners()
+        {
+            weaponOwnersDirty = false;
+            netPlayersByWeapon.Clear();
+            weaponsWithoutNetPlayer.Clear();
+
+            foreach (var (_, netPlayer) in spawnedPlayers)
+            {
+                var weapons = netPlayer?.Inventory?.weaponInventory?.weapons;
+                if (weapons == null)
+                {
+                    continue;
+                }
+
+                foreach (var ownedWeapon in weapons.Values)
+                {
+                    if (ownedWeapon is not null)
+                    {
+                        netPlayersByWeapon.TryAdd(ownedWeapon.Pointer, netPlayer);
+                    }
+                }
+            }
+        }
+
+        public void InvalidateWeaponOwners()
+        {
+            weaponOwnersDirty = true;
+        }
+
+        public Transform GetTargetTransform(uint connectionId)
+        {
+            if (targetTransforms.TryGetValue(connectionId, out var cached))
+            {
+                if (connectionId == localConnectionId)
+                {
+                    if (cached.Transform.CachedPtr() != IntPtr.Zero)
+                    {
+                        return cached.Transform;
+                    }
+                }
+                else if (spawnedPlayers.TryGetValue(connectionId, out var cachedNetPlayer)
+                    && ReferenceEquals(cachedNetPlayer.Model, cached.Model)
+                    && cached.Transform.CachedPtr() != IntPtr.Zero)
+                {
+                    return cached.Transform;
+                }
+
+                targetTransforms.Remove(connectionId);
+            }
+
+            if (!isLocalPlayerSet)
+            {
+                return null;
+            }
+
+            GameObject model;
+            Transform transform;
+            if (connectionId == localConnectionId)
+            {
+                var player = GameManager.Instance?.player;
+                if (player is null || player.CachedPtr() == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                model = null;
+                transform = player.transform; //Same transform as the player's rigidbody one
+            }
+            else
+            {
+                if (!spawnedPlayers.TryGetValue(connectionId, out var netPlayer) || netPlayer is null)
+                {
+                    return null;
+                }
+
+                model = netPlayer.Model;
+                if (model is null || model.CachedPtr() == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                transform = model.transform;
+            }
+
+            if (transform is null || transform.CachedPtr() == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            targetTransforms[connectionId] = (model, transform);
+            return transform;
         }
 
         public void UnqueueNetplayerPositionRequest()
@@ -511,6 +673,8 @@ namespace MegabonkTogether.Services
             });
             spawnedPlayers.ToList().ForEach(p => p.Value.gameObject.SetActive(false));
             spawnedPlayers.Clear();
+            InvalidateWeaponOwners();
+            targetTransforms.Clear();
             projectileToSpawnQueue.Clear();
             getNetplayerPositionQueue.Clear();
             getNetplayerPositionRequestQueue.Clear();
@@ -577,6 +741,8 @@ namespace MegabonkTogether.Services
                 }
             }
             spawnedPlayers.Clear();
+            InvalidateWeaponOwners();
+            targetTransforms.Clear();
             projectileToSpawnQueue.Clear();
             getNetplayerPositionQueue.Clear();
             getNetplayerPositionRequestQueue.Clear();

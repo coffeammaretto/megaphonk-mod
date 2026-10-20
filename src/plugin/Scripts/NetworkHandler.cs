@@ -60,6 +60,19 @@ namespace MegabonkTogether.Scripts
 
         public bool IsHost => isHost;
 
+        /// <summary>
+        /// Per frame values read once here instead of once per enemy/interpolator (each Time call is a native call).
+        /// Scripts updated before this one in a frame see the previous frame's values.
+        /// </summary>
+        public static int FrameIndex { get; private set; }
+        public static double FrameTimeAsDouble { get; private set; }
+        public static float FrameDeltaTime { get; private set; }
+
+        // Created once: a method group passed to SafeTick allocated a delegate per call, every frame
+        private System.Action[] updateTicks;
+        private System.Action flushPendingNetworkUpdatesTick;
+        private System.Action applyDownedPoseTick;
+
         public void Awake()
         {
             websocketClientService = Plugin.Services.GetRequiredService<IWebsocketClientService>();
@@ -81,6 +94,10 @@ namespace MegabonkTogether.Scripts
 
         public void Update()
         {
+            FrameIndex++;
+            FrameTimeAsDouble = Time.timeAsDouble;
+            FrameDeltaTime = Time.deltaTime;
+
             try
             {
                 if (udpClientService == null || synchronizationService == null) return;
@@ -94,27 +111,35 @@ namespace MegabonkTogether.Scripts
                 if (GameManager.Instance == null || GameManager.Instance.player == null || GameManager.Instance.player.inventory == null) return;
 
                 // Each feature on its own: one failing must not stop the player/enemy updates below
-                SafeTick(synchronizationService.UpdateEncounterSync);
-                SafeTick(synchronizationService.RetryPendingInventoryReplays);
-                SafeTick(synchronizationService.CheckPeerModVersions);
-                SafeTick(partyStatsService.Tick);
-                SafeTick(partyModifiersService.Tick);
-                SafeTick(downedService.Tick);
-                SafeTick(pingService.Tick);
-                SafeTick(teamMeterService.Tick);
-                SafeTick(challengeService.Tick);
-                SafeTick(runStatsService.Tick);
+                updateTicks ??=
+                [
+                    synchronizationService.UpdateEncounterSync,
+                    synchronizationService.RetryPendingInventoryReplays,
+                    synchronizationService.CheckPeerModVersions,
+                    partyStatsService.Tick,
+                    partyModifiersService.Tick,
+                    downedService.Tick,
+                    pingService.Tick,
+                    teamMeterService.Tick,
+                    challengeService.Tick,
+                    runStatsService.Tick,
+                ];
+                foreach (var tick in updateTicks)
+                {
+                    SafeTick(tick);
+                }
 
-                lobbyUpdateAccumulator += Time.deltaTime;
+                var deltaTime = FrameDeltaTime;
+                lobbyUpdateAccumulator += deltaTime;
 
                 if (isHost && isGameStarted)
                 {
-                    enemyUpdateAccumulator += Time.deltaTime;
-                    projectileUpdateAccumulator += Time.deltaTime;
+                    enemyUpdateAccumulator += deltaTime;
+                    projectileUpdateAccumulator += deltaTime;
 
                     if (MapController.runConfig.mapData.eMap == EMap.Desert)
                     {
-                        tumbleWeedUpdateAccumulator += Time.deltaTime;
+                        tumbleWeedUpdateAccumulator += deltaTime;
                     }
                 }
 
@@ -164,14 +189,16 @@ namespace MegabonkTogether.Scripts
 
                 if (synchronizationService != null)
                 {
-                    SafeTick(synchronizationService.FlushPendingNetworkUpdates);
+                    flushPendingNetworkUpdatesTick ??= synchronizationService.FlushPendingNetworkUpdates;
+                    SafeTick(flushPendingNetworkUpdatesTick);
                 }
 
                 udpClientService.FlushPendingMessages();
 
                 if (downedService != null && GameManager.Instance != null && GameManager.Instance.player != null)
                 {
-                    SafeTick(downedService.ApplyDownedPose);
+                    applyDownedPoseTick ??= downedService.ApplyDownedPose;
+                    SafeTick(applyDownedPoseTick);
                 }
             }
             catch (System.Exception ex)

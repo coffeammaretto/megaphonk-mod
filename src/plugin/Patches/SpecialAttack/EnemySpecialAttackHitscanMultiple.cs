@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using MegabonkTogether.Services;
 using Microsoft.Extensions.DependencyInjection;
-using MonoMod.Utils;
+using MegabonkTogether.Helpers;
 using static EnemySpecialAttackHitscanMultiple;
 
 namespace MegabonkTogether.Patches.SpecialAttack
@@ -23,7 +23,7 @@ namespace MegabonkTogether.Patches.SpecialAttack
             {
                 return;
             }
-            var targetId = DynamicData.For(__instance.__4__this.enemy).Get<uint?>("targetId");
+            var targetId = EnemyTargets.Get(__instance.__4__this.enemy);
             if (targetId.HasValue)
             {
                 playerManagerService.AddGetNetplayerPositionRequest(targetId.Value);
@@ -41,7 +41,7 @@ namespace MegabonkTogether.Patches.SpecialAttack
             {
                 return;
             }
-            var targetId = DynamicData.For(__instance.__4__this.enemy).Get<uint?>("targetId");
+            var targetId = EnemyTargets.Get(__instance.__4__this.enemy);
             if (targetId.HasValue)
             {
                 playerManagerService.UnqueueNetplayerPositionRequest();

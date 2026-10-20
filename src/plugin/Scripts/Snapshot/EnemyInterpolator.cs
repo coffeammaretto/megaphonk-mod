@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Actors.Enemies;
+using MegabonkTogether.Helpers;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,6 +9,7 @@ namespace MegabonkTogether.Scripts.Snapshot
     public class EnemyInterpolator : MonoBehaviour
     {
         private Enemy enemy;
+        private Transform enemyTransform;
 
         private readonly List<EnemySnapshot> snapshotsBuffer = new List<EnemySnapshot>();
 
@@ -19,14 +21,19 @@ namespace MegabonkTogether.Scripts.Snapshot
             if (!HasEnoughSnapshots())
                 return;
 
-            double renderTime = Time.timeAsDouble - interpolationDelayMs;
+            double renderTime = NetworkHandler.FrameTimeAsDouble - interpolationDelayMs;
             PerformInterpolation(renderTime);
             CleanupOldSnapshots(renderTime);
         }
 
+        /// <summary>
+        /// Called on every spawn: pooled enemies keep their interpolator, so the previous life's snapshots are dropped
+        /// </summary>
         public void Initialize(Enemy enemy)
         {
             this.enemy = enemy;
+            enemyTransform = enemy.transform;
+            snapshotsBuffer.Clear();
         }
 
         public void AddSnapshot(EnemySnapshot snapshot)
@@ -51,24 +58,25 @@ namespace MegabonkTogether.Scripts.Snapshot
 
             enemy.hp = newer.Hp;
 
+            var transform = enemyTransform;
+            if (transform is null || transform.CachedPtr() == System.IntPtr.Zero)
+            {
+                return;
+            }
+
             float dist = Vector3.Distance(older.Position, newer.Position);
             if (dist > 2.0f)
             {
-                enemy.transform.position = newer.Position;
-                enemy.transform.rotation = newer.Rotation;
+                transform.position = newer.Position;
+                transform.rotation = newer.Rotation;
                 return;
             }
 
             float t = CalculateInterpolationFactor(renderTime, older.Timestamp, newer.Timestamp);
             t = Mathf.Clamp01(t);
 
-            if (enemy.transform == null)
-            {
-                return;
-            }
-
-            enemy.transform.position = Vector3.Lerp(older.Position, newer.Position, t);
-            enemy.transform.rotation = Quaternion.Slerp(older.Rotation, newer.Rotation, t);
+            transform.position = Vector3.Lerp(older.Position, newer.Position, t);
+            transform.rotation = Quaternion.Slerp(older.Rotation, newer.Rotation, t);
         }
 
         private bool FindSnapshotPair(double renderTime, out EnemySnapshot older, out EnemySnapshot newer)

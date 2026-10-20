@@ -52,6 +52,7 @@ namespace MegabonkTogether.Scripts.NetPlayer
         private GameObject minimapIcon;
         private GameObject nameplate;
         private TextMeshProUGUI nameplateText;
+        private string lastNameplateText;
         private bool isDead;
         private const float NAMEPLATE_MAX_DISTANCE = 100f;
         private const float NAMEPLATE_Y_OFFSET = 5.0f;
@@ -458,6 +459,7 @@ namespace MegabonkTogether.Scripts.NetPlayer
                 nameplateText = nameplate.AddComponent<TextMeshProUGUI>();
 
                 nameplateText.text = player.Name;
+                lastNameplateText = player.Name;
                 nameplateText.fontSize = 24;
                 nameplateText.alignment = TextAlignmentOptions.Center;
                 nameplateText.color = Color.white;
@@ -488,9 +490,10 @@ namespace MegabonkTogether.Scripts.NetPlayer
             }
             var isDowned = playerManagerService.IsDowned(connectionId);
             var text = isDowned ? Loc.F("{0} - DOWN", player.Name) : player.Name;
-            if (nameplateText.text != text)
+            if (lastNameplateText != text) //Last text set, not read back from TMP (native call + string copy every frame)
             {
                 nameplateText.text = text;
+                lastNameplateText = text;
                 nameplateText.color = isDowned ? Color.red : Color.white;
             }
         }

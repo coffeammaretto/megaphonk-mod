@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,16 +10,17 @@ namespace MegabonkTogether.Helpers
     /// </summary>
     public class DistanceThrottler(float mediumDistanceUpdateInterval = 1f)
     {
-        private readonly Dictionary<int, float> lastUpdateTimes = [];
+        // Keyed by the object's native pointer (pooled objects keep it, GetInstanceID is a native call)
+        private readonly Dictionary<IntPtr, float> lastUpdateTimes = [];
         private readonly float mediumDistanceUpdateInterval = mediumDistanceUpdateInterval;
 
-        public bool ShouldUpdate(GameObject gameObject, int instanceId, bool isServer = false)
+        public bool ShouldUpdate(Transform transform, IntPtr instanceId, bool isServer = false)
         {
-            DistanceToPlayer distance = Plugin.GetDistanceToPlayer(gameObject.transform.position);
+            DistanceToPlayer distance = Plugin.GetDistanceToPlayer(transform.position);
             return ShouldUpdate(instanceId, distance, isServer);
         }
 
-        private bool ShouldUpdate(int instanceId, DistanceToPlayer distance, bool isServer = false)
+        private bool ShouldUpdate(IntPtr instanceId, DistanceToPlayer distance, bool isServer = false)
         {
             switch (distance)
             {
@@ -47,7 +49,7 @@ namespace MegabonkTogether.Helpers
             }
         }
 
-        public void Cleanup(int instanceId)
+        public void Cleanup(IntPtr instanceId)
         {
             lastUpdateTimes.Remove(instanceId);
         }

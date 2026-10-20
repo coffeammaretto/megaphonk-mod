@@ -314,9 +314,15 @@ namespace MegabonkTogether.Services
             ResetForNextLevel();
         }
 
+        // Reused every frame by ApplyDownedPose (LateUpdate): no per frame allocations
+        private readonly System.Collections.Generic.List<Transform> downedModels = [];
+        private readonly System.Collections.Generic.HashSet<int> posedIds = [];
+        private readonly System.Collections.Generic.List<int> unposedIds = [];
+
         public void ApplyDownedPose()
         {
-            var downedModels = new System.Collections.Generic.List<Transform>();
+            downedModels.Clear();
+            posedIds.Clear();
 
             var localRenderer = GameManager.Instance?.player?.playerRenderer;
             if (IsLocalDowned && localRenderer != null)
@@ -332,7 +338,6 @@ namespace MegabonkTogether.Services
                 }
             }
 
-            var posedIds = new System.Collections.Generic.HashSet<int>();
             var wobblePhase = Time.unscaledTime * DAZED_WOBBLE_SPEED;
             var pose = Quaternion.Euler(
                 DAZED_LEAN_DEGREES + Mathf.Sin(wobblePhase) * DAZED_WOBBLE_DEGREES,
@@ -354,7 +359,16 @@ namespace MegabonkTogether.Services
                 dazedModels[id] = (model, baseRotation, posedRotation);
             }
 
-            foreach (var id in dazedModels.Keys.Where(id => !posedIds.Contains(id)).ToList())
+            unposedIds.Clear();
+            foreach (var id in dazedModels.Keys)
+            {
+                if (!posedIds.Contains(id))
+                {
+                    unposedIds.Add(id);
+                }
+            }
+
+            foreach (var id in unposedIds)
             {
                 var posed = dazedModels[id];
                 if (posed.Transform != null && posed.Transform.rotation == posed.PosedRotation)

@@ -31,7 +31,7 @@ namespace MegabonkTogether.Patches.Projectiles
                 return true;
             }
 
-            var netPlayer = Plugin.Services.GetService<IPlayerManagerService>().GetNetPlayerByWeapon(__instance.weaponBase);
+            var netPlayer = playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase);
             if (netPlayer == null)
             {
                 return true;

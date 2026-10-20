@@ -1,9 +1,11 @@
 using Assets.Scripts.Actors.Enemies;
+using MegabonkTogether.Helpers;
 using MegabonkTogether.Services;
 using Microsoft.Extensions.DependencyInjection;
-using MonoMod.Utils;
+using System;
 using System.Linq;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace MegabonkTogether.Scripts.Enemies
 {
@@ -19,7 +21,6 @@ namespace MegabonkTogether.Scripts.Enemies
         private (float min, float max) switchIntervalRange = (2f, 6f);
         private IPlayerManagerService playerManagerService;
         private ISynchronizationService synchronizationService;
-        private DynamicData enemyData;
 
         private void Awake()
         {
@@ -27,10 +28,16 @@ namespace MegabonkTogether.Scripts.Enemies
             synchronizationService = Plugin.Services.GetService<ISynchronizationService>();
         }
 
+        /// <summary>
+        /// Called on every spawn: pooled enemies keep their switcher, so everything starts again as on a new component
+        /// </summary>
         public uint StartSwitching(Enemy targetEnemy, bool pickACloseTarget = false)
         {
             enemy = targetEnemy;
-            enemyData = DynamicData.For(enemy);
+            switchMaxDistance = 100f;
+            switchIntervalRange = (2f, 6f);
+            currentTarget = (null, null);
+            currentTargetNetplayId = 0;
             ResetTimer();
 
             if (pickACloseTarget)
@@ -111,9 +118,9 @@ namespace MegabonkTogether.Scripts.Enemies
 
         private void Update()
         {
-            if (enemy == null) return;
+            if (enemy is null || enemy.CachedPtr() == IntPtr.Zero) return;
 
-            timer += Time.deltaTime;
+            timer += NetworkHandler.FrameDeltaTime;
             if (timer >= delay)
             {
                 if (!synchronizationService.HasNetplaySessionStarted()) return;
@@ -126,7 +133,7 @@ namespace MegabonkTogether.Scripts.Enemies
                 }
                 if (CanSwitch())
                 {
-                    enemyData.Set("targetId", currentTargetNetplayId);
+                    EnemyTargets.Set(enemy, currentTargetNetplayId);
                     enemy.target = currentTarget.rigidBody;
                 }
                 ResetTimer();

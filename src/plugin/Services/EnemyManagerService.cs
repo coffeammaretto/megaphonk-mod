@@ -1,10 +1,9 @@
 ﻿using Actors.Enemies;
 using Assets.Scripts.Actors.Enemies;
 using MegabonkTogether.Common.Models;
-using MegabonkTogether.Extensions;
 using MegabonkTogether.Helpers;
 using MegabonkTogether.Scripts.Enemies;
-using MonoMod.Utils;
+using MegabonkTogether.Scripts.Snapshot;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,10 +14,11 @@ namespace MegabonkTogether.Services
     public interface IEnemyManagerService
     {
         public IEnumerable<(uint, uint)> ReTargetEnemies(uint oldTargetId, IEnumerable<uint> currentPlayersExcludingOldOneId);
-        public IEnumerable<EnemyModel> GetAllEnemiesDeltaAndUpdate();
+        public List<EnemyModel> GetAllEnemiesDeltaAndUpdate();
         public uint AddSpawnedEnemy(Enemy enemy);
-        public void SetSpawnedEnemy(uint enemyId, Enemy enemy);
+        public void SetSpawnedEnemy(uint enemyId, Enemy enemy, EnemyInterpolator interpolator = null);
         public Enemy GetEnemyById(uint id);
+        public EnemyInterpolator GetEnemyInterpolatorById(uint id);
         public KeyValuePair<uint, Enemy> GetEnemyByReference(Enemy enemy);
         public void RemoveEnemyById(uint id);
         public void ResetForNextLevel();
@@ -33,9 +33,31 @@ namespace MegabonkTogether.Services
     }
     internal class EnemyManagerService : IEnemyManagerService
     {
+        /// <summary>
+        /// Host snapshot state of one enemy: its transform (fetched once) and what was last sent for it, quantized
+        /// </summary>
+        private class EnemySyncState
+        {
+            public Transform Transform;
+            public bool HasSent;
+            public short X;
+            public short Y;
+            public short Z;
+            public ushort Yaw;
+            public float Hp;
+            public float LastSentAt;
+            public long LastTick;
+        }
+
         private readonly ConcurrentDictionary<uint, Enemy> spawnedEnemies = [];
-        private Dictionary<uint, EnemyModel> previousSpawnedEnemiesDelta = [];
-        private Dictionary<uint, float> lastSentTimes = [];
+        // Enemy native pointer -> network id (was a DynamicData field)
+        private readonly ConcurrentDictionary<System.IntPtr, uint> enemyIdsByPointer = [];
+        // Client: interpolator of each spawned enemy, so snapshots don't call GetComponent per enemy
+        private readonly ConcurrentDictionary<uint, EnemyInterpolator> enemyInterpolators = [];
+        // Host snapshot states (main thread only)
+        private readonly Dictionary<uint, EnemySyncState> syncStates = [];
+        private readonly List<uint> staleSyncStates = [];
+        private long snapshotTick = 0;
         private readonly ConcurrentDictionary<Enemy, string> reviverEnemies_NetplayNames = [];
         private readonly ConcurrentDictionary<uint, int> reviverSpawnCountPerOwner = [];
         private uint currentEnemyId = 0; //TODO: concurrency?
@@ -59,7 +81,7 @@ namespace MegabonkTogether.Services
 
             var oldTargetEnemies = spawnedEnemies.Values.Where(enemy =>
             {
-                var currentTargetid = DynamicData.For(enemy).Get<uint?>("targetId");
+                var currentTargetid = EnemyTargets.Get(enemy);
                 if (currentTargetid.HasValue && currentTargetid.Value == oldTargetId)
                 {
                     return true;
@@ -73,7 +95,7 @@ namespace MegabonkTogether.Services
                 var randomIndex = Random.Range(0, currentPlayersAliveExcludingOldOneId.Count());
                 var randomNewTargetId = currentPlayersAliveExcludingOldOneId.ElementAt(randomIndex);
 
-                DynamicData.For(oldEnemy).Set("targetId", randomNewTargetId);
+                EnemyTargets.Set(oldEnemy, randomNewTargetId);
                 var enemyId = GetEnemyByReference(oldEnemy).Key;
 
                 retargetedEnemies.Add((enemyId, randomNewTargetId));
@@ -92,7 +114,7 @@ namespace MegabonkTogether.Services
                     var playerRigidbody = playerId_rigidbody.FirstOrDefault(pr => pr.Item1 == newTargetId).Item2;
                     if (playerRigidbody != null)
                     {
-                        DynamicData.For(enemy).Set("targetId", newTargetId);
+                        EnemyTargets.Set(enemy, newTargetId);
                         enemy.target = playerRigidbody;
                     }
                 }
@@ -107,58 +129,94 @@ namespace MegabonkTogether.Services
         /// This should be called once per server tick
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<EnemyModel> GetAllEnemiesDeltaAndUpdate()
+        public List<EnemyModel> GetAllEnemiesDeltaAndUpdate()
         {
-            var currentEnemies = new Dictionary<uint, EnemyModel>(spawnedEnemies.Count);
-            foreach (var (id, enemy) in spawnedEnemies)
-            {
-                currentEnemies[id] = enemy.ToModel(id);
-            }
-
             // Snapshots are unreliable: compare against what was last sent (not the last tick) so slow moves add up,
-            // and resend every enemy at least once a second so a lost packet doesn't leave a client copy stuck
+            // and resend every enemy at least once a second so a lost packet doesn't leave a client copy stuck.
+            // The state is quantized and compared first: a model is only allocated for what is sent.
+            snapshotTick++;
             var now = Time.realtimeSinceStartup;
             var deltas = new List<EnemyModel>();
-            var sentModels = new Dictionary<uint, EnemyModel>(currentEnemies.Count);
-            var sentTimes = new Dictionary<uint, float>(currentEnemies.Count);
+            var count = 0;
 
-            foreach (var current in currentEnemies.Values)
+            foreach (var (id, enemy) in spawnedEnemies)
             {
-                var hasPrevious = previousSpawnedEnemiesDelta.TryGetValue(current.Id, out var previous);
-                var lastSent = lastSentTimes.TryGetValue(current.Id, out var sentAt) ? sentAt : float.MinValue;
-
-                if (!hasPrevious || HasDelta(previous, current) || now - lastSent >= FULL_RESEND_INTERVAL_SECONDS)
+                count++;
+                if (!syncStates.TryGetValue(id, out var state))
                 {
-                    deltas.Add(current);
-                    sentModels[current.Id] = current;
-                    sentTimes[current.Id] = now;
+                    state = new EnemySyncState();
+                    syncStates[id] = state;
                 }
-                else
+
+                var transform = state.Transform;
+                if (transform is null || transform.CachedPtr() == System.IntPtr.Zero)
                 {
-                    sentModels[current.Id] = previous;
-                    sentTimes[current.Id] = lastSent;
+                    transform = enemy.transform;
+                    state.Transform = transform;
+                }
+
+                var position = transform.position;
+                var x = Quantizer.Quantize(position.x);
+                var y = Quantizer.Quantize(position.y);
+                var z = Quantizer.Quantize(position.z);
+                var yaw = Quantizer.QuantizeYawValue(transform.eulerAngles.y);
+                var hp = enemy.hp;
+                state.LastTick = snapshotTick;
+
+                if (!state.HasSent || HasDelta(state, x, y, z, yaw, hp) || now - state.LastSentAt >= FULL_RESEND_INTERVAL_SECONDS)
+                {
+                    var model = new EnemyModel { Id = id, Hp = hp };
+                    model.Position.QuantizedX = x;
+                    model.Position.QuantizedY = y;
+                    model.Position.QuantizedZ = z;
+                    model.Yaw.QuantizedYaw = yaw;
+                    deltas.Add(model);
+
+                    state.HasSent = true;
+                    state.X = x;
+                    state.Y = y;
+                    state.Z = z;
+                    state.Yaw = yaw;
+                    state.Hp = hp;
+                    state.LastSentAt = now;
                 }
             }
 
-            previousSpawnedEnemiesDelta = sentModels;
-            lastSentTimes = sentTimes;
+            // Enemies no longer spawned: forget what was sent for them
+            if (syncStates.Count > count)
+            {
+                foreach (var (id, state) in syncStates)
+                {
+                    if (state.LastTick != snapshotTick)
+                    {
+                        staleSyncStates.Add(id);
+                    }
+                }
+
+                foreach (var id in staleSyncStates)
+                {
+                    syncStates.Remove(id);
+                }
+
+                staleSyncStates.Clear();
+            }
 
             return deltas;
         }
 
-        private bool HasDelta(EnemyModel previous, EnemyModel current)
+        private static bool HasDelta(EnemySyncState previous, short x, short y, short z, ushort yaw, float hp)
         {
             float positionDelta = Vector3.Distance(
-                Quantizer.Dequantize(previous.Position),
-                Quantizer.Dequantize(current.Position)
+                new Vector3(Quantizer.Dequantize(previous.X), Quantizer.Dequantize(previous.Y), Quantizer.Dequantize(previous.Z)),
+                new Vector3(Quantizer.Dequantize(x), Quantizer.Dequantize(y), Quantizer.Dequantize(z))
             );
 
             float yawDelta = Mathf.Abs(
                 Quantizer.DequantizeYaw(previous.Yaw)
-                - Quantizer.DequantizeYaw(current.Yaw)
+                - Quantizer.DequantizeYaw(yaw)
             );
 
-            float hpDelta = Mathf.Abs(previous.Hp - current.Hp);
+            float hpDelta = Mathf.Abs(previous.Hp - hp);
 
             return positionDelta > POSITION_TRESHOLD ||
                    yawDelta > YAW_TRESHOLD ||
@@ -187,7 +245,8 @@ namespace MegabonkTogether.Services
                 return 0;
             }
 
-            DynamicData.For(enemy).Set("netplayId", currentEnemyId);
+            enemyIdsByPointer[enemy.Ptr()] = currentEnemyId;
+            syncStates[currentEnemyId] = new EnemySyncState { Transform = enemy.CachedPtr() != System.IntPtr.Zero ? enemy.transform : null };
 
             return currentEnemyId;
         }
@@ -195,7 +254,7 @@ namespace MegabonkTogether.Services
         /// <summary>
         /// Client side
         /// </summary>
-        public void SetSpawnedEnemy(uint enemyId, Enemy enemy)
+        public void SetSpawnedEnemy(uint enemyId, Enemy enemy, EnemyInterpolator interpolator = null)
         {
             if (!spawnedEnemies.TryAdd(enemyId, enemy))
             {
@@ -203,18 +262,46 @@ namespace MegabonkTogether.Services
                 return;
             }
 
-            DynamicData.For(enemy).Set("netplayId", enemyId);
+            enemyIdsByPointer[enemy.Ptr()] = enemyId;
+            if (interpolator is not null)
+            {
+                enemyInterpolators[enemyId] = interpolator;
+            }
         }
 
+        public EnemyInterpolator GetEnemyInterpolatorById(uint id)
+        {
+            return enemyInterpolators.TryGetValue(id, out var interpolator) ? interpolator : null;
+        }
+
+        /// <summary>
+        /// Compared by pointer: Unity's == is a native call, and this runs for every damage
+        /// </summary>
         public KeyValuePair<uint, Enemy> GetEnemyByReference(Enemy enemy)
         {
-            var netplayId = DynamicData.For(enemy).Get<uint?>("netplayId");
-            if (netplayId.HasValue && spawnedEnemies.TryGetValue(netplayId.Value, out var stored) && stored == enemy)
+            if (enemy is null)
             {
-                return new KeyValuePair<uint, Enemy>(netplayId.Value, stored);
+                return default;
             }
 
-            return spawnedEnemies.FirstOrDefault(kv => kv.Value == enemy);
+            var pointer = enemy.Ptr();
+            if (enemyIdsByPointer.TryGetValue(pointer, out var netplayId)
+                && spawnedEnemies.TryGetValue(netplayId, out var stored)
+                && stored is not null
+                && stored.Ptr() == pointer)
+            {
+                return new KeyValuePair<uint, Enemy>(netplayId, stored);
+            }
+
+            foreach (var kv in spawnedEnemies)
+            {
+                if (kv.Value is not null && kv.Value.Ptr() == pointer)
+                {
+                    return kv;
+                }
+            }
+
+            return default;
         }
 
         public void RemoveEnemyById(uint id)
@@ -223,14 +310,22 @@ namespace MegabonkTogether.Services
             {
                 return;
             }
+
+            if (enemy is not null)
+            {
+                enemyIdsByPointer.TryRemove(new KeyValuePair<System.IntPtr, uint>(enemy.Ptr(), id)); //Only if still mapped to this id
+            }
+            enemyInterpolators.TryRemove(id, out _);
+            syncStates.Remove(id);
         }
 
         public void ResetForNextLevel()
         {
             //spawnedEnemies.Select(Enemy => Enemy.Value).ToList().ForEach(enemy => GameObject.Destroy(enemy.gameObject));
             spawnedEnemies.Clear();
-            previousSpawnedEnemiesDelta = [];
-            lastSentTimes = [];
+            enemyIdsByPointer.Clear();
+            enemyInterpolators.Clear();
+            syncStates.Clear();
         }
 
         //TODO: the applied values should be stored in GameBalanceService

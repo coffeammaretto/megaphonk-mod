@@ -13,7 +13,7 @@ namespace MegabonkTogether.Services
     public interface IProjectileManagerService
     {
         public IEnumerable<Projectile> GetAllProjectiles();
-        public IEnumerable<Projectile> GetAllProjectilesDeltaAndUpdate();
+        public List<Projectile> GetAllProjectilesDeltaAndUpdate();
         public uint AddSpawnedProjectile(ProjectileBase projectile);
         public ProjectileBase GetProjectileById(uint id);
         public KeyValuePair<uint, ProjectileBase> GetProjectileByReference(ProjectileBase projectile);
@@ -28,8 +28,26 @@ namespace MegabonkTogether.Services
 
     internal class ProjectileManagerService : IProjectileManagerService
     {
+        /// <summary>
+        /// Host snapshot state of one projectile: its synchronized transform (resolved once) and the position it had on the
+        /// previous tick, already quantized
+        /// </summary>
+        private class ProjectileSyncState
+        {
+            public Transform Transform;
+            public bool HasPrevious;
+            public short X;
+            public short Y;
+            public short Z;
+            public long LastTick;
+        }
+
         private readonly ConcurrentDictionary<uint, ProjectileBase> spawnedProjectile = [];
-        private Dictionary<uint, Projectile> previousSpawnedProjectilesDelta = [];
+        private readonly ConcurrentDictionary<System.IntPtr, uint> projectileIdsByPointer = [];
+        private readonly Dictionary<uint, ProjectileSyncState> syncStates = [];
+        private readonly List<uint> staleSyncStates = [];
+        private int previousTickProjectileCount = 0;
+        private long snapshotTick = 0;
         private uint currentProjectileId = 0;
         private ProjectileInterpolator projectileInterpolator;
 
@@ -41,36 +59,96 @@ namespace MegabonkTogether.Services
             return spawnedProjectile.Select(kv => kv.Value.ToModel(kv.Key)).ToList();
         }
 
-        public IEnumerable<Projectile> GetAllProjectilesDeltaAndUpdate()
+        /// <summary>
+        /// Projectiles that moved since the previous tick (every projectile when there were none on the previous tick).
+        /// Positions are quantized and compared before any model is allocated.
+        /// </summary>
+        public List<Projectile> GetAllProjectilesDeltaAndUpdate()
         {
-            var currentProjectiles = spawnedProjectile.Select(kv => kv.Value.ToModel(kv.Key)).ToList();
-
-            if (previousSpawnedProjectilesDelta.Count == 0)
-            {
-                previousSpawnedProjectilesDelta = currentProjectiles.ToDictionary(p => p.Id);
-                return currentProjectiles;
-            }
-
+            snapshotTick++;
+            var sendAll = previousTickProjectileCount == 0;
             var deltas = new List<Projectile>();
+            var count = 0;
 
-            foreach (var current in currentProjectiles)
+            foreach (var (id, projectile) in spawnedProjectile)
             {
-                if (!previousSpawnedProjectilesDelta.TryGetValue(current.Id, out var previous) || HasDelta(previous, current))
+                count++;
+                if (!syncStates.TryGetValue(id, out var state))
                 {
-                    deltas.Add(current);
+                    state = new ProjectileSyncState();
+                    syncStates[id] = state;
                 }
+
+                var transform = state.Transform;
+                if (transform is null || transform.CachedPtr() == System.IntPtr.Zero)
+                {
+                    try
+                    {
+                        transform = projectile.GetSnapshotTransform();
+                    }
+                    catch (System.Exception)
+                    {
+                        transform = null; //Moving part not set up yet (or projectile gone): skipped this tick, resolved again next tick
+                    }
+
+                    state.Transform = transform;
+                    if (transform is null || transform.CachedPtr() == System.IntPtr.Zero)
+                    {
+                        continue;
+                    }
+                }
+
+                var position = transform.position;
+                var x = Quantizer.Quantize(position.x);
+                var y = Quantizer.Quantize(position.y);
+                var z = Quantizer.Quantize(position.z);
+
+                if (sendAll || !state.HasPrevious || HasDelta(state, x, y, z))
+                {
+                    var model = new Projectile { Id = id };
+                    model.Position.QuantizedX = x;
+                    model.Position.QuantizedY = y;
+                    model.Position.QuantizedZ = z;
+                    model.FordwardVector = Quantizer.Quantize(transform.rotation * Vector3.forward);
+                    deltas.Add(model);
+                }
+
+                state.HasPrevious = true;
+                state.X = x;
+                state.Y = y;
+                state.Z = z;
+                state.LastTick = snapshotTick;
             }
 
-            previousSpawnedProjectilesDelta = currentProjectiles.ToDictionary(p => p.Id);
+            // Projectiles gone since the previous tick: a later one with the same id must count as new
+            if (syncStates.Count > count)
+            {
+                foreach (var (id, state) in syncStates)
+                {
+                    if (state.LastTick != snapshotTick)
+                    {
+                        staleSyncStates.Add(id);
+                    }
+                }
+
+                foreach (var id in staleSyncStates)
+                {
+                    syncStates.Remove(id);
+                }
+
+                staleSyncStates.Clear();
+            }
+
+            previousTickProjectileCount = count;
 
             return deltas;
         }
 
-        private bool HasDelta(Projectile previous, Projectile current)
+        private static bool HasDelta(ProjectileSyncState previous, short x, short y, short z)
         {
             float positionDelta = Vector3.Distance(
-                Quantizer.Dequantize(previous.Position),
-                Quantizer.Dequantize(current.Position)
+                new Vector3(Quantizer.Dequantize(previous.X), Quantizer.Dequantize(previous.Y), Quantizer.Dequantize(previous.Z)),
+                new Vector3(Quantizer.Dequantize(x), Quantizer.Dequantize(y), Quantizer.Dequantize(z))
             );
 
             return positionDelta > POSITION_THRESHOLD;
@@ -103,12 +181,39 @@ namespace MegabonkTogether.Services
                 return 0;
             }
 
+            projectileIdsByPointer[projectile.Ptr()] = currentProjectileId;
+
             return currentProjectileId;
         }
 
+        /// <summary>
+        /// Looked up by the id stored for its pointer, compared by pointer (Unity's == is a native call)
+        /// </summary>
         public KeyValuePair<uint, ProjectileBase> GetProjectileByReference(ProjectileBase projectile)
         {
-            return spawnedProjectile.FirstOrDefault(kv => kv.Value == projectile);
+            if (projectile is null)
+            {
+                return default;
+            }
+
+            var pointer = projectile.Ptr();
+            if (projectileIdsByPointer.TryGetValue(pointer, out var id)
+                && spawnedProjectile.TryGetValue(id, out var stored)
+                && stored is not null
+                && stored.Ptr() == pointer)
+            {
+                return new KeyValuePair<uint, ProjectileBase>(id, stored);
+            }
+
+            foreach (var kv in spawnedProjectile)
+            {
+                if (kv.Value is not null && kv.Value.Ptr() == pointer)
+                {
+                    return kv;
+                }
+            }
+
+            return default;
         }
 
         public ProjectileBase RemoveProjectileById(uint id)
@@ -119,6 +224,11 @@ namespace MegabonkTogether.Services
                 return null;
             }
 
+            if (projectile is not null)
+            {
+                projectileIdsByPointer.TryRemove(new KeyValuePair<System.IntPtr, uint>(projectile.Ptr(), id)); //Only if still mapped to this id
+            }
+
             return projectile;
         }
 
@@ -126,7 +236,9 @@ namespace MegabonkTogether.Services
         {
             currentProjectileId = 0;
             spawnedProjectile.Clear();
-            previousSpawnedProjectilesDelta = [];
+            projectileIdsByPointer.Clear();
+            syncStates.Clear();
+            previousTickProjectileCount = 0;
 
             if (projectileInterpolator != null)
             {

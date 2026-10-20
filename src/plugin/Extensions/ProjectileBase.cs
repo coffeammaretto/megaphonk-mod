@@ -9,30 +9,40 @@ namespace MegabonkTogether.Extensions
     {
         public static Projectile ToModel(this ProjectileBase projectile, uint projectileId)
         {
+            var transform = projectile.GetSnapshotTransform();
+            return ToModel(projectileId, transform.position, transform.rotation);
+        }
+
+        /// <summary>
+        /// Transform whose position and rotation are synchronized: the moving part for swords and rockets.
+        /// Resolve it once per projectile, it costs three GetComponent calls.
+        /// </summary>
+        public static Transform GetSnapshotTransform(this ProjectileBase projectile)
+        {
             var projectileCringeSword = projectile.GetComponent<ProjectileCringeSword>();
             var projectileHeroSword = projectile.GetComponent<ProjectileHeroSword>();
             var projectileRocket = projectile.GetComponent<ProjectileRocket>();
 
-            var position = projectile.transform.position;
-            var rotation = projectile.transform.rotation;
-            if (projectileCringeSword != null)
+            if (projectileRocket != null)
             {
-                position = projectileCringeSword.movingProjectile.transform.position;
-                rotation = projectileCringeSword.movingProjectile.transform.rotation;
+                return projectileRocket.rocket.transform;
             }
 
             if (projectileHeroSword != null)
             {
-                position = projectileHeroSword.movingProjectile.transform.position;
-                rotation = projectileHeroSword.movingProjectile.transform.rotation;
+                return projectileHeroSword.movingProjectile.transform;
             }
 
-            if (projectileRocket != null)
+            if (projectileCringeSword != null)
             {
-                position = projectileRocket.rocket.transform.position;
-                rotation = projectileRocket.rocket.transform.rotation;
+                return projectileCringeSword.movingProjectile.transform;
             }
 
+            return projectile.transform;
+        }
+
+        public static Projectile ToModel(uint projectileId, Vector3 position, Quaternion rotation)
+        {
             return new Projectile()
             {
                 Id = projectileId,

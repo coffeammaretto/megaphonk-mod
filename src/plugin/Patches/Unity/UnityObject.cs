@@ -2,10 +2,12 @@
 using HarmonyLib;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;
+using MegabonkTogether.Helpers;
 using MegabonkTogether.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MegabonkTogether.Patches.Unity
@@ -14,6 +16,104 @@ namespace MegabonkTogether.Patches.Unity
     internal static class UnityObjectPatches
     {
         private static readonly ISynchronizationService synchronizationService = Plugin.Services.GetService<ISynchronizationService>();
+        private static readonly IFinalBossOrbManagerService finalOrbManagerService = Plugin.Services.GetService<IFinalBossOrbManagerService>();
+        private static readonly IChestManagerService chestManagerService = Plugin.Services.GetService<IChestManagerService>();
+
+        // Quest and desert grave prefabs by pointer, built once per EffectManager (level) instead of 11 native == per Instantiate
+        private static (IntPtr Pointer, IntPtr CachedPtr) prefabSetsOwner;
+        private static readonly HashSet<IntPtr> questPrefabs = [];
+        private static readonly HashSet<IntPtr> desertGravePrefabs = [];
+
+        // original.name of the Instantiate call in progress: read once, shared by the prefixes and the postfix (which clears it)
+        private static IntPtr currentOriginalPointer;
+        private static string currentOriginalName;
+
+        public static void ResetCaches()
+        {
+            prefabSetsOwner = default;
+            questPrefabs.Clear();
+            desertGravePrefabs.Clear();
+            currentOriginalPointer = IntPtr.Zero;
+            currentOriginalName = null;
+        }
+
+        private static bool IsAlive(UnityEngine.Object obj)
+        {
+            return obj is not null && obj.CachedPtr() != IntPtr.Zero;
+        }
+
+        /// <summary>
+        /// Same as Unity's == for a non null original, without the native call
+        /// </summary>
+        private static bool IsSameObject(UnityEngine.Object original, UnityEngine.Object other)
+        {
+            return other is not null && original.Ptr() == other.Ptr();
+        }
+
+        private static EffectManager GetEffectManager()
+        {
+            var effectManager = EffectManager.Instance;
+            return IsAlive(effectManager) ? effectManager : null;
+        }
+
+        private static string GetOriginalName(UnityEngine.Object original)
+        {
+            var pointer = original.Ptr();
+            if (currentOriginalName == null || currentOriginalPointer != pointer)
+            {
+                currentOriginalName = original.name;
+                currentOriginalPointer = pointer;
+            }
+
+            return currentOriginalName;
+        }
+
+        private static void EnsurePrefabSets(EffectManager effectManager)
+        {
+            var owner = (effectManager.Ptr(), effectManager.CachedPtr());
+            if (owner == prefabSetsOwner)
+            {
+                return;
+            }
+
+            questPrefabs.Clear();
+            desertGravePrefabs.Clear();
+
+            foreach (var quest in new UnityEngine.Object[]
+            {
+                effectManager.bananaQuest,
+                effectManager.banditQuest,
+                effectManager.boomboxQuest,
+                effectManager.bushQuest,
+                effectManager.katanaQuest,
+                effectManager.luckTomeQuest,
+                effectManager.shotgunQuest,
+                effectManager.presentQuest,
+                effectManager.frogQuest1,
+                effectManager.frogQuest2,
+                effectManager.frogQuest3,
+            })
+            {
+                if (quest is not null)
+                {
+                    questPrefabs.Add(quest.Ptr());
+                }
+            }
+
+            if (effectManager.desertGraves != null)
+            {
+                foreach (var grave in effectManager.desertGraves)
+                {
+                    if (grave is not null)
+                    {
+                        desertGravePrefabs.Add(grave.Ptr());
+                    }
+                }
+            }
+
+            prefabSetsOwner = owner;
+        }
+
         /// <summary>
         /// Only the server should be allowed to spawn chests unless explicitly allowed
         /// </summary>
@@ -22,13 +122,14 @@ namespace MegabonkTogether.Patches.Unity
         [HarmonyPatch(nameof(UnityEngine.Object.Instantiate), [typeof(UnityEngine.Object), typeof(UnityEngine.Vector3), typeof(UnityEngine.Quaternion)])]
         public static bool Instantiate_Postfix(UnityEngine.Object original, Vector3 position, Quaternion rotation)
         {
-            if ((EffectManager.Instance != null && EffectManager.Instance.openChestNormal == original) || original.name.Contains("OpenChest"))
+            if (!synchronizationService.HasNetplaySessionStarted()) //Checked first: outside a session nothing below matters
             {
-                if (!synchronizationService.HasNetplaySessionStarted())
-                {
-                    return true;
-                }
+                return true;
+            }
 
+            var effectManager = GetEffectManager();
+            if ((effectManager != null && IsSameObject(original, effectManager.openChestNormal)) || GetOriginalName(original).Contains("OpenChest"))
+            {
                 var isServer = synchronizationService.IsServerMode();
                 if (isServer.HasValue && isServer.Value)
                 {
@@ -57,7 +158,7 @@ namespace MegabonkTogether.Patches.Unity
             var isServer = synchronizationService.IsServerMode() ?? false;
             if (!isServer)
             {
-                if (original.name.Contains("BossSpawner"))
+                if (GetOriginalName(original).Contains("BossSpawner"))
                 {
                     return false; //Will be sent by the server later and client spawn without position/rotation
                 }
@@ -76,20 +177,26 @@ namespace MegabonkTogether.Patches.Unity
         [HarmonyPatch(nameof(UnityEngine.Object.Instantiate), [typeof(UnityEngine.Object), typeof(UnityEngine.Vector3), typeof(UnityEngine.Quaternion)])]
         public static void Instantiate_Postfix(Il2CppObjectBase __result, UnityEngine.GameObject original, Vector3 position, Quaternion rotation)
         {
+            // Name read by a prefix for this call, if any: taken and cleared here, the call is over
+            var cachedOriginalName = original is not null && currentOriginalPointer == original.Ptr() ? currentOriginalName : null;
+            currentOriginalPointer = IntPtr.Zero;
+            currentOriginalName = null;
+
             if (!synchronizationService.HasNetplaySessionInitialized())
             {
                 return;
             }
 
+            var effectManager = GetEffectManager();
             var isServer = synchronizationService.IsServerMode() ?? false;
             if (isServer)
             {
-                HandleQuestObjectsSpawned(original, __result);
+                HandleQuestObjectsSpawned(effectManager, original, __result);
                 HandleBossSpawnerOnProceduralMap(__result);
-                HandleDesertGraves(original, __result);
+                HandleDesertGraves(effectManager, original, __result);
             }
 
-            if (original.name.Contains("OpenChest") || (EffectManager.Instance != null && EffectManager.Instance.openChestNormal == original))
+            if ((effectManager != null && IsSameObject(original, effectManager.openChestNormal)) || (cachedOriginalName ?? original.name).Contains("OpenChest"))
             {
                 if (__result == null)
                 {
@@ -106,17 +213,17 @@ namespace MegabonkTogether.Patches.Unity
                 {
                     if (Plugin.CAN_SPAWN_CHESTS)
                     {
-                        var chestManagerService = Plugin.Services.GetService<Services.IChestManagerService>();
                         chestManagerService.SetNextChest(resultAsObj);
                     }
                 }
             }
 
-            if (MusicController.Instance != null && MusicController.Instance.finalFightController != null)
+            var musicController = MusicController.Instance;
+            var finalFightController = IsAlive(musicController) ? musicController.finalFightController : null;
+            if (IsAlive(finalFightController))
             {
-                if (original == MusicController.Instance.finalFightController.orbBleed)
+                if (IsSameObject(original, finalFightController.orbBleed))
                 {
-                    var finalOrbManagerService = Plugin.Services.GetService<IFinalBossOrbManagerService>();
                     var nextTarget = finalOrbManagerService.PeakNextTarget();
                     if (nextTarget != null)
                     {
@@ -126,9 +233,8 @@ namespace MegabonkTogether.Patches.Unity
                     }
                 }
 
-                if (original == MusicController.Instance.finalFightController.orbFollowing)
+                if (IsSameObject(original, finalFightController.orbFollowing))
                 {
-                    var finalOrbManagerService = Plugin.Services.GetService<IFinalBossOrbManagerService>();
                     var nextTarget = finalOrbManagerService.PeakNextTarget();
                     if (nextTarget != null)
                     {
@@ -138,9 +244,8 @@ namespace MegabonkTogether.Patches.Unity
                     }
                 }
 
-                if (original == MusicController.Instance.finalFightController.orbShooty)
+                if (IsSameObject(original, finalFightController.orbShooty))
                 {
-                    var finalOrbManagerService = Plugin.Services.GetService<IFinalBossOrbManagerService>();
                     var nextTarget = finalOrbManagerService.PeakNextTarget();
                     if (nextTarget != null)
                     {
@@ -172,27 +277,18 @@ namespace MegabonkTogether.Patches.Unity
             }
         }
 
-        private static void HandleQuestObjectsSpawned(UnityEngine.GameObject original, Il2CppObjectBase result)
+        private static void HandleQuestObjectsSpawned(EffectManager effectManager, UnityEngine.GameObject original, Il2CppObjectBase result)
         {
-            if (EffectManager.Instance == null)
+            if (effectManager == null)
             {
                 return;
             }
 
-            var resultAsGameObject = IL2CPP.PointerToValueGeneric<GameObject>(result.Pointer, false, false);
-
-            if (EffectManager.Instance.bananaQuest == original ||
-               EffectManager.Instance.banditQuest == original ||
-               EffectManager.Instance.boomboxQuest == original ||
-               EffectManager.Instance.bushQuest == original ||
-               EffectManager.Instance.katanaQuest == original ||
-               EffectManager.Instance.luckTomeQuest == original ||
-               EffectManager.Instance.shotgunQuest == original ||
-               EffectManager.Instance.presentQuest == original ||
-               EffectManager.Instance.frogQuest1 == original ||
-               EffectManager.Instance.frogQuest2 == original ||
-               EffectManager.Instance.frogQuest3 == original)
+            EnsurePrefabSets(effectManager);
+            if (original is not null && questPrefabs.Contains(original.Ptr()))
             {
+                var resultAsGameObject = IL2CPP.PointerToValueGeneric<GameObject>(result.Pointer, false, false);
+
                 //if (EffectManager.Instance.bushQuest == original)
                 //{
                 //    resultAsGameObject.transform.position = GameManager.Instance.player.transform.position + GameManager.Instance.player.transform.forward * 2f;
@@ -202,14 +298,15 @@ namespace MegabonkTogether.Patches.Unity
             }
         }
 
-        private static void HandleDesertGraves(GameObject original, Il2CppObjectBase result)
+        private static void HandleDesertGraves(EffectManager effectManager, GameObject original, Il2CppObjectBase result)
         {
-            if (EffectManager.Instance == null)
+            if (effectManager == null)
             {
                 return;
             }
 
-            if (EffectManager.Instance.desertGraves.Contains(original) && Plugin.CAN_SEND_MESSAGES)
+            EnsurePrefabSets(effectManager);
+            if (Plugin.CAN_SEND_MESSAGES && original is not null && desertGravePrefabs.Contains(original.Ptr()))
             {
                 var resultAsGameObject = IL2CPP.PointerToValueGeneric<GameObject>(result.Pointer, false, false);
                 synchronizationService.OnSpawnedObject(resultAsGameObject);
@@ -229,10 +326,15 @@ namespace MegabonkTogether.Patches.Unity
                 return;
             }
 
-            var finalOrbManagerService = Plugin.Services.GetService<IFinalBossOrbManagerService>();
+            // Called for every destroyed object: nothing to do unless final boss orbs exist and this is one of them
+            if (obj is null || !finalOrbManagerService.MayHaveOrbs)
+            {
+                return;
+            }
+
             var resultAsObj = IL2CPP.PointerToValueGeneric<GameObject>(obj.Pointer, false, false);
 
-            if (resultAsObj != null && finalOrbManagerService.ContainsOrbTarget(resultAsObj))
+            if (finalOrbManagerService.ContainsOrbTarget(resultAsObj) && resultAsObj != null)
             {
                 var removed = finalOrbManagerService.RemoveOrbTarget(resultAsObj);
 

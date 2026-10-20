@@ -502,9 +502,21 @@ namespace MegabonkTogether
             OriginalWorldSize = Vector3.zero;
         }
 
+        /// <summary>
+        /// Level change / back to menu: clear the caches keyed by native object pointers (patches)
+        /// </summary>
+        public static void ResetPointerCaches()
+        {
+            Patches.Enemies.EnemyPatch.ResetCaches();
+            Patches.Projectiles.ProjectileBasePatches.ResetCaches();
+            Patches.Unity.UnityComponentPatches.ResetCaches();
+            Patches.Unity.UnityObjectPatches.ResetCaches();
+        }
+
         public static DistanceToPlayer GetDistanceToPlayer(Vector3 position)
         {
-            if (Time.frameCount != distanceTargetFrame)
+            var frameIndex = NetworkHandler.FrameIndex; //Time.frameCount is a native call, this is asked per enemy/projectile
+            if (frameIndex != distanceTargetFrame)
             {
                 var player = GameManager.Instance.player;
                 if (player == null)
@@ -520,7 +532,7 @@ namespace MegabonkTogether
                 }
 
                 distanceTarget = target;
-                distanceTargetFrame = Time.frameCount;
+                distanceTargetFrame = frameIndex;
             }
 
             var distance = Vector3.Distance(position, distanceTarget);

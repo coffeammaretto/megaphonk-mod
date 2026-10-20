@@ -41,7 +41,7 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
 - Damage and kills count for the player who dealt them; item effects trigger for their owner (no double damage, no item effects on other players' characters).
 
 ### Co-op mechanics
-- **Downed state**: lethal damage downs a player instead of killing them. They bleed out for 25 seconds, invulnerable but unable to attack and 60% slower, and enemies ignore them. A downed player sways, dazed. A teammate standing within 8 meters revives them in 3 seconds with 30% HP. The timers stop while a reward (chest, level up...) is being picked. Nobody came in time: a normal death and a grave. Screen hints show the timer and the distance to a downed teammate.
+- **Downed state**: lethal damage downs a player instead of killing them. They bleed out for 25 seconds, invulnerable but unable to attack, they barely crawl (sliding and jumping included), and enemies ignore them. A downed player sways, dazed. A teammate standing within 8 meters revives them in 3 seconds with 30% HP. The timers stop while a reward (chest, level up...) is being picked. Nobody came in time: a normal death and a grave. Screen hints show the timer and the distance to a downed teammate.
 - **Ping**: the middle mouse button (`PingKey`) marks a spot for the whole team: a beam of the player's color and an arrow on the minimap, for 6 seconds.
 - **Team meter**: a kill fills the meter only when at least two different players killed within the last 5 seconds. A full meter gives everyone +25% damage and +15% move speed for 10 seconds, then the next threshold is 1.5 times higher.
 - **Co-op challenges** (`ChallengesEnabled`), announced at the start of a stage, rewarded with chests that drop from the sky at the start of the next stage (downs don't count as deaths):
@@ -86,7 +86,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 
 1. Close the game.
 2. If you used **Megabonk Together**, delete the `BepInEx\plugins\MegabonkTogether` folder from the game folder: both mods must not be installed together.
-3. Download `MegaphonkMod-1.0.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Download `MegaphonkMod-1.0.1-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 5. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -154,7 +154,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Урон и убийства засчитываются тому, кто их нанёс; эффекты предметов срабатывают у владельца (без двойного урона и без эффектов предметов на чужих персонажах).
 
 #### Кооп-механики
-- **Нокдаун**: смертельный урон не убивает, а роняет игрока. Он истекает кровью 25 секунд, неуязвим, но не может атаковать и ходит на 60% медленнее, враги его игнорируют. Упавший персонаж шатается, как оглушённый. Напарник в радиусе 8 метров поднимает его за 3 секунды с 30% здоровья. Пока идёт выбор награды (сундук, уровень...), таймеры стоят. Не успели: обычная смерть и могила. Подсказки на экране показывают таймер и расстояние до упавшего напарника.
+- **Нокдаун**: смертельный урон не убивает, а роняет игрока. Он истекает кровью 25 секунд, неуязвим, но не может атаковать и еле ползёт (скольжение и прыжки тоже не помогают), враги его игнорируют. Упавший персонаж шатается, как оглушённый. Напарник в радиусе 8 метров поднимает его за 3 секунды с 30% здоровья. Пока идёт выбор награды (сундук, уровень...), таймеры стоят. Не успели: обычная смерть и могила. Подсказки на экране показывают таймер и расстояние до упавшего напарника.
 - **Пинг**: средняя кнопка мыши (`PingKey`) ставит метку для всей команды: столб света цвета игрока и стрелка на миникарте, на 6 секунд.
 - **Командная шкала**: убийство заполняет шкалу, только если за последние 5 секунд убивали минимум двое разных игроков. Полная шкала даёт всем +25% урона и +15% скорости на 10 секунд, следующий порог в 1,5 раза выше.
 - **Кооп-испытания** (`ChallengesEnabled`), объявляются в начале уровня, награда: сундуки, которые падают с неба в начале следующего уровня (нокдаун смертью не считается):
@@ -198,7 +198,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 ### Установка
 1. Закрой игру.
 2. Если стоял **Megabonk Together**, удали папку `BepInEx\plugins\MegabonkTogether` в папке игры: оба мода вместе стоять не должны.
-3. Скачай `MegaphonkMod-1.0.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Скачай `MegaphonkMod-1.0.1-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 5. Запусти игру через Steam. Первый запуск дольше обычного.
 

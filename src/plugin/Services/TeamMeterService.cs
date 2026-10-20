@@ -39,6 +39,8 @@ namespace MegabonkTogether.Services
         private float nextSendAt = 0f;
         private (float Progress, float Buff) lastSent = (-1f, -1f);
         private TextMeshProUGUI hudText;
+        private TextMeshProUGUI lastHudTextComponent;
+        private string lastHudText;
 
         public bool IsBuffActive => buffSecondsLeft > 0f;
 
@@ -167,17 +169,28 @@ namespace MegabonkTogether.Services
             }
 
             hudText.enabled = true;
+            string text;
+            Color color;
             if (IsBuffActive)
             {
-                hudText.text = Loc.F("TEAM BUFF! {0}s", buffSecondsLeft.ToString("0"));
-                hudText.color = new Color(1f, 0.85f, 0.2f);
+                text = Loc.F("TEAM BUFF! {0}s", buffSecondsLeft.ToString("0"));
+                color = new Color(1f, 0.85f, 0.2f);
             }
             else
             {
                 const int segments = 20;
                 var filled = Mathf.RoundToInt(progress * segments);
-                hudText.text = Loc.F("TEAM [{0}]", new string('|', filled) + new string('.', segments - filled));
-                hudText.color = Color.white;
+                text = Loc.F("TEAM [{0}]", new string('|', filled) + new string('.', segments - filled));
+                color = Color.white;
+            }
+
+            // Text and color only pushed to TMP when they change (each set is a native call with a string copy)
+            if (!ReferenceEquals(lastHudTextComponent, hudText) || text != lastHudText)
+            {
+                hudText.text = text;
+                hudText.color = color;
+                lastHudText = text;
+                lastHudTextComponent = hudText;
             }
         }
 

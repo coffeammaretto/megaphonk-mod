@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."1.0.1"]
+changes = [
+    "Less stutter, especially in long runs: pooled enemies no longer pile up extra components (they also switched target far too often), and the mod does much less work per enemy, projectile and pickup.",
+    "Fixed: a downed player moved at nearly full speed (sliding and jumping ignored the penalty). They now barely crawl.",
+]
+
 [version."1.0.0"]
 changes = [
     "First release of Megaphonk Mod, a co-op mod for Megabonk 1.0.69 based on Megabonk Together.",

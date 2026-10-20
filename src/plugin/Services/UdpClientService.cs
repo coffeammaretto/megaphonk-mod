@@ -303,7 +303,9 @@ namespace MegabonkTogether.Services
             {
                 try
                 {
-                    byte[] data = reader.GetRemainingBytes();
+                    // Deserialized straight from the packet buffer, no copy: MemoryPack copies what it keeps (arrays, strings)
+                    // and the reader is only recycled after this handler returns
+                    var data = new ReadOnlySpan<byte>(reader.RawData, reader.Position, reader.AvailableBytes);
 
                     IGameNetworkMessage deserializedMsg;
                     try
@@ -1452,7 +1454,9 @@ namespace MegabonkTogether.Services
 
         public void Update()
         {
-            UpdateLocalPlayer();
+            // Built once per tick: it reads the whole local player (position, animator, inventory) through native calls
+            var localPlayerUpdate = playerManagerService.GetLocalPlayerUpdate();
+            UpdateLocalPlayer(localPlayerUpdate);
 
             if (isGameOver)
             {
@@ -1475,7 +1479,7 @@ namespace MegabonkTogether.Services
             }
             else
             {
-                IGameNetworkMessage playerUpdate = playerManagerService.GetLocalPlayerUpdate();
+                IGameNetworkMessage playerUpdate = localPlayerUpdate;
                 if (playerUpdate == null)
                 {
                     Plugin.Log.LogWarning("Local player update is null, cannot send to host");
@@ -1530,10 +1534,9 @@ namespace MegabonkTogether.Services
             SendTumbleWeedsUpdate();
         }
 
-        private void UpdateLocalPlayer()
+        private void UpdateLocalPlayer(PlayerUpdate localPlayer)
         {
             var player = playerManagerService.GetLocalPlayer();
-            var localPlayer = playerManagerService.GetLocalPlayerUpdate();
 
             if (player == null)
             {
@@ -1583,7 +1586,7 @@ namespace MegabonkTogether.Services
 
         private void SendEnemiesUpdate()
         {
-            var enemies = enemyManagerService.GetAllEnemiesDeltaAndUpdate().ToList();
+            var enemies = enemyManagerService.GetAllEnemiesDeltaAndUpdate();
             var bossFinalOrb = finalBossOrbManagerService.GetAllOrbs().ToList();
 
             if (enemies.Count == 0 && bossFinalOrb.Count == 0)
@@ -1611,7 +1614,7 @@ namespace MegabonkTogether.Services
 
         private void SendProjectilesUpdate()
         {
-            var projectiles = projectileManagerService.GetAllProjectilesDeltaAndUpdate().ToList();
+            var projectiles = projectileManagerService.GetAllProjectilesDeltaAndUpdate();
 
             if (projectiles.Count == 0)
             {

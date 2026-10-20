@@ -16,7 +16,7 @@ namespace MegabonkTogether.Patches
         /// </summary>
         [HarmonyPostfix]
         [HarmonyPatch("get_position")]
-        public static void Get_position_PostFix(ref Vector3 __result, Transform __instance)
+        public static void Get_position_PostFix(ref Vector3 __result)
         {
             if (!synchronizationService.HasNetplaySessionStarted())
             {

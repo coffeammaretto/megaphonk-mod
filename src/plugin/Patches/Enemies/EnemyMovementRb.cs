@@ -1,7 +1,7 @@
 ﻿using Actors.Enemies;
 using HarmonyLib;
+using MegabonkTogether.Helpers;
 using Microsoft.Extensions.DependencyInjection;
-using MonoMod.Utils;
 using UnityEngine;
 
 namespace MegabonkTogether.Patches.Enemies
@@ -25,20 +25,33 @@ namespace MegabonkTogether.Patches.Enemies
                 return true;
             }
 
-            var id = DynamicData.For(__instance.enemy).Get<uint?>("targetId");
+            var enemy = __instance.enemy;
+            var id = EnemyTargets.Get(enemy);
 
             if (id.HasValue && (playerManagerService.IsDead(id.Value) || playerManagerService.IsDowned(id.Value))) //Never chase a dead or downed player
             {
                 var aliveTarget = playerManagerService.GetRandomPlayerAliveConnectionId();
                 if (aliveTarget.HasValue)
                 {
-                    DynamicData.For(__instance.enemy).Set("targetId", aliveTarget.Value);
+                    EnemyTargets.Set(enemy, aliveTarget.Value);
                     id = aliveTarget;
                 }
             }
 
             if (id != null && id.HasValue)
             {
+                // Called per enemy per physics step: the target transform is cached per player. Not while a position request
+                // is pending, the transform getter patch may then answer with another player's transform
+                if (!playerManagerService.PeakNetplayerPositionRequest().HasValue)
+                {
+                    var targetTransform = playerManagerService.GetTargetTransform(id.Value);
+                    if (targetTransform is not null)
+                    {
+                        __result = targetTransform.position;
+                        return false;
+                    }
+                }
+
                 var localPlayer = playerManagerService.GetLocalPlayer();
 
                 if (localPlayer.ConnectionId == id.Value)

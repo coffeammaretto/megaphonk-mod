@@ -93,7 +93,7 @@ namespace MegabonkTogether.Services
         public bool OnStoppingChargingShrine(uint shrineNetplayId);
         public void OnPickupSpawned(Pickup result, EPickup ePickup, Vector3 pos, int value);
         public void OnEnemyExploder(Enemy enemy);
-        public void OnEnemyDamaged(Enemy instance, DamageContainer damageContainer);
+        public void OnEnemyDamaged(Enemy instance, DamageContainer damageContainer, string damageSource = null);
         public void OnSpawnedEnemySpecialAttack(Enemy enemy, EnemySpecialAttack attack);
 
         public void PrepareForNextLevel();
@@ -887,7 +887,7 @@ namespace MegabonkTogether.Services
             enemiesDiedBeforeSpawn.Clear();
             pendingEnemyDamages.Clear();
             pendingAddXp = null;
-            Patches.Enemies.EnemyPatch.EnemiesDistanceThrottler.ClearAll();
+            Plugin.ResetPointerCaches();
 
             Plugin.Instance.NetPlayersDisplayer.ResetCards();
             Plugin.Instance.ClearMapEventsManager();
@@ -987,12 +987,11 @@ namespace MegabonkTogether.Services
                 GetChallengeService()?.OnStageBossSpawned();
             }
 
-            var dynEnemy = DynamicData.For(enemy);
-            var targetId = dynEnemy.Get<uint?>("targetId");
+            var targetId = EnemyTargets.Get(enemy);
 
             if (!targetId.HasValue)
             {
-                logger.LogWarning("Enemy targetId not found in DynamicData when processing OnSpawnedEnemy.");
+                logger.LogWarning("Enemy targetId not found when processing OnSpawnedEnemy.");
                 EnemyManager.Instance.RemoveEnemy(enemy);
             }
 
@@ -1163,11 +1162,18 @@ namespace MegabonkTogether.Services
                 }
             }
 
-            var interpolator = enemy.gameObject.AddComponent<EnemyInterpolator>();
+            // Pooled enemies come back here on every spawn: reuse the interpolator (Initialize clears it) instead of adding one more
+            var enemyGameObject = enemy.gameObject;
+            var interpolator = enemyGameObject.GetComponent<EnemyInterpolator>();
+            if (interpolator is null || interpolator.CachedPtr() == IntPtr.Zero)
+            {
+                interpolator = enemyGameObject.AddComponent<EnemyInterpolator>();
+            }
             interpolator.Initialize(enemy);
-            enemyManagerService.SetSpawnedEnemy(spawnedEnemy.Id, enemy);
+            enemyManagerService.SetSpawnedEnemy(spawnedEnemy.Id, enemy, interpolator);
 
-            DynamicData.For(enemy).Set("targetId", spawnedEnemy.TargetId);
+            EnemyTargets.Set(enemy, spawnedEnemy.TargetId);
+            Patches.Enemies.EnemyPatch.MarkSpawnApplied(enemy);
         }
 
         public void OnSpawnedProjectile(Il2CppObjectBase proj, uint? owner = null)
@@ -1649,30 +1655,26 @@ namespace MegabonkTogether.Services
 
         private void OnReceivedEnemiesUpdate(IEnumerable<EnemyModel> enemiesModel)
         {
+            var now = Time.timeAsDouble;
             foreach (var enemyModel in enemiesModel)
             {
-                var enemy = enemyManagerService.GetEnemyById(enemyModel.Id);
-                if (enemy == null)
+                // Interpolator kept with the spawned enemy: no GetComponent per enemy per snapshot
+                var interpolator = enemyManagerService.GetEnemyInterpolatorById(enemyModel.Id);
+                if (interpolator is null || interpolator.CachedPtr() == IntPtr.Zero)
                 {
                     continue;
                 }
 
-                var interpolator = enemy.GetComponent<EnemyInterpolator>();
-                if (interpolator == null)
-                {
-                    continue;
-                }
-
-                var snapshot = enemyModel.ToSnapshot(Time.timeAsDouble);
+                var snapshot = enemyModel.ToSnapshot(now);
 
                 interpolator.AddSnapshot(snapshot);
             }
         }
 
-        public void OnEnemyDamaged(Enemy instance, DamageContainer damageContainer)
+        public void OnEnemyDamaged(Enemy instance, DamageContainer damageContainer, string damageSource = null)
         {
             var enemySpawned = enemyManagerService.GetEnemyByReference(instance);
-            if (enemySpawned.Value == null)
+            if (enemySpawned.Value is null || enemySpawned.Value.CachedPtr() == IntPtr.Zero)
             {
                 return; //Might already be dead
             }
@@ -1683,7 +1685,7 @@ namespace MegabonkTogether.Services
                 Damage = damageContainer.damage,
                 DamageEffect = (int)damageContainer.damageEffect,
                 DamageBlockedByArmor = damageContainer.damageBlockedByArmor,
-                DamageSource = damageContainer.damageSource,
+                DamageSource = damageSource ?? damageContainer.damageSource, //Already read by the caller when it had to check it
                 DamageIsCrit = damageContainer.crit,
                 DamageProcCoefficient = damageContainer.procCoefficient,
                 DamageElement = (int)damageContainer.element,
@@ -1718,9 +1720,19 @@ namespace MegabonkTogether.Services
                 pendingEnemyDamages[damaged.EnemyId] = pendingForEnemy;
             }
 
-            var pending = pendingForEnemy.Find(p => p.Message.AttackerId == damaged.AttackerId
-                && p.Message.DamageSource == damaged.DamageSource
-                && p.Message.DamageElement == damaged.DamageElement);
+            PendingEnemyDamage pending = null;
+            for (var i = 0; i < pendingForEnemy.Count; i++) //No closure allocated per hit
+            {
+                var candidate = pendingForEnemy[i];
+                if (candidate.Message.AttackerId == damaged.AttackerId
+                    && candidate.Message.DamageSource == damaged.DamageSource
+                    && candidate.Message.DamageElement == damaged.DamageElement)
+                {
+                    pending = candidate;
+                    break;
+                }
+            }
+
             if (pending == null)
             {
                 pendingForEnemy.Add(new PendingEnemyDamage { Message = damaged, LargestHit = damaged.Damage });
@@ -3388,7 +3400,7 @@ namespace MegabonkTogether.Services
                 return;
             }
 
-            var targetId = DynamicData.For(enemy).Get<uint?>("targetId");
+            var targetId = EnemyTargets.Get(enemy);
             if (targetId == null)
             {
                 logger.LogWarning("Enemy has no targetId when processing OnSpawnedEnemySpecialAttack.");
@@ -3403,7 +3415,7 @@ namespace MegabonkTogether.Services
             }
             var rand = UnityEngine.Random.Range(0, targets.Count);
             var randomPlayer = targets.ElementAt(rand);
-            DynamicData.For(enemy).Set("targetId", randomPlayer.ConnectionId); //Random target
+            EnemyTargets.Set(enemy, randomPlayer.ConnectionId); //Random target
 
             IGameNetworkMessage message = new SpawnedEnemySpecialAttack
             {
@@ -3446,7 +3458,7 @@ namespace MegabonkTogether.Services
                 return;
             }
 
-            DynamicData.For(enemy).Set("targetId", attack.TargetId); //Target might have changed
+            EnemyTargets.Set(enemy, attack.TargetId); //Target might have changed
 
             Plugin.CAN_ENEMY_USE_SPECIAL_ATTACK = true;
             enemy.specialAttackController.UseSpecialAttack(specialAttack);

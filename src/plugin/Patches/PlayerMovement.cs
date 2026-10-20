@@ -47,5 +47,42 @@ namespace MegabonkTogether.Patches
 
             return true;
         }
+
+        private const float DOWNED_MAX_HORIZONTAL_SPEED = 1.5f;
+        private static IDownedService downedService;
+
+        /// <summary>
+        /// A downed player barely crawls: cap the horizontal speed after the game moved the player
+        /// (a move speed stat penalty didn't slow the actual movement down)
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(nameof(PlayerMovement.MovementTick))]
+        public static void MovementTick_Postfix()
+        {
+            if (!synchronizationService.HasNetplaySessionStarted())
+            {
+                return;
+            }
+
+            downedService ??= Plugin.Services.GetService<IDownedService>();
+            if (downedService == null || !downedService.IsLocalDowned)
+            {
+                return;
+            }
+
+            var rb = PlayerMovement.Instance?.rb;
+            if (rb == null)
+            {
+                return;
+            }
+
+            var velocity = rb.velocity;
+            var horizontal = new Vector3(velocity.x, 0f, velocity.z);
+            if (horizontal.magnitude > DOWNED_MAX_HORIZONTAL_SPEED)
+            {
+                horizontal = horizontal.normalized * DOWNED_MAX_HORIZONTAL_SPEED;
+                rb.velocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
+            }
+        }
     }
 }

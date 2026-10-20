@@ -1,9 +1,12 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Weapons.Projectiles;
 using Assets.Scripts.Objects.Particles___Effects.ParticleOpacity;
 using HarmonyLib;
+using MegabonkTogether.Helpers;
 using MegabonkTogether.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
+using System;
+using System.Collections.Generic;
 
 namespace MegabonkTogether.Patches.Projectiles
 {
@@ -16,12 +19,27 @@ namespace MegabonkTogether.Patches.Projectiles
         private static readonly ITrackerService trackerService = Plugin.Services.GetService<ITrackerService>();
 
         /// <summary>
+        /// Net player projectiles: ParticleOpacity component and last applied hide state, keyed by the projectile's
+        /// (pointer, native pointer) so a new object reusing the address starts fresh. Refresh only on a state change.
+        /// </summary>
+        private static readonly Dictionary<(IntPtr Pointer, IntPtr CachedPtr), (ParticleOpacity Opacity, bool? Hidden)> opacityStates = [];
+
+        private const int MAX_OPACITY_STATES = 2048;
+
+        public static void ResetCaches()
+        {
+            opacityStates.Clear();
+        }
+
+        /// <summary>
         /// Make sure to spawn projectiles at the net player's position
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(nameof(ProjectileBase.TryInit))]
         public static void TryInit_Prefix(ProjectileBase __instance)
         {
+            opacityStates.Remove((__instance.Ptr(), __instance.CachedPtr())); //Pooled projectile reused: apply the opacity again
+
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return;
@@ -123,6 +141,8 @@ namespace MegabonkTogether.Patches.Projectiles
         [HarmonyPatch(nameof(ProjectileBase.ProjectileDone))]
         public static bool ProjectileDone_Postfix(ProjectileBase __instance)
         {
+            opacityStates.Remove((__instance.Ptr(), __instance.CachedPtr())); //Done (pooled or destroyed): forget its opacity state
+
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return true;
@@ -149,7 +169,8 @@ namespace MegabonkTogether.Patches.Projectiles
                 return;
             }
 
-            if (playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase) == null)
+            var netPlayer = playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase);
+            if (netPlayer is null || netPlayer.CachedPtr() == IntPtr.Zero)
             {
                 return; // Don't hide local player projectiles
             }
@@ -163,11 +184,31 @@ namespace MegabonkTogether.Patches.Projectiles
 
         private static void UpdateProjectileOpacity(ProjectileBase projectile, bool hide)
         {
-            var particleOpacity = projectile.GetComponentInChildren<ParticleOpacity>();
-            if (particleOpacity == null)
+            var key = (projectile.Ptr(), projectile.CachedPtr());
+            if (!opacityStates.TryGetValue(key, out var state)
+                || (state.Opacity is not null && state.Opacity.CachedPtr() == IntPtr.Zero))
+            {
+                if (opacityStates.Count >= MAX_OPACITY_STATES)
+                {
+                    opacityStates.Clear(); //Projectiles destroyed without ProjectileDone (client copies): bounded, entries rebuild on next update
+                }
+
+                state = (projectile.GetComponentInChildren<ParticleOpacity>(), null);
+                opacityStates[key] = state;
+            }
+
+            var particleOpacity = state.Opacity;
+            if (particleOpacity is null || particleOpacity.CachedPtr() == IntPtr.Zero)
             {
                 return;
             }
+
+            if (state.Hidden == hide)
+            {
+                return; //Already applied, Refresh rebuilds the particle colors
+            }
+
+            opacityStates[key] = (particleOpacity, hide);
 
             if (hide)
             {

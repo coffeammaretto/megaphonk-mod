@@ -26,6 +26,23 @@ namespace MegabonkTogether.Patches.Enemies
         public static readonly DistanceThrottler EnemiesDistanceThrottler = new();
 
         /// <summary>
+        /// Client side, per enemy pointer: boss flag and transform for the throttled MyUpdate/MyFixedUpdate (cleared by InitEnemy)
+        /// </summary>
+        private static readonly Dictionary<IntPtr, (bool IsBoss, Transform Transform, EEnemyFlag Flag)> clientThrottleInfos = [];
+        private static readonly HashSet<IntPtr> spawnAppliedEnemies = [];
+
+        /// <summary>
+        /// Level change / back to menu: forget everything keyed by enemy pointers
+        /// </summary>
+        public static void ResetCaches()
+        {
+            EnemiesDistanceThrottler.ClearAll();
+            clientThrottleInfos.Clear();
+            spawnAppliedEnemies.Clear();
+            EnemyTargets.Clear();
+        }
+
+        /// <summary>
         /// Randomly target a player (Not necessarly the local player)
         /// Also adds TargetSwitcher component to the enemy for target switching
         /// </summary>
@@ -38,7 +55,11 @@ namespace MegabonkTogether.Patches.Enemies
                 return;
             }
 
-            EnemiesDistanceThrottler.Cleanup(__instance.GetInstanceID());
+            var pointer = __instance.Ptr();
+            EnemiesDistanceThrottler.Cleanup(pointer);
+            clientThrottleInfos.Remove(pointer);
+            spawnAppliedEnemies.Remove(pointer);
+            EnemyTargets.Remove(__instance); //Pooled enemy: the previous life's target is set again below (host) or by the spawn message (client)
             var renderer = __instance.GetComponentInChildren<Renderer>();
             if (renderer != null && !renderer.enabled)
             {
@@ -57,14 +78,22 @@ namespace MegabonkTogether.Patches.Enemies
                 if (targetNetPlayer != null)
                 {
                     __instance.target = targetNetPlayer.Rigidbody;
-                    DynamicData.For(__instance).Set("targetId", targetNetPlayer.ConnectionId);
+                    EnemyTargets.Set(__instance, targetNetPlayer.ConnectionId);
                 }
                 else
                 {
-                    DynamicData.For(__instance).Set("targetId", host.ConnectionId);
+                    EnemyTargets.Set(__instance, host.ConnectionId);
                 }
 
-                var switcher = __instance.gameObject.AddComponent<TargetSwitcher>();
+                // Pooled enemies go through InitEnemy on every spawn: reuse the switcher (StartSwitching resets it) instead of
+                // stacking one more each time
+                var gameObject = __instance.gameObject;
+                var switcher = gameObject.GetComponent<TargetSwitcher>();
+                if (switcher is null || switcher.CachedPtr() == IntPtr.Zero)
+                {
+                    switcher = gameObject.AddComponent<TargetSwitcher>();
+                }
+
                 if (__instance.enemyData.enemyName == Actors.Enemies.EEnemy.GhostGrave1
                     || __instance.enemyData.enemyName == Actors.Enemies.EEnemy.GhostGrave2
                     || __instance.enemyData.enemyName == Actors.Enemies.EEnemy.GhostGrave3
@@ -72,7 +101,7 @@ namespace MegabonkTogether.Patches.Enemies
                 {
                     var targetId = switcher.StartSwitching(__instance, true);
 
-                    DynamicData.For(__instance).Set("targetId", targetId);
+                    EnemyTargets.Set(__instance, targetId);
                 }
                 else
                 {
@@ -229,9 +258,15 @@ namespace MegabonkTogether.Patches.Enemies
 
             // Client: forward its own item damage, never the host's damage being replayed: sending that back made the host
             // apply it again and echo it again, until the enemy died.
-            if (!IsReplayedDamage(damageContainer) && AllowedDamageSource.Contains(damageContainer.damageSource))
+            if (IsReplayedDamage(damageContainer))
             {
-                synchronizationService.OnEnemyDamaged(__instance, damageContainer);
+                return;
+            }
+
+            var damageSource = damageContainer.damageSource; //Native string read: once, passed along
+            if (AllowedDamageSource.Contains(damageSource))
+            {
+                synchronizationService.OnEnemyDamaged(__instance, damageContainer, damageSource);
             }
         }
 
@@ -358,19 +393,7 @@ namespace MegabonkTogether.Patches.Enemies
         [HarmonyPatch(nameof(Enemy.MyUpdate))]
         public static bool MyUpdate_Prefix(Enemy __instance)
         {
-            if (!synchronizationService.HasNetplaySessionStarted())
-            {
-                return true;
-            }
-
-            if (__instance.IsBoss() || __instance.IsStageBoss() || __instance.IsFinalBoss())
-            {
-                return true;
-            }
-
-            var instanceId = __instance.GetInstanceID();
-            var isServer = synchronizationService.IsServerMode() ?? false;
-            return EnemiesDistanceThrottler.ShouldUpdate(__instance.gameObject, instanceId, isServer);
+            return ShouldUpdateEnemy(__instance);
         }
 
         /// <summary>
@@ -381,19 +404,44 @@ namespace MegabonkTogether.Patches.Enemies
         [HarmonyPatch(nameof(Enemy.MyFixedUpdate))]
         public static bool MyFixedUpdate_Prefix(Enemy __instance)
         {
+            return ShouldUpdateEnemy(__instance);
+        }
+
+        private static bool ShouldUpdateEnemy(Enemy __instance)
+        {
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return true;
             }
 
-            if (__instance.IsBoss() || __instance.IsStageBoss() || __instance.IsFinalBoss())
+            var isServer = synchronizationService.IsServerMode() ?? false;
+            if (isServer)
+            {
+                return true; //The host updates every enemy, boss or not, at any distance
+            }
+
+            // Boss flag and transform fetched once per spawn, each one is a native call. Only cached once the spawn message
+            // was fully applied (MarkSpawnApplied), and recomputed if the enemy flag (a plain field read) changes since
+            var pointer = __instance.Ptr();
+            var flag = __instance.enemyFlag;
+            if (!clientThrottleInfos.TryGetValue(pointer, out var info)
+                || info.Flag != flag
+                || info.Transform is null
+                || info.Transform.CachedPtr() == IntPtr.Zero)
+            {
+                info = (__instance.IsBoss() || __instance.IsStageBoss() || __instance.IsFinalBoss(), __instance.gameObject.transform, flag);
+                if (spawnAppliedEnemies.Contains(pointer))
+                {
+                    clientThrottleInfos[pointer] = info;
+                }
+            }
+
+            if (info.IsBoss)
             {
                 return true;
             }
 
-            var instanceId = __instance.GetInstanceID();
-            var isServer = synchronizationService.IsServerMode() ?? false;
-            return EnemiesDistanceThrottler.ShouldUpdate(__instance.gameObject, instanceId, isServer);
+            return EnemiesDistanceThrottler.ShouldUpdate(info.Transform, pointer, isServer);
         }
 
         /// <summary>
@@ -403,8 +451,20 @@ namespace MegabonkTogether.Patches.Enemies
         [HarmonyPatch(nameof(Enemy.EnemyDied), typeof(DamageContainer))]
         public static void EnemyDied_Cleanup(Enemy __instance)
         {
-            var instanceId = __instance.GetInstanceID();
-            EnemiesDistanceThrottler.Cleanup(instanceId);
+            var pointer = __instance.Ptr();
+            EnemiesDistanceThrottler.Cleanup(pointer);
+            clientThrottleInfos.Remove(pointer);
+            spawnAppliedEnemies.Remove(pointer);
+        }
+
+        /// <summary>
+        /// Client: the spawn message was fully applied to this enemy (flags, hp, boss assignments), its boss flag can be cached
+        /// </summary>
+        public static void MarkSpawnApplied(Enemy enemy)
+        {
+            var pointer = enemy.Ptr();
+            clientThrottleInfos.Remove(pointer);
+            spawnAppliedEnemies.Add(pointer);
         }
     }
 }

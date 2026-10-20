@@ -19,6 +19,11 @@ namespace MegabonkTogether.Services
 
         public bool ContainsOrbTarget(GameObject go);
 
+        /// <summary>
+        /// False when no orb was registered since the last reset (cheap early out for the Object.Destroy patch)
+        /// </summary>
+        public bool MayHaveOrbs { get; }
+
         public void Reset();
         public IEnumerable<BossOrbModel> GetAllOrbs();
         public GameObject GetOrbById(uint id);
@@ -40,6 +45,9 @@ namespace MegabonkTogether.Services
         private readonly ConcurrentQueue<uint> _queuedTargetIds = [];
         private readonly ConcurrentQueue<(uint targetId, uint orbId)> _pendingOrbCreation = [];
         private uint _nextOrbId = 0;
+        private volatile bool _mayHaveOrbs = false;
+
+        public bool MayHaveOrbs => _mayHaveOrbs;
 
         public void QueueNextTarget(uint targetId)
         {
@@ -87,10 +95,12 @@ namespace MegabonkTogether.Services
                 TargetId = targetId,
                 GameObject = target
             };
+            _mayHaveOrbs = true;
         }
 
         public void Reset()
         {
+            _mayHaveOrbs = false;
             _orbsById.Clear();
             _queuedTargetIds.Clear();
             _pendingOrbCreation.Clear();
@@ -99,7 +109,29 @@ namespace MegabonkTogether.Services
 
         public bool ContainsOrbTarget(GameObject go)
         {
-            return _orbsById.Values.Any(orb => orb.GameObject == go);
+            return FindOrb(go) != null;
+        }
+
+        /// <summary>
+        /// Compared by pointer (Unity's == is a native call), without copying the values
+        /// </summary>
+        private OrbInfo FindOrb(GameObject go)
+        {
+            if (go is null)
+            {
+                return null;
+            }
+
+            var pointer = go.Ptr();
+            foreach (var (_, orb) in _orbsById)
+            {
+                if (orb.GameObject is not null && orb.GameObject.Ptr() == pointer)
+                {
+                    return orb;
+                }
+            }
+
+            return null;
         }
 
         public IEnumerable<BossOrbModel> GetAllOrbs()
@@ -120,18 +152,18 @@ namespace MegabonkTogether.Services
 
         public uint? RemoveOrbTarget(GameObject go)
         {
-            var orbToRemove = _orbsById.FirstOrDefault(kv => kv.Value.GameObject == go);
+            var orbToRemove = FindOrb(go);
 
-            if (orbToRemove.Value == null)
+            if (orbToRemove == null)
                 return null;
 
-            _orbsById.TryRemove(orbToRemove.Key, out _);
-            return orbToRemove.Key;
+            _orbsById.TryRemove(orbToRemove.OrbId, out _);
+            return orbToRemove.OrbId;
         }
 
         public uint? GetTargetIdByReference(GameObject go)
         {
-            var orb = _orbsById.Values.FirstOrDefault(o => o.GameObject == go);
+            var orb = FindOrb(go);
             return orb?.TargetId;
         }
     }

@@ -11,6 +11,7 @@ namespace MegabonkTogether.Patches
     public static class WeaponInventoryPatches
     {
         private static readonly ISynchronizationService synchronizationService = Plugin.Services.GetService<ISynchronizationService>();
+        private static readonly IPlayerManagerService playerManagerService = Plugin.Services.GetService<IPlayerManagerService>();
 
         /// <summary>
         /// Synchronizes weapon additions in netplay
@@ -19,6 +20,8 @@ namespace MegabonkTogether.Patches
         [HarmonyPatch(nameof(WeaponInventory.AddWeapon))]
         public static void AddWeapon_Post(WeaponInventory __instance, WeaponData weaponData, List<StatModifier> upgradeOffer)
         {
+            playerManagerService.InvalidateWeaponOwners();
+
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return;
@@ -62,6 +65,8 @@ namespace MegabonkTogether.Patches
         [HarmonyPatch(nameof(WeaponInventory.ToggleWeapon))]
         public static void ToggleWeapon_Postfix(WeaponInventory __instance, EWeapon eWeapon, bool enable)
         {
+            playerManagerService.InvalidateWeaponOwners();
+
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return;

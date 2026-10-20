@@ -22,7 +22,7 @@ namespace MegabonkTogether.Patches.SpecialAttack
             {
                 return;
             }
-            var targetId = MonoMod.Utils.DynamicData.For(__instance.enemy).Get<uint?>("targetId");
+            var targetId = MegabonkTogether.Helpers.EnemyTargets.Get(__instance.enemy);
             if (targetId.HasValue)
             {
                 playerManagerService.AddGetNetplayerPositionRequest(targetId.Value);
@@ -40,7 +40,7 @@ namespace MegabonkTogether.Patches.SpecialAttack
             {
                 return;
             }
-            var targetId = MonoMod.Utils.DynamicData.For(__instance.enemy).Get<uint?>("targetId");
+            var targetId = MegabonkTogether.Helpers.EnemyTargets.Get(__instance.enemy);
             if (targetId.HasValue)
             {
                 playerManagerService.UnqueueNetplayerPositionRequest();

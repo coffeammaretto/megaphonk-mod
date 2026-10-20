@@ -22,7 +22,7 @@ namespace MegabonkTogether.Patches.Projectiles
                 return;
             }
 
-            var netPlayer = Plugin.Services.GetService<IPlayerManagerService>().GetNetPlayerByWeapon(__instance.weaponBase);
+            var netPlayer = playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase);
             if (netPlayer == null)
             {
                 return;
@@ -44,7 +44,7 @@ namespace MegabonkTogether.Patches.Projectiles
                 return;
             }
 
-            var netPlayer = Plugin.Services.GetService<IPlayerManagerService>().GetNetPlayerByWeapon(__instance.weaponBase);
+            var netPlayer = playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase);
             if (netPlayer == null)
             {
                 return;
@@ -65,7 +65,7 @@ namespace MegabonkTogether.Patches.Projectiles
                 return;
             }
 
-            var netPlayer = Plugin.Services.GetService<IPlayerManagerService>().GetNetPlayerByWeapon(__instance.weaponBase);
+            var netPlayer = playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase);
             if (netPlayer == null)
             {
                 return;
@@ -87,7 +87,7 @@ namespace MegabonkTogether.Patches.Projectiles
                 return;
             }
 
-            var netPlayer = Plugin.Services.GetService<IPlayerManagerService>().GetNetPlayerByWeapon(__instance.weaponBase);
+            var netPlayer = playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase);
             if (netPlayer == null)
             {
                 return;
@@ -108,7 +108,7 @@ namespace MegabonkTogether.Patches.Projectiles
                 return;
             }
 
-            var netPlayer = Plugin.Services.GetService<IPlayerManagerService>().GetNetPlayerByWeapon(__instance.weaponBase);
+            var netPlayer = playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase);
             if (netPlayer == null)
             {
                 return;
@@ -130,7 +130,7 @@ namespace MegabonkTogether.Patches.Projectiles
                 return;
             }
 
-            var netPlayer = Plugin.Services.GetService<IPlayerManagerService>().GetNetPlayerByWeapon(__instance.weaponBase);
+            var netPlayer = playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase);
             if (netPlayer == null)
             {
                 return;

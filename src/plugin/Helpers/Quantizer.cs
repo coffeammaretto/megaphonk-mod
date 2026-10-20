@@ -109,9 +109,14 @@ namespace MegabonkTogether.Helpers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static QuantizedRotation QuantizeYaw(float yawDeg)
         {
+            return new QuantizedRotation { QuantizedYaw = QuantizeYawValue(yawDeg) };
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ushort QuantizeYawValue(float yawDeg)
+        {
             yawDeg = Mathf.Repeat(yawDeg, 360f);
-            var res = (ushort)(yawDeg / 360f * ushort.MaxValue);
-            return new QuantizedRotation { QuantizedYaw = res };
+            return (ushort)(yawDeg / 360f * ushort.MaxValue);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -42,7 +42,7 @@ namespace MegabonkTogether.Patches
         {
             if (newWindow.name == "Menu")
             {
-                EnemyPatch.EnemiesDistanceThrottler.ClearAll();
+                Plugin.ResetPointerCaches();
                 Plugin.Instance.NetworkHandler.ResetNetworking();
                 Plugin.Instance.NetPlayersDisplayer.ResetCards();
                 Plugin.Instance.HideModal();

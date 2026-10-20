@@ -1,6 +1,8 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Pickups;
 using MegabonkTogether.Common.Models;
 using MegabonkTogether.Extensions;
+using MegabonkTogether.Helpers;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,8 +25,9 @@ namespace MegabonkTogether.Services
     internal class PickupManagerService : IPickupManagerService
     {
         private readonly ConcurrentDictionary<uint, Pickup> spawnedPickups = [];
-        // The game stacks nearby xp/gold into an existing pickup, so one object can carry several network ids (oldest first)
-        private readonly Dictionary<int, List<uint>> pickupIdsByInstanceId = [];
+        // The game stacks nearby xp/gold into an existing pickup, so one object can carry several network ids (oldest first).
+        // Keyed by the pickup's native pointer: pooled pickups keep it, GetInstanceID is a native call
+        private readonly Dictionary<IntPtr, List<uint>> pickupIdsByInstanceId = [];
         private readonly object pickupIdsLock = new();
         private uint currentPickupId = 0; //TODO: concurrency?
 
@@ -78,7 +81,7 @@ namespace MegabonkTogether.Services
         {
             lock (pickupIdsLock)
             {
-                var instanceId = pickup.GetInstanceID();
+                var instanceId = pickup.Ptr();
                 if (!pickupIdsByInstanceId.TryGetValue(instanceId, out var ids))
                 {
                     ids = [];
@@ -97,14 +100,14 @@ namespace MegabonkTogether.Services
         /// </summary>
         public KeyValuePair<uint, Pickup> GetPickupByReference(Pickup pickup)
         {
-            if (pickup == null)
+            if (IsNullOrDestroyed(pickup))
             {
                 return default;
             }
 
             lock (pickupIdsLock)
             {
-                if (pickupIdsByInstanceId.TryGetValue(pickup.GetInstanceID(), out var ids))
+                if (pickupIdsByInstanceId.TryGetValue(pickup.Ptr(), out var ids))
                 {
                     foreach (var id in ids)
                     {
@@ -124,7 +127,7 @@ namespace MegabonkTogether.Services
         /// </summary>
         public List<uint> RemovePickupByReference(Pickup pickup, bool cleanupXpList)
         {
-            if (pickup == null)
+            if (IsNullOrDestroyed(pickup))
             {
                 return [];
             }
@@ -132,7 +135,7 @@ namespace MegabonkTogether.Services
             List<uint> ids;
             lock (pickupIdsLock)
             {
-                if (!pickupIdsByInstanceId.Remove(pickup.GetInstanceID(), out ids))
+                if (!pickupIdsByInstanceId.Remove(pickup.Ptr(), out ids))
                 {
                     return [];
                 }
@@ -149,6 +152,14 @@ namespace MegabonkTogether.Services
             }
 
             return ids;
+        }
+
+        /// <summary>
+        /// Same result as Unity's == null without the native call
+        /// </summary>
+        private static bool IsNullOrDestroyed(Pickup pickup)
+        {
+            return pickup is null || pickup.CachedPtr() == IntPtr.Zero;
         }
 
         public Pickup GetSpawnedPickupById(uint id)

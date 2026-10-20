@@ -21,7 +21,7 @@ namespace MegabonkTogether.Services
         public void Reset();
     }
 
-    internal class PartyModifiersService(IUdpClientService udpClientService, IPartySettingsService partySettingsService, IDownedService downedService, ITeamMeterService teamMeterService) : IPartyModifiersService
+    internal class PartyModifiersService(IUdpClientService udpClientService, IPartySettingsService partySettingsService, ITeamMeterService teamMeterService) : IPartyModifiersService
     {
         private const float TICK_INTERVAL = 0.5f;
         private const string PREFIX = "MegabonkTogether_Party_";
@@ -86,11 +86,6 @@ namespace MegabonkTogether.Services
             {
                 wanted["TeamBuffDamage"] = (EStat.DamageMultiplier, EStatModifyType.Addition, 0.25f);
                 wanted["TeamBuffSpeed"] = (EStat.MoveSpeedMultiplier, EStatModifyType.Addition, 0.15f);
-            }
-
-            if (downedService.IsLocalDowned)
-            {
-                wanted["Downed"] = (EStat.MoveSpeedMultiplier, EStatModifyType.Addition, -0.6f);
             }
 
             return wanted;
