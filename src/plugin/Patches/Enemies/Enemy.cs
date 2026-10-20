@@ -357,7 +357,7 @@ namespace MegabonkTogether.Patches.Enemies
 
         /// <summary>
         /// Distance-based throttling for non boss enemies
-        /// only disables renderer at far distance for server and full throttling for clients
+        /// clients skip far enemies and update medium ones once a second, the host updates all of them
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(nameof(Enemy.MyUpdate))]
@@ -380,7 +380,7 @@ namespace MegabonkTogether.Patches.Enemies
 
         /// <summary>
         /// Distance-based throttling for non boss enemies
-        /// only disables renderer at far distance for server and full throttling for clients
+        /// clients skip far enemies and update medium ones once a second, the host updates all of them
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(nameof(Enemy.MyFixedUpdate))]

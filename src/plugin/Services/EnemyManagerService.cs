@@ -35,6 +35,7 @@ namespace MegabonkTogether.Services
     {
         private readonly ConcurrentDictionary<uint, Enemy> spawnedEnemies = [];
         private Dictionary<uint, EnemyModel> previousSpawnedEnemiesDelta = [];
+        private Dictionary<uint, float> lastSentTimes = [];
         private readonly ConcurrentDictionary<Enemy, string> reviverEnemies_NetplayNames = [];
         private readonly ConcurrentDictionary<uint, int> reviverSpawnCountPerOwner = [];
         private uint currentEnemyId = 0; //TODO: concurrency?
@@ -42,6 +43,7 @@ namespace MegabonkTogether.Services
         private const float POSITION_TRESHOLD = 0.1f;
         private const float YAW_TRESHOLD = 5.0f;
         private const ushort HP_TRESHOLD = 1;
+        private const float FULL_RESEND_INTERVAL_SECONDS = 1f;
 
         /// <summary>
         /// Server side, retarget enemies when a player dies (or other use case ? )
@@ -113,23 +115,33 @@ namespace MegabonkTogether.Services
                 currentEnemies[id] = enemy.ToModel(id);
             }
 
-            if (previousSpawnedEnemiesDelta.Count == 0)
-            {
-                previousSpawnedEnemiesDelta = currentEnemies;
-                return currentEnemies.Values;
-            }
-
+            // Snapshots are unreliable: compare against what was last sent (not the last tick) so slow moves add up,
+            // and resend every enemy at least once a second so a lost packet doesn't leave a client copy stuck
+            var now = Time.realtimeSinceStartup;
             var deltas = new List<EnemyModel>();
+            var sentModels = new Dictionary<uint, EnemyModel>(currentEnemies.Count);
+            var sentTimes = new Dictionary<uint, float>(currentEnemies.Count);
 
             foreach (var current in currentEnemies.Values)
             {
-                if (!previousSpawnedEnemiesDelta.TryGetValue(current.Id, out var previous) || HasDelta(previous, current))
+                var hasPrevious = previousSpawnedEnemiesDelta.TryGetValue(current.Id, out var previous);
+                var lastSent = lastSentTimes.TryGetValue(current.Id, out var sentAt) ? sentAt : float.MinValue;
+
+                if (!hasPrevious || HasDelta(previous, current) || now - lastSent >= FULL_RESEND_INTERVAL_SECONDS)
                 {
                     deltas.Add(current);
+                    sentModels[current.Id] = current;
+                    sentTimes[current.Id] = now;
+                }
+                else
+                {
+                    sentModels[current.Id] = previous;
+                    sentTimes[current.Id] = lastSent;
                 }
             }
 
-            previousSpawnedEnemiesDelta = currentEnemies;
+            previousSpawnedEnemiesDelta = sentModels;
+            lastSentTimes = sentTimes;
 
             return deltas;
         }
@@ -218,6 +230,7 @@ namespace MegabonkTogether.Services
             //spawnedEnemies.Select(Enemy => Enemy.Value).ToList().ForEach(enemy => GameObject.Destroy(enemy.gameObject));
             spawnedEnemies.Clear();
             previousSpawnedEnemiesDelta = [];
+            lastSentTimes = [];
         }
 
         //TODO: the applied values should be stored in GameBalanceService

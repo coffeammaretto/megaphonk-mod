@@ -3,29 +3,29 @@ using UnityEngine;
 
 namespace MegabonkTogether.Helpers
 {
+    /// <summary>
+    /// Updates far objects less often on clients (their position comes from the host's snapshots anyway).
+    /// Objects always stay rendered: hiding them past a distance made enemies pop in only when a player came close.
+    /// </summary>
     public class DistanceThrottler(float mediumDistanceUpdateInterval = 1f)
     {
         private readonly Dictionary<int, float> lastUpdateTimes = [];
-        private readonly Dictionary<int, bool> rendererDisabledState = [];
         private readonly float mediumDistanceUpdateInterval = mediumDistanceUpdateInterval;
 
         public bool ShouldUpdate(GameObject gameObject, int instanceId, bool isServer = false)
         {
             DistanceToPlayer distance = Plugin.GetDistanceToPlayer(gameObject.transform.position);
-            return ShouldUpdate(gameObject, instanceId, distance, isServer);
+            return ShouldUpdate(instanceId, distance, isServer);
         }
 
-        private bool ShouldUpdate(GameObject gameObject, int instanceId, DistanceToPlayer distance, bool isServer = false)
+        private bool ShouldUpdate(int instanceId, DistanceToPlayer distance, bool isServer = false)
         {
             switch (distance)
             {
                 case DistanceToPlayer.Far:
-                    SetRendererEnabled(gameObject, false, instanceId);
                     return isServer;
 
                 case DistanceToPlayer.Medium:
-                    SetRendererEnabled(gameObject, true, instanceId);
-
                     if (isServer)
                     {
                         return true;
@@ -43,46 +43,18 @@ namespace MegabonkTogether.Helpers
 
                 case DistanceToPlayer.Close:
                 default:
-                    SetRendererEnabled(gameObject, true, instanceId);
                     return true;
             }
         }
 
-        private void SetRendererEnabled(GameObject gameObject, bool enabled, int instanceId)
-        {
-            bool wasDisabled = rendererDisabledState.TryGetValue(instanceId, out bool state) && state;
-
-            if (!enabled && !wasDisabled)
-            {
-                var renderer = gameObject.GetComponentInChildren<Renderer>();
-
-                if (renderer != null)
-                {
-                    renderer.enabled = false;
-                    rendererDisabledState[instanceId] = true;
-                }
-            }
-            else if (enabled && wasDisabled)
-            {
-                var renderer = gameObject.GetComponentInChildren<Renderer>();
-
-                if (renderer != null)
-                {
-                    renderer.enabled = true;
-                    rendererDisabledState[instanceId] = false;
-                }
-            }
-        }
         public void Cleanup(int instanceId)
         {
             lastUpdateTimes.Remove(instanceId);
-            rendererDisabledState.Remove(instanceId);
         }
 
         public void ClearAll()
         {
             lastUpdateTimes.Clear();
-            rendererDisabledState.Clear();
         }
     }
 }
