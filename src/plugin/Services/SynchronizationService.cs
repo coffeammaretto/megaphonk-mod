@@ -136,6 +136,11 @@ namespace MegabonkTogether.Services
         public void UpdateEncounterSync();
         public void RetryPendingInventoryReplays();
         public void CheckPeerModVersions();
+
+        /// <summary>
+        /// Send the damage merged and the xp kept during the frame. Called once per frame, before UdpClientService flushes.
+        /// </summary>
+        public void FlushPendingNetworkUpdates();
     }
     internal class SynchronizationService : ISynchronizationService
     {
@@ -182,6 +187,16 @@ namespace MegabonkTogether.Services
 
         private const float INVENTORY_REPLAY_TIMEOUT = 30f;
         private readonly List<(uint OwnerId, float DeferredAt, Func<bool> TryReplay)> pendingInventoryReplays = [];
+
+        // Host: hits on the same enemy during a frame are sent as one EnemyDamaged (see OnEnemyDamaged)
+        private class PendingEnemyDamage
+        {
+            public EnemyDamaged Message { get; set; }
+            public float LargestHit { get; set; }
+        }
+        private readonly Dictionary<uint, List<PendingEnemyDamage>> pendingEnemyDamages = [];
+        // Receivers only use the absolute xp: only the latest gain of the frame is sent
+        private AddXp pendingAddXp = null;
 
         private CancellationTokenSource cancellationTokenSource = new();
         private CancellationToken cancellationToken = default;
@@ -865,6 +880,8 @@ namespace MegabonkTogether.Services
 
             pendingEnemySpawns.Clear();
             enemiesDiedBeforeSpawn.Clear();
+            pendingEnemyDamages.Clear();
+            pendingAddXp = null;
             Patches.Enemies.EnemyPatch.EnemiesDistanceThrottler.ClearAll();
 
             Plugin.Instance.NetPlayersDisplayer.ResetCards();
@@ -1650,7 +1667,7 @@ namespace MegabonkTogether.Services
                 return; //Might already be dead
             }
 
-            IGameNetworkMessage message = new EnemyDamaged
+            var message = new EnemyDamaged
             {
                 EnemyId = enemySpawned.Key,
                 Damage = damageContainer.damage,
@@ -1668,12 +1685,106 @@ namespace MegabonkTogether.Services
             var isHost = IsServerMode() ?? false;
             if (isHost)
             {
-                GetRunStatsService()?.OnDamage(((EnemyDamaged)message).AttackerId, damageContainer.damage);
-                udpClientService.SendToAllClients(message, LiteNetLib.DeliveryMethod.Unreliable); //TODO: Can be unreliable i think ?
+                GetRunStatsService()?.OnDamage(message.AttackerId, damageContainer.damage);
+                QueueEnemyDamaged(message); //Sent unreliable at the end of the frame, merged per enemy
             }
             else
             {
                 udpClientService.SendToHost(message, LiteNetLib.DeliveryMethod.ReliableOrdered);
+            }
+        }
+
+        /// <summary>
+        /// Host: the hits on one enemy during a frame are sent as one EnemyDamaged per attacker, source and element (so kill
+        /// credit and on-hit effects stay right), clients replayed every hit one by one.
+        /// Damage and armor-blocked damage are summed, crit if any hit was, knockback is the strongest one; the other fields
+        /// (effect, flags, proc coefficient) come from the largest hit.
+        /// </summary>
+        private void QueueEnemyDamaged(EnemyDamaged damaged)
+        {
+            if (!pendingEnemyDamages.TryGetValue(damaged.EnemyId, out var pendingForEnemy))
+            {
+                pendingForEnemy = [];
+                pendingEnemyDamages[damaged.EnemyId] = pendingForEnemy;
+            }
+
+            var pending = pendingForEnemy.Find(p => p.Message.AttackerId == damaged.AttackerId
+                && p.Message.DamageSource == damaged.DamageSource
+                && p.Message.DamageElement == damaged.DamageElement);
+            if (pending == null)
+            {
+                pendingForEnemy.Add(new PendingEnemyDamage { Message = damaged, LargestHit = damaged.Damage });
+                return;
+            }
+
+            var merged = pending.Message;
+            var totalDamage = merged.Damage + damaged.Damage;
+            var totalDamageBlockedByArmor = merged.DamageBlockedByArmor + damaged.DamageBlockedByArmor;
+            var isCrit = merged.DamageIsCrit || damaged.DamageIsCrit;
+            var knockback = Math.Max(merged.DamageKnockback, damaged.DamageKnockback);
+
+            if (damaged.Damage > pending.LargestHit)
+            {
+                pending.LargestHit = damaged.Damage;
+                merged = damaged;
+                pending.Message = damaged;
+            }
+
+            merged.Damage = totalDamage;
+            merged.DamageBlockedByArmor = totalDamageBlockedByArmor;
+            merged.DamageIsCrit = isCrit;
+            merged.DamageKnockback = knockback;
+        }
+
+        /// <summary>
+        /// Send now the damage merged for this enemy, before it is removed (dying): FlushPendingNetworkUpdates skips removed enemies
+        /// </summary>
+        private void SendPendingEnemyDamages(uint enemyId)
+        {
+            if (!pendingEnemyDamages.Remove(enemyId, out var pendingForEnemy))
+            {
+                return;
+            }
+
+            foreach (var pending in pendingForEnemy)
+            {
+                udpClientService.SendToAllClients(pending.Message, LiteNetLib.DeliveryMethod.Unreliable);
+            }
+        }
+
+        public void FlushPendingNetworkUpdates()
+        {
+            if (pendingEnemyDamages.Count > 0)
+            {
+                foreach (var (enemyId, pendingForEnemy) in pendingEnemyDamages)
+                {
+                    if (enemyManagerService.GetEnemyById(enemyId) == null)
+                    {
+                        continue; //Removed since without dying (died ones were sent by OnEnemyDied): nothing left to show
+                    }
+
+                    foreach (var pending in pendingForEnemy)
+                    {
+                        udpClientService.SendToAllClients(pending.Message, LiteNetLib.DeliveryMethod.Unreliable);
+                    }
+                }
+
+                pendingEnemyDamages.Clear();
+            }
+
+            if (pendingAddXp != null)
+            {
+                var addXp = pendingAddXp;
+                pendingAddXp = null;
+
+                if (IsServerMode() ?? false)
+                {
+                    udpClientService.SendToAllClients(addXp, LiteNetLib.DeliveryMethod.ReliableOrdered);
+                }
+                else
+                {
+                    udpClientService.SendToHost(addXp, LiteNetLib.DeliveryMethod.ReliableOrdered);
+                }
             }
         }
 
@@ -1754,6 +1865,7 @@ namespace MegabonkTogether.Services
             var isHost = IsServerMode() ?? false;
             if (isHost)
             {
+                SendPendingEnemyDamages(enemySpawned.Key);
                 udpClientService.SendToAllClients(message, LiteNetLib.DeliveryMethod.ReliableOrdered);
                 var killerId = diedByOwnerId ?? playerManagerService.GetLocalPlayer()?.ConnectionId;
                 ((ITeamMeterService)Plugin.Services.GetService(typeof(ITeamMeterService)))?.OnEnemyKilled(killerId);
@@ -2337,8 +2449,6 @@ namespace MegabonkTogether.Services
                 player.RefreshConstantAttack(upgradeModifiers);
                 Plugin.Instance.RestorePlayerInventoryActions();
                 Plugin.CAN_SEND_MESSAGES = true;
-
-                NotifyTeammatePick(added.OwnerId, ((EWeapon)added.Weapon).ToString(), null);
             }
 
             return true;
@@ -2360,7 +2470,7 @@ namespace MegabonkTogether.Services
             if (tomeData.eTome == ETome.Xp)
             {
                 var xpMult = GameManager.Instance.player.inventory.playerStats.GetStat(EStat.XpIncreaseMultiplier);
-                logger.LogInfo($"Adding tome {tomeData.eTome} , current player XP : {xpMult}");
+                logger.LogDebug($"Adding tome {tomeData.eTome} , current player XP : {xpMult}");
             }
 
             IGameNetworkMessage msg = new TomeAdded
@@ -2416,8 +2526,6 @@ namespace MegabonkTogether.Services
                 TomeInventory.A_TomeUpgrade = callbacks;
 
                 Plugin.CAN_SEND_MESSAGES = true;
-
-                NotifyTeammatePick(added.OwnerId, $"{(ETome)added.Tome} tome", null);
             }
 
             return true;
@@ -2506,8 +2614,9 @@ namespace MegabonkTogether.Services
             var isPortal = instance.GetComponentInChildren<InteractablePortal>() != null;
             var isFinalPortal = instance.GetComponentInChildren<InteractablePortalFinal>() != null;
             var isCryptKey = instance.GetComponentInChildren<InteractableCageKey>() != null && instance.name.Contains("CryptKeyPickup");
+            var isFinalBossSpawner = instance.GetComponentInChildren<InteractableBossSpawnerFinal>() != null;
 
-            if (!isPortal && !isFinalPortal && !isCryptKey)
+            if (!isPortal && !isFinalPortal && !isCryptKey && !isFinalBossSpawner)
             {
                 if (!netplayId.HasValue)
                 {
@@ -2535,7 +2644,8 @@ namespace MegabonkTogether.Services
                 IsFinalPortal = isFinalPortal,
                 IsCryptKey = isCryptKey,
                 OwnerId = playerManagerService.GetLocalPlayer().ConnectionId,
-                IsMicrowaveAndHaveItem = instance.GetComponentInChildren<InteractableMicrowave>()?.hasItem ?? false
+                IsMicrowaveAndHaveItem = instance.GetComponentInChildren<InteractableMicrowave>()?.hasItem ?? false,
+                IsFinalBossSpawner = isFinalBossSpawner
             };
 
             var isHost = IsServerMode() ?? false;
@@ -2667,6 +2777,45 @@ namespace MegabonkTogether.Services
                     logger.LogWarning("Final Portal not found ?");
                     return;
                 }
+            }
+
+            // The teleport to the final boss arena: never fall back to the "waiting for choices" pause below,
+            // the host is already in the arena waiting for us to be ready
+            if (used.IsFinalBossSpawner)
+            {
+                InteractableBossSpawnerFinal finalBossSpawner = null;
+
+                var spawnerObj = spawnedObjectManagerService.GetSpawnedObject(used.NetplayId);
+                if (spawnerObj != null)
+                {
+                    finalBossSpawner = spawnerObj.GetComponentInChildren<InteractableBossSpawnerFinal>();
+                }
+
+                if (finalBossSpawner == null)
+                {
+                    var found = Il2CppFindHelper.FindAllGameObjects().FirstOrDefault(go => go.GetComponent<InteractableBossSpawnerFinal>() != null);
+                    finalBossSpawner = found?.GetComponent<InteractableBossSpawnerFinal>();
+                }
+
+                if (finalBossSpawner == null)
+                {
+                    logger.LogWarning("Final boss spawner not found ?");
+                    return;
+                }
+
+                // Both players used it within the same window: the teleport is already under way here
+                if (currentState == State.LoadingNextLevel || finalBossSpawner.done)
+                {
+                    logger.LogInfo("Final boss spawner already used: not teleporting twice");
+                    return;
+                }
+
+                logger.LogInfo("Host used the final boss spawner: teleporting to the arena");
+                Plugin.CAN_SEND_MESSAGES = false;
+                finalBossSpawner.Interact();
+                TransitionToState(GameEvent.PortalOpened);
+                Plugin.CAN_SEND_MESSAGES = true;
+                return;
             }
 
             if (used.IsCryptKey)
@@ -4371,8 +4520,6 @@ namespace MegabonkTogether.Services
             netPlayer.AddItem(item);
             Plugin.CAN_SEND_MESSAGES = true;
 
-            var itemName = DataManager.Instance?.itemData != null && DataManager.Instance.itemData.TryGetValue(item, out var itemData) ? itemData.GetName() : item.ToString();
-            NotifyTeammatePick(added.OwnerId, itemName, item);
             return true;
         }
 
@@ -4454,27 +4601,6 @@ namespace MegabonkTogether.Services
 
             Plugin.CAN_SEND_MESSAGES = true;
             return true;
-        }
-
-        /// <summary>
-        /// "X took Y" when a teammate gets an item, weapon or tome, to coordinate builds
-        /// </summary>
-        private void NotifyTeammatePick(uint ownerId, string what, EItem? icon)
-        {
-            if (!Configuration.ModConfig.ShowTeammatePicks.Value)
-            {
-                return;
-            }
-
-            var name = playerManagerService.GetPlayer(ownerId)?.Name ?? "Teammate";
-            if (icon.HasValue)
-            {
-                Plugin.StartNotification(("MegabonkTogether", "TeammatePick"), ("MegabonkTogether", "TeammatePick_Description"), [name, what], item: icon.Value);
-            }
-            else
-            {
-                Plugin.StartNotification(("MegabonkTogether", "TeammatePick"), ("MegabonkTogether", "TeammatePick_Description"), [name, what]);
-            }
         }
 
         /// <summary>
@@ -4712,30 +4838,23 @@ namespace MegabonkTogether.Services
             return false;
         }
 
+        /// <summary>
+        /// Receivers only apply the absolute xp: keep the latest gain, sent once at the end of the frame (FlushPendingNetworkUpdates)
+        /// </summary>
         public void PlayerXpAddXp(int xp, int amount, float leftOverXp)
         {
-            IGameNetworkMessage message = new AddXp
+            pendingAddXp = new AddXp
             {
                 Xp = xp,
-                Amount = amount,
+                Amount = amount + (pendingAddXp?.Amount ?? 0),
                 LeftOverXp = leftOverXp,
                 OwnerId = playerManagerService.GetLocalPlayer().ConnectionId,
             };
-
-            var isHost = IsServerMode() ?? false;
-            if (isHost)
-            {
-                udpClientService.SendToAllClients(message, LiteNetLib.DeliveryMethod.ReliableOrdered);
-            }
-            else
-            {
-                udpClientService.SendToHost(message, LiteNetLib.DeliveryMethod.ReliableOrdered);
-
-            }
         }
 
         private void OnReceivedAddXp(AddXp xp)
         {
+            pendingAddXp = null; //Computed before this xp replaced ours: sending it would overwrite the newer value on the others
             Plugin.CAN_SEND_MESSAGES = false;
             var playerXp = GameManager.Instance.player.inventory.playerXp;
             playerXp.xp = xp.Xp;

@@ -6,6 +6,14 @@
 #     "Change 2 description",
 # ]
 
+[version."1.0.1"]
+changes = [
+    "Less late game stutter: network messages of a frame go out in one packet, merged enemy damage, one XP update per frame, less log spam.",
+    "Fixed: the teleport to the final boss could leave both players stuck on \"Waiting for other players\".",
+    "Removed the \"teammate took ...\" notifications.",
+    "Fixed: notifications and pings did not work.",
+]
+
 [version."1.0.0"]
 changes = [
     "First release of Megaphonk Mod, a co-op mod for Megabonk 1.0.69 based on Megabonk Together.",

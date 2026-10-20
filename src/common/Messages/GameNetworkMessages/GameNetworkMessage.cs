@@ -82,6 +82,7 @@ namespace MegabonkTogether.Common.Messages
     [MemoryPackUnion(77, typeof(ChallengeNotice))]
     [MemoryPackUnion(78, typeof(RunStatsReport))]
     [MemoryPackUnion(79, typeof(TeamStats))]
+    [MemoryPackUnion(80, typeof(MessageBatch))]
     public partial interface IGameNetworkMessage
     {
 

@@ -11,6 +11,7 @@ using MegabonkTogether.Helpers;
 using MegabonkTogether.Steam;
 using MemoryPack;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,6 +54,11 @@ namespace MegabonkTogether.Services
         public void SendToHost<T>(T data, DeliveryMethod? deliveryMethod = null) where T : IGameNetworkMessage;
         public void SendToClient<T>(NetPeer client, T data, uint netPlayerId) where T : IGameNetworkMessage;
         public void SendToAllClientsExcept<T>(int netPlayerId, uint sender, T data) where T : IGameNetworkMessage;
+
+        /// <summary>
+        /// Send the messages queued this frame, packed in MessageBatch packets. Called once per frame (NetworkHandler.LateUpdate).
+        /// </summary>
+        public void FlushPendingMessages();
         public bool? IsHost();
         public void UpdateEnemies();
         public void UpdateProjectiles();
@@ -117,6 +123,27 @@ namespace MegabonkTogether.Services
         private const int STEAM_MAX_CONNECT_ATTEMPTS = 30;
 
         private CancellationTokenSource pollingCancelationTokenSource;
+
+        /// <summary>
+        /// Where a relayed message goes: everyone, one client (TargetConnectionId) or everyone but one (ToFilters)
+        /// </summary>
+        private readonly record struct RelayTarget(uint? TargetConnectionId, uint? ExceptConnectionId);
+
+        // Typed messages are not sent right away: they are queued per destination and delivery method and sent once per frame
+        // packed in MessageBatch packets. In late game hundreds of small messages per second (pickups, xp, enemies...) went out
+        // one packet each, saturating the 64 packets reliable window, then arrived in bursts.
+        // Sends can come from the network threads (polling task while connecting), hence the lock.
+        private readonly object pendingLock = new();
+        private bool isBatchingActive = false; // Set by the first flush: until NetworkHandler flushes every frame, send right away
+        private readonly Dictionary<(NetPeer Peer, DeliveryMethod DeliveryMethod), List<byte[]>> pendingByPeer = [];
+        private readonly Dictionary<DeliveryMethod, List<(RelayTarget Target, byte[] Data)>> pendingByRelay = [];
+        private const int RELAY_ENVELOPE_OVERHEAD_BYTES = 32;
+        private int failedQueuedSends = 0;
+
+        // A MessageBatch is the union tag, its member count and the list length followed by each message serialized on its own,
+        // so it is built from the bytes already serialized (callers may reuse or change their message after sending it)
+        private static readonly byte[] batchHeader = MemoryPackSerializer.Serialize<IGameNetworkMessage>(new MessageBatch());
+        private static readonly bool isBatchFormatValid = CheckBatchFormat();
 
         public bool Initialize()
         {
@@ -367,6 +394,8 @@ namespace MegabonkTogether.Services
 
         private void HandleDisconnectedPeer(NetPeer peer)
         {
+            DropPendingMessages(peer);
+
             if (usesRelay.Any())
             {
                 bool isRelayPeer;
@@ -513,6 +542,12 @@ namespace MegabonkTogether.Services
 
         private void HandleMessage(IGameNetworkMessage message, int netPeerId)
         {
+            if (message is MessageBatch batch)
+            {
+                HandleMessageBatch(batch, netPeerId);
+                return;
+            }
+
             if (!isHost.Value)
             {
                 switch (message)
@@ -1060,8 +1095,53 @@ namespace MegabonkTogether.Services
             }
         }
 
+        /// <summary>
+        /// Each message of a batch goes through the same path as if it had arrived on its own (host relaying included)
+        /// </summary>
+        private void HandleMessageBatch(MessageBatch batch, int netPeerId)
+        {
+            if (batch.Messages == null)
+            {
+                return;
+            }
+
+            foreach (var message in batch.Messages)
+            {
+                if (message == null || message is MessageBatch)
+                {
+                    logger.LogDebug("Ignoring empty or nested message in a batch");
+                    continue;
+                }
+
+                try
+                {
+                    HandleMessage(message, netPeerId);
+                }
+                catch (Exception ex) // One failing message must not drop the rest of the batch
+                {
+                    Plugin.Log.LogWarning($"Unexpected error handling network : {ex}");
+                }
+            }
+        }
+
         public void Reset()
         {
+            lock (pendingLock)
+            {
+                try
+                {
+                    FlushPendingMessagesLocked(); // Best effort, the connections are closed right after
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug($"Failed to flush pending messages on reset: {ex.Message}");
+                }
+
+                pendingByPeer.Clear();
+                pendingByRelay.Clear();
+                isBatchingActive = false;
+            }
+
             hasHandledHost = false;
             selfConnectionId = null;
             isHost = null;
@@ -1580,15 +1660,7 @@ namespace MegabonkTogether.Services
 
             if (usesRelay.Any())
             {
-                RelayEnvelope relayEnvelope = new()
-                {
-                    Payload = msgBytes,
-                };
-                var relayMsgBytes = MemoryPackSerializer.Serialize(relayEnvelope);
-                lock (relayPeerLock)
-                {
-                    relayPeer?.Send(relayMsgBytes, deliveryMethod);
-                }
+                SendOrQueueToRelay(new RelayTarget(null, null), msgBytes, deliveryMethod);
             }
 
             if (gamePeers.Count == 0)
@@ -1597,12 +1669,9 @@ namespace MegabonkTogether.Services
                 return;
             }
 
-            NetDataWriter writer = new();
-            writer.Put(msgBytes);
-
             foreach (var (_, peer) in gamePeers)
             {
-                peer.Send(writer, deliveryMethod);
+                SendOrQueue(peer, msgBytes, deliveryMethod);
             }
         }
 
@@ -1624,20 +1693,9 @@ namespace MegabonkTogether.Services
 
             if (usesRelay.Any())
             {
-                RelayEnvelope relayEnvelope = new()
-                {
-                    Payload = msgBytes,
-                };
-                var relayMsgBytes = MemoryPackSerializer.Serialize(relayEnvelope);
-                lock (relayPeerLock)
-                {
-                    relayPeer?.Send(relayMsgBytes, DeliveryMethod.ReliableOrdered);
-                }
+                SendOrQueueToRelay(new RelayTarget(null, null), msgBytes, DeliveryMethod.ReliableOrdered);
                 return;
             }
-
-            NetDataWriter writer = new();
-            writer.Put(msgBytes);
 
             if (gamePeers.Count == 0)
             {
@@ -1645,7 +1703,7 @@ namespace MegabonkTogether.Services
                 return;
             }
 
-            gamePeers[0].Send(writer, deliveryMethod);
+            SendOrQueue(gamePeers[0], msgBytes, deliveryMethod);
         }
 
         public void SendToClient<T>(NetPeer client, T data, uint connectionId) where T : IGameNetworkMessage
@@ -1659,23 +1717,11 @@ namespace MegabonkTogether.Services
 
             if (usesRelay.Contains(connectionId))
             {
-                RelayEnvelope relayEnvelope = new()
-                {
-                    TargetConnectionId = connectionId,
-                    HaveTarget = true,
-                    Payload = msgBytes,
-                };
-                var relayMsgBytes = MemoryPackSerializer.Serialize(relayEnvelope);
-                lock (relayPeerLock)
-                {
-                    relayPeer?.Send(relayMsgBytes, DeliveryMethod.ReliableOrdered);
-                }
+                SendOrQueueToRelay(new RelayTarget(connectionId, null), msgBytes, DeliveryMethod.ReliableOrdered);
                 return;
             }
 
-            NetDataWriter writer = new NetDataWriter();
-            writer.Put(msgBytes);
-            client.Send(writer, DeliveryMethod.ReliableOrdered);
+            SendOrQueue(client, msgBytes, DeliveryMethod.ReliableOrdered);
         }
 
         private bool EnsureIsHost()
@@ -1783,17 +1829,7 @@ namespace MegabonkTogether.Services
                 }
 
 
-                RelayEnvelope relayEnvelope = new()
-                {
-                    ToFilters = found ? [toExcept] : [],
-                    Payload = msgBytes,
-                };
-
-                var relayMsgBytes = MemoryPackSerializer.Serialize(relayEnvelope);
-                lock (relayPeerLock)
-                {
-                    relayPeer?.Send(relayMsgBytes, DeliveryMethod.ReliableOrdered);
-                }
+                SendOrQueueToRelay(new RelayTarget(null, found ? toExcept : null), msgBytes, DeliveryMethod.ReliableOrdered);
             }
 
             if (gamePeers.Count == 0)
@@ -1802,13 +1838,286 @@ namespace MegabonkTogether.Services
                 return;
             }
 
-            NetDataWriter writer = new NetDataWriter();
-            writer.Put(msgBytes);
-
             var filteredPeers = gamePeers.Where(p => p.Value.Id != netPlayerId);
             foreach (var (_, peer) in filteredPeers)
             {
-                peer.Send(writer, DeliveryMethod.ReliableOrdered);
+                SendOrQueue(peer, msgBytes, DeliveryMethod.ReliableOrdered);
+            }
+        }
+
+        /// <summary>
+        /// Delivery method used for a batch, false when the message must not be batched.
+        /// Sequenced methods drop older packets: a dropped batch would lose every message in it, and ReliableSequenced
+        /// only retransmits the latest packet. Since batching divides the packet count, ReliableSequenced batches go
+        /// ReliableOrdered (every message arrives, in order). Unreliable Sequenced is not batched.
+        /// </summary>
+        private static bool TryGetBatchDeliveryMethod(DeliveryMethod deliveryMethod, out DeliveryMethod batchDeliveryMethod)
+        {
+            batchDeliveryMethod = deliveryMethod switch
+            {
+                DeliveryMethod.ReliableSequenced => DeliveryMethod.ReliableOrdered,
+                _ => deliveryMethod
+            };
+
+            return deliveryMethod != DeliveryMethod.Sequenced;
+        }
+
+        private void SendOrQueue(NetPeer peer, byte[] msgBytes, DeliveryMethod deliveryMethod)
+        {
+            if (TryGetBatchDeliveryMethod(deliveryMethod, out var batchDeliveryMethod))
+            {
+                lock (pendingLock)
+                {
+                    if (isBatchingActive)
+                    {
+                        if (!pendingByPeer.TryGetValue((peer, batchDeliveryMethod), out var pending))
+                        {
+                            pending = [];
+                            pendingByPeer[(peer, batchDeliveryMethod)] = pending;
+                        }
+                        pending.Add(msgBytes);
+                        return;
+                    }
+                }
+            }
+
+            peer.Send(msgBytes, deliveryMethod);
+        }
+
+        private void SendOrQueueToRelay(RelayTarget target, byte[] msgBytes, DeliveryMethod deliveryMethod)
+        {
+            if (TryGetBatchDeliveryMethod(deliveryMethod, out var batchDeliveryMethod))
+            {
+                lock (pendingLock)
+                {
+                    if (isBatchingActive)
+                    {
+                        if (!pendingByRelay.TryGetValue(batchDeliveryMethod, out var pending))
+                        {
+                            pending = [];
+                            pendingByRelay[batchDeliveryMethod] = pending;
+                        }
+                        pending.Add((target, msgBytes));
+                        return;
+                    }
+                }
+            }
+
+            SendToRelay(target, msgBytes, deliveryMethod);
+        }
+
+        private void SendToRelay(RelayTarget target, byte[] payload, DeliveryMethod deliveryMethod)
+        {
+            RelayEnvelope relayEnvelope = new()
+            {
+                TargetConnectionId = target.TargetConnectionId ?? 0,
+                HaveTarget = target.TargetConnectionId.HasValue,
+                ToFilters = target.ExceptConnectionId.HasValue ? [target.ExceptConnectionId.Value] : [],
+                Payload = payload,
+            };
+            var relayMsgBytes = MemoryPackSerializer.Serialize(relayEnvelope);
+            lock (relayPeerLock)
+            {
+                relayPeer?.Send(relayMsgBytes, deliveryMethod);
+            }
+        }
+
+        public void FlushPendingMessages()
+        {
+            lock (pendingLock)
+            {
+                isBatchingActive = isBatchFormatValid;
+                FlushPendingMessagesLocked();
+            }
+        }
+
+        private void FlushPendingMessagesLocked()
+        {
+            foreach (var ((peer, deliveryMethod), pending) in pendingByPeer)
+            {
+                if (pending.Count == 0)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var maxSize = Math.Min(MAX_PACKET_SIZE_BYTES, peer.GetMaxSinglePacketSize(deliveryMethod));
+                    SendPacked(pending, maxSize, data => TrySendQueued(() => peer.Send(data, deliveryMethod)));
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogError($"Failed to send queued messages: {ex.Message}");
+                }
+                finally
+                {
+                    pending.Clear();
+                }
+            }
+
+            foreach (var (deliveryMethod, pending) in pendingByRelay)
+            {
+                if (pending.Count == 0)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    int maxSize;
+                    lock (relayPeerLock)
+                    {
+                        maxSize = relayPeer != null ? relayPeer.GetMaxSinglePacketSize(deliveryMethod) : MAX_PACKET_SIZE_BYTES;
+                    }
+                    maxSize = Math.Min(MAX_PACKET_SIZE_BYTES, maxSize) - RELAY_ENVELOPE_OVERHEAD_BYTES;
+
+                    // One envelope per run of consecutive messages going to the same players, keeping the order
+                    var start = 0;
+                    while (start < pending.Count)
+                    {
+                        var target = pending[start].Target;
+                        var end = start;
+                        while (end < pending.Count && pending[end].Target == target)
+                        {
+                            end++;
+                        }
+
+                        var run = pending.GetRange(start, end - start).Select(p => p.Data).ToList();
+                        SendPacked(run, maxSize, data => TrySendQueued(() => SendToRelay(target, data, deliveryMethod)));
+                        start = end;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogError($"Failed to send queued relay messages: {ex.Message}");
+                }
+                finally
+                {
+                    pending.Clear();
+                }
+            }
+        }
+
+        /// <summary>
+        /// One packet failing (too big for an unreliable send...) must not drop the other packets of the queue
+        /// </summary>
+        private void TrySendQueued(Action send)
+        {
+            try
+            {
+                send();
+            }
+            catch (Exception ex)
+            {
+                failedQueuedSends++;
+                if (failedQueuedSends <= 3 || failedQueuedSends % 200 == 0)
+                {
+                    Plugin.Log.LogError($"Failed to send a queued packet ({failedQueuedSends} so far): {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Send the messages in order, as few packets as possible under maxSize. A message alone (or too big to share a packet)
+        /// is sent as is.
+        /// </summary>
+        private static void SendPacked(List<byte[]> messages, int maxSize, Action<byte[]> send)
+        {
+            var batch = new List<byte[]>();
+            var batchSize = batchHeader.Length;
+
+            foreach (var message in messages)
+            {
+                if (batch.Count > 0 && batchSize + message.Length >= maxSize)
+                {
+                    send(PackBatch(batch, batchSize));
+                    batch.Clear();
+                    batchSize = batchHeader.Length;
+                }
+
+                batch.Add(message);
+                batchSize += message.Length;
+            }
+
+            if (batch.Count > 0)
+            {
+                send(PackBatch(batch, batchSize));
+            }
+        }
+
+        private static byte[] PackBatch(List<byte[]> messages, int batchSize)
+        {
+            if (messages.Count == 1)
+            {
+                return messages[0];
+            }
+
+            var packed = new byte[batchSize];
+            Buffer.BlockCopy(batchHeader, 0, packed, 0, batchHeader.Length);
+            BinaryPrimitives.WriteInt32LittleEndian(packed.AsSpan(batchHeader.Length - sizeof(int)), messages.Count);
+
+            var offset = batchHeader.Length;
+            foreach (var message in messages)
+            {
+                Buffer.BlockCopy(message, 0, packed, offset, message.Length);
+                offset += message.Length;
+            }
+
+            return packed;
+        }
+
+        /// <summary>
+        /// Make sure a batch built by PackBatch reads back as MemoryPack would serialize it, else send every message on its own
+        /// </summary>
+        private static bool CheckBatchFormat()
+        {
+            try
+            {
+                var first = new AddXp { Xp = 1234, LeftOverXp = 0.5f, OwnerId = 7 };
+                var second = new PingPlaced { OwnerId = 42, Position = new System.Numerics.Vector3(1f, 2f, 3f) };
+                var firstBytes = MemoryPackSerializer.Serialize<IGameNetworkMessage>(first);
+                var secondBytes = MemoryPackSerializer.Serialize<IGameNetworkMessage>(second);
+
+                var packed = PackBatch([firstBytes, secondBytes], batchHeader.Length + firstBytes.Length + secondBytes.Length);
+                var expected = MemoryPackSerializer.Serialize<IGameNetworkMessage>(new MessageBatch { Messages = [first, second] });
+
+                if (packed.AsSpan().SequenceEqual(expected)
+                    && MemoryPackSerializer.Deserialize<IGameNetworkMessage>(packed) is MessageBatch batch
+                    && batch.Messages.Count == 2
+                    && batch.Messages[0] is AddXp { Xp: 1234, OwnerId: 7 }
+                    && batch.Messages[1] is PingPlaced { OwnerId: 42 })
+                {
+                    return true;
+                }
+
+                Plugin.Log.LogWarning("Message batching disabled: unexpected batch format");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"Message batching disabled: {ex.Message}");
+            }
+
+            return false;
+        }
+
+        private void DropPendingMessages(NetPeer peer)
+        {
+            lock (pendingLock)
+            {
+                foreach (var key in pendingByPeer.Keys.Where(k => k.Peer == peer).ToList())
+                {
+                    pendingByPeer.Remove(key);
+                }
+
+                bool isRelayPeer;
+                lock (relayPeerLock)
+                {
+                    isRelayPeer = relayPeer == peer;
+                }
+                if (isRelayPeer)
+                {
+                    pendingByRelay.Clear();
+                }
             }
         }
 

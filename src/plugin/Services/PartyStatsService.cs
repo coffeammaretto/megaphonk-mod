@@ -161,7 +161,7 @@ namespace MegabonkTogether.Services
             if (!lastLoggedTotals.TryGetValue(stat, out var lastLogged) || Mathf.Abs(lastLogged - total) > EPSILON)
             {
                 lastLoggedTotals[stat] = total;
-                Plugin.Log.LogInfo($"Party {stat}: own {ownValue}, others [{string.Join(", ", remoteValues.GetValueOrDefault(stat) ?? [])}], {currentRules.Mode} = {total} (GetStat now {playerStats.GetStat(stat)})");
+                Plugin.Log.LogDebug($"Party {stat}: own {ownValue}, others [{string.Join(", ", remoteValues.GetValueOrDefault(stat) ?? [])}], {currentRules.Mode} = {total} (GetStat now {playerStats.GetStat(stat)})");
             }
         }
 

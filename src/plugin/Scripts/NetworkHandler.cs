@@ -153,6 +153,28 @@ namespace MegabonkTogether.Scripts
             }
         }
 
+        /// <summary>
+        /// End of frame: send what was merged or queued during the frame (damage, xp, then every queued message in batches)
+        /// </summary>
+        public void LateUpdate()
+        {
+            try
+            {
+                if (udpClientService == null) return;
+
+                if (synchronizationService != null)
+                {
+                    SafeTick(synchronizationService.FlushPendingNetworkUpdates);
+                }
+
+                udpClientService.FlushPendingMessages();
+            }
+            catch (System.Exception ex)
+            {
+                Plugin.Log.LogError($"NetworkHandler LateUpdate error: {ex}");
+            }
+        }
+
         private static void SafeTick(System.Action tick)
         {
             try

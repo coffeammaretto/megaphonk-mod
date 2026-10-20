@@ -1,4 +1,5 @@
 using Assets.Scripts.Inventory__Items__Pickups.Items;
+using Assets.Scripts.Saves___Serialization.Progression.Achievements;
 using MegabonkTogether.Helpers;
 using MegabonkTogether.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,8 @@ namespace MegabonkTogether.Scripts
         private readonly ConcurrentQueue<QueuedNotification> notificationQueue = new();
         private bool isProcessing = false;
         private float notificationDuration = 5f;
+        private MyAchievement achievementTemplate;
+        private readonly Dictionary<EItem, MyAchievement> achievementCopies = [];
 
         public void Initialize()
         {
@@ -108,6 +111,16 @@ namespace MegabonkTogether.Scripts
                 }
 
                 var achievementData = data.GetUnlockRequirement();
+                if (achievementData == null) //Items unlocked from the start (Key...) have no achievement to show the popup with
+                {
+                    achievementData = GetAchievementCopy(item, data);
+                    if (achievementData == null)
+                    {
+                        Plugin.Log.LogWarning("No item achievement found to show the notification with");
+                        return false;
+                    }
+                }
+
                 achievementData.localizedName = new LocalizedString() { TableReference = localizedName.tableReference, TableEntryReference = localizedName.tableEntryReference };
                 achievementData.localizedDescription = new LocalizedString()
                 {
@@ -137,6 +150,43 @@ namespace MegabonkTogether.Scripts
                 Plugin.Log.LogError($"Unexpected error in ShowNotificationInternal: {ex}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// A copy of some item's achievement showing this item, made once per item: the game's own achievement must keep its text and item
+        /// </summary>
+        private MyAchievement GetAchievementCopy(EItem item, ItemData data)
+        {
+            if (achievementCopies.TryGetValue(item, out var copy) && copy != null)
+            {
+                return copy;
+            }
+
+            if (achievementTemplate == null)
+            {
+                foreach (var itemData in DataManager.Instance.itemData.Values)
+                {
+                    var achievement = itemData?.GetUnlockRequirement();
+                    if (achievement != null)
+                    {
+                        achievementTemplate = achievement;
+                        break;
+                    }
+                }
+
+                if (achievementTemplate == null)
+                {
+                    return null;
+                }
+            }
+
+            copy = Object.Instantiate(achievementTemplate);
+            copy.hideFlags = HideFlags.DontUnloadUnusedAsset;
+            copy.unlockable = data;
+            copy.icon = data.icon;
+            achievementCopies[item] = copy;
+
+            return copy;
         }
     }
 }

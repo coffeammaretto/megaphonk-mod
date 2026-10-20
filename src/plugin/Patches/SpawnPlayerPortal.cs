@@ -79,7 +79,7 @@ namespace MegabonkTogether.Patches
                     synchronizeText.text = Loc.T("Waiting for other players") + " " + dots;
                 }
 
-                Plugin.Log.LogInfo("Lobby not ready yet, waiting...");
+                Plugin.Log.LogDebug("Lobby not ready yet, waiting...");
 
                 yield return new WaitForSeconds(0.17f);
             }

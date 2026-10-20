@@ -12,6 +12,7 @@ namespace MegabonkTogether.Common.Messages
         public bool IsCryptKey { get; set; }
         public uint OwnerId { get; set; }
         public bool IsMicrowaveAndHaveItem { get; set; }
+        public bool IsFinalBossSpawner { get; set; }
     }
 
     public enum InteractableAction

@@ -25,6 +25,8 @@ namespace MegabonkTogether.Services
         private const float PING_COOLDOWN = 0.5f;
         private const float MAX_PING_DISTANCE = 400f;
         private const float FALLBACK_PING_DISTANCE = 30f;
+        private const int MAX_PING_RAYCASTS = 8;
+        private const float PING_RAYCAST_SKIP = 0.05f;
         private const float BEAM_HEIGHT = 25f;
 
         private readonly IUdpClientService udpClientService;
@@ -97,15 +99,28 @@ namespace MegabonkTogether.Services
 
         private static Vector3 GetLookedAtPoint(Transform camera, Transform player)
         {
-            var ray = new Ray(camera.position, camera.forward);
-            var hits = Physics.RaycastAll(ray, MAX_PING_DISTANCE, ~0, QueryTriggerInteraction.Ignore);
-            var closest = hits
-                .Where(hit => hit.collider != null && !hit.collider.transform.IsChildOf(player))
-                .OrderBy(hit => hit.distance)
-                .Select(hit => (Vector3?)hit.point)
-                .FirstOrDefault();
+            // Physics.RaycastAll returning RaycastHit[] doesn't exist in the game (MissingMethodException):
+            // closest hit with Raycast, going on past the player's own colliders (the camera looks over its shoulder)
+            var origin = camera.position;
+            var remaining = MAX_PING_DISTANCE;
+            for (var i = 0; i < MAX_PING_RAYCASTS && remaining > 0f; i++)
+            {
+                if (!Physics.Raycast(new Ray(origin, camera.forward), out var hit, remaining, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    break;
+                }
 
-            return closest ?? camera.position + camera.forward * FALLBACK_PING_DISTANCE;
+                if (hit.collider != null && !hit.collider.transform.IsChildOf(player))
+                {
+                    return hit.point;
+                }
+
+                var skipped = hit.distance + PING_RAYCAST_SKIP;
+                origin += camera.forward * skipped;
+                remaining -= skipped;
+            }
+
+            return camera.position + camera.forward * FALLBACK_PING_DISTANCE;
         }
 
         private void ShowPing(uint ownerId, Vector3 position)

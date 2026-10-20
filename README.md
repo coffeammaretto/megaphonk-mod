@@ -21,7 +21,6 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
 - While anyone picks a reward (level up, chest, shrine), the game pauses for everyone. `RewardPauseMode = Own` turns the shared pause off: you pick without a pause and stay invulnerable meanwhile, the others keep playing.
 - **F8** unlocks a stuck pause for everyone.
 - Clicks are ignored for the first second after a reward window appears, so nobody picks by accident.
-- A notification shows what a teammate took (weapon, item or tome), so builds can be coordinated. `ShowTeammatePicks` turns it off.
 - **Give to a teammate**: a chest window has a "Give to <name>" button under the decline button. The item goes to the nearest living teammate, who gets a "Gift" notification.
 
 ### Chests and gold
@@ -71,7 +70,7 @@ The host ticks any number of them in **Netplay Options** on the character select
 
 1. Close the game.
 2. If you used **Megabonk Together**, delete the `BepInEx\plugins\MegabonkTogether` folder from the game folder: both mods must not be installed together.
-3. Download `MegaphonkMod-1.0.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Download `MegaphonkMod-1.0.1-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 5. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -116,7 +115,6 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Пока кто-то выбирает награду (уровень, сундук, святилище), игра на паузе у всех. `RewardPauseMode = Own` отключает общую паузу: выбираешь без паузы и неуязвим, остальные играют.
 - **F8** снимает зависшую паузу у всех.
 - Первую секунду после появления окна награды клики игнорируются, чтобы не выбрать случайно.
-- Уведомление о том, что взял напарник (оружие, предмет, том), чтобы координировать билды. `ShowTeammatePicks` отключает его.
 - **Передача напарнику**: в окне сундука под кнопкой отказа есть кнопка «Give to <имя>». Предмет уходит ближайшему живому напарнику, и он видит уведомление «Gift».
 
 #### Сундуки и золото
@@ -165,7 +163,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 ### Установка
 1. Закрой игру.
 2. Если стоял **Megabonk Together**, удали папку `BepInEx\plugins\MegabonkTogether` в папке игры: оба мода вместе стоять не должны.
-3. Скачай `MegaphonkMod-1.0.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Скачай `MegaphonkMod-1.0.1-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 5. Запусти игру через Steam. Первый запуск дольше обычного.
 

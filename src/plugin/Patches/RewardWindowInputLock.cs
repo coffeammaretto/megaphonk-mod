@@ -96,7 +96,7 @@ namespace MegabonkTogether.Patches
                 return true;
             }
 
-            Plugin.Log.LogInfo("Ignored reward window input: window just opened");
+            Plugin.Log.LogDebug("Ignored reward window input: window just opened");
             return false;
         }
     }

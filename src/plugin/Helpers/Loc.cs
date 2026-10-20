@@ -33,8 +33,6 @@ namespace MegabonkTogether.Helpers
                 ["{0} gave you {1}"] = "{0} дарит вам: {1}",
                 ["Run modifiers"] = "Модификаторы забега",
                 ["Coop challenge"] = "Кооп-испытание",
-                ["Teammate"] = "Напарник",
-                ["{0} took {1}"] = "{0} берёт: {1}",
 
                 // Challenges
                 ["Challenges: no death this stage, kill the boss with everyone alive"] = "Испытания: уровень без смертей и босс при всех живых",

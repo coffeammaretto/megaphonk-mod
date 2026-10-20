@@ -195,7 +195,7 @@ namespace MegabonkTogether.Services
 
             if (alivePlayers.Count == 0)
             {
-                logger.LogWarning("No alive players available to select.");
+                logger.LogDebug("No alive players available to select."); //Asked per enemy while everyone is dead
                 return null;
             }
             var randomIndex = UnityEngine.Random.Range(0, alivePlayers.Count);
