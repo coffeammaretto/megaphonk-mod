@@ -42,5 +42,34 @@ namespace MegabonkTogether.Patches
                 Plugin.Log.LogError($"Error in SpawnPositionsPatch.GetEnemySpawnPosition_Prefix: {ex}");
             }
         }
+
+        /// <summary>
+        /// The chosen player's position is only needed while the spawn position is computed: stop redirecting
+        /// Transform.position right away and keep the player for the enemy about to be spawned (its target).
+        /// Left queued, a spawn that didn't happen (no valid position) kept redirecting every position read until the next spawn.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(nameof(SpawnPositions.GetEnemySpawnPosition))]
+        public static void GetEnemySpawnPosition_Postfix()
+        {
+            if (playerManagerService.TryGetGetNetplayerPosition(out uint id))
+            {
+                PendingSpawnTargetId = id;
+                PendingSpawnFrame = UnityEngine.Time.frameCount;
+            }
+        }
+
+        private static uint? PendingSpawnTargetId;
+        private static int PendingSpawnFrame;
+
+        /// <summary>
+        /// Player the enemy being initialized spawned next to, if its position was computed this frame
+        /// </summary>
+        public static uint? TakeSpawnTarget()
+        {
+            var id = PendingSpawnFrame == UnityEngine.Time.frameCount ? PendingSpawnTargetId : null;
+            PendingSpawnTargetId = null;
+            return id;
+        }
     }
 }

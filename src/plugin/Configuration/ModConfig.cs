@@ -134,7 +134,8 @@ namespace MegabonkTogether.Configuration
                 "Seconds a downed player has before dying.");
             DownedReviveSeconds = config.Bind(party, "DownedReviveSeconds", 3f,
                 "Seconds a teammate must stay next to a downed player to revive it.");
-            DownedReviveRadius = config.Bind(party, "DownedReviveRadius", 4f,
+            // New key: the old one kept the previous default (4) in existing config files
+            DownedReviveRadius = config.Bind(party, "DownedReviveRadiusMeters", 8f,
                 "How close (meters) a teammate must be to revive a downed player.");
             DownedReviveHpFraction = config.Bind(party, "DownedReviveHpFraction", 0.3f,
                 "Fraction of max HP a revived player gets back.");

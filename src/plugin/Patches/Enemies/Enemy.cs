@@ -48,24 +48,19 @@ namespace MegabonkTogether.Patches.Enemies
             var isServer = synchronizationService.IsServerMode();
             if (isServer.HasValue && isServer.Value)
             {
-                if (playerManagerService.TryGetGetNetplayerPosition(out uint id)) //TODO: this could be simplifed but too lazy
-                {
-                    var host = playerManagerService.GetLocalPlayer();
-                    if (host.ConnectionId == id)
-                    {
-                        DynamicData.For(__instance).Set("targetId", host.ConnectionId);
-                    }
-                    else
-                    {
-                        var randomPlayer = playerManagerService.GetNetPlayerByNetplayId(id);
+                // Spawned next to a player: chase that one. Bosses, minibosses and other enemies spawned at a fixed spot
+                // used to chase the host until their first target switch (20-60 s): pick a random alive player instead
+                var host = playerManagerService.GetLocalPlayer();
+                var spawnTargetId = SpawnPositionsPatches.TakeSpawnTarget() ?? playerManagerService.GetRandomPlayerAliveConnectionId() ?? host.ConnectionId;
+                var targetNetPlayer = spawnTargetId != host.ConnectionId ? playerManagerService.GetNetPlayerByNetplayId(spawnTargetId) : null;
 
-                        __instance.target = randomPlayer.Rigidbody;
-                        DynamicData.For(__instance).Set("targetId", randomPlayer.ConnectionId);
-                    }
+                if (targetNetPlayer != null)
+                {
+                    __instance.target = targetNetPlayer.Rigidbody;
+                    DynamicData.For(__instance).Set("targetId", targetNetPlayer.ConnectionId);
                 }
                 else
                 {
-                    var host = playerManagerService.GetLocalPlayer();
                     DynamicData.For(__instance).Set("targetId", host.ConnectionId);
                 }
 

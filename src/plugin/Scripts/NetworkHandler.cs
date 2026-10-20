@@ -168,6 +168,11 @@ namespace MegabonkTogether.Scripts
                 }
 
                 udpClientService.FlushPendingMessages();
+
+                if (downedService != null && GameManager.Instance != null && GameManager.Instance.player != null)
+                {
+                    SafeTick(downedService.ApplyDownedPose);
+                }
             }
             catch (System.Exception ex)
             {

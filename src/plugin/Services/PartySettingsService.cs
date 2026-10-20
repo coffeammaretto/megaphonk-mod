@@ -35,7 +35,7 @@ namespace MegabonkTogether.Services
             settings.EnemyAmountMultiplier = Clamp(settings.EnemyAmountMultiplier, 0.1f, 10f, 1f);
             settings.DownedBleedoutSeconds = Clamp(settings.DownedBleedoutSeconds, 3f, 300f, 25f);
             settings.DownedReviveSeconds = Clamp(settings.DownedReviveSeconds, 0.5f, 60f, 3f);
-            settings.DownedReviveRadius = Clamp(settings.DownedReviveRadius, 1f, 50f, 4f);
+            settings.DownedReviveRadius = Clamp(settings.DownedReviveRadius, 1f, 50f, 8f);
             settings.DownedReviveHpFraction = Clamp(settings.DownedReviveHpFraction, 0.05f, 1f, 0.3f);
             settings.SharedPassiveRadius = Clamp(settings.SharedPassiveRadius, 0f, 1000f, 0f);
             settings.TeamMeterKillsToFill = Clamp(settings.TeamMeterKillsToFill, 10f, 100000f, 250f);

@@ -6,6 +6,15 @@
 #     "Change 2 description",
 # ]
 
+[version."1.0.3"]
+changes = [
+    "Downed timers (bleeding out and reviving) stop while a reward is being picked: chest, level up, shrine...",
+    "Revive radius doubled: 8 m (new setting DownedReviveRadiusMeters).",
+    "A downed player sways, dazed.",
+    "Bosses, minibosses and enemies spawned at a fixed spot chase a random player right away instead of the host first.",
+    "Fixed on the host: a failed enemy spawn could leave every position read redirected to a teammate until the next spawn.",
+]
+
 [version."1.0.2"]
 changes = [
     "Far enemies stay visible: they no longer pop in only when a player comes within 60 m.",

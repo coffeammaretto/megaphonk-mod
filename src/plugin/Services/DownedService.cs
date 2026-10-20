@@ -25,6 +25,11 @@ namespace MegabonkTogether.Services
         public bool TryGoDown(PlayerHealth health);
 
         public void Tick();
+
+        /// <summary>
+        /// Dazed pose of downed players, after the animations and interpolation of the frame
+        /// </summary>
+        public void ApplyDownedPose();
         public void ResetForNextLevel();
         public void Reset();
     }
@@ -32,10 +37,19 @@ namespace MegabonkTogether.Services
     internal class DownedService : IDownedService
     {
         private const float REVIVER_HINT_DISTANCE = 30f;
+        private const float DAZED_LEAN_DEGREES = 25f;
+        private const float DAZED_WOBBLE_DEGREES = 12f;
+        private const float DAZED_WOBBLE_SPEED = 3f;
+
+        /// <summary>
+        /// Models currently posed as dazed: the rotation they would have without the pose, and the one we set
+        /// </summary>
+        private readonly System.Collections.Generic.Dictionary<int, (Transform Transform, Quaternion BaseRotation, Quaternion PosedRotation)> dazedModels = [];
 
         private readonly IUdpClientService udpClientService;
         private readonly IPlayerManagerService playerManagerService;
         private readonly IPartySettingsService partySettingsService;
+        private readonly IEncounterService encounterService;
 
         private bool allowNextDeath = false;
         private float bleedingFor = 0f;
@@ -44,11 +58,12 @@ namespace MegabonkTogether.Services
 
         public bool IsLocalDowned { get; private set; } = false;
 
-        public DownedService(IUdpClientService udpClientService, IPlayerManagerService playerManagerService, IPartySettingsService partySettingsService)
+        public DownedService(IUdpClientService udpClientService, IPlayerManagerService playerManagerService, IPartySettingsService partySettingsService, IEncounterService encounterService)
         {
             this.udpClientService = udpClientService;
             this.playerManagerService = playerManagerService;
             this.partySettingsService = partySettingsService;
+            this.encounterService = encounterService;
 
             EventManager.SubscribePlayerDownedChangedEvents(OnReceivedPlayerDownedChanged);
         }
@@ -121,11 +136,13 @@ namespace MegabonkTogether.Services
             var health = player.inventory.playerHealth;
             health.hp = Math.Max(health.hp, 1);
 
-            // Game time: bleeding and reviving stop while the game is paused for a reward
-            bleedingFor += Time.deltaTime;
+            // Time.deltaTime keeps running while the game is paused: bleeding and reviving stop while a reward
+            // (chest, level up, shrine...) is being picked or the party waits for someone else's pick
+            var deltaTime = IsPickingPaused() ? 0f : Time.deltaTime;
+            bleedingFor += deltaTime;
             var isTeammateNear = GetOtherStandingPlayerIds(localPlayerId)
                 .Any(id => Vector3.Distance(GetPosition(id), player.transform.position) <= settings.DownedReviveRadius);
-            reviveProgress = isTeammateNear ? reviveProgress + Time.deltaTime : Math.Max(0f, reviveProgress - Time.deltaTime);
+            reviveProgress = isTeammateNear ? reviveProgress + deltaTime : Math.Max(0f, reviveProgress - deltaTime);
 
             if (reviveProgress >= settings.DownedReviveSeconds)
             {
@@ -143,6 +160,14 @@ namespace MegabonkTogether.Services
             ShowHud(isTeammateNear
                 ? Loc.F("DOWN! Reviving... {0}", (reviveProgress / settings.DownedReviveSeconds).ToString("P0"))
                 : Loc.F("DOWN! {0}s left\nA teammate must stand next to you", remaining.ToString("0")), Color.red);
+        }
+
+        private bool IsPickingPaused()
+        {
+            var encounterWindows = UiManager.Instance?.encounterWindows;
+            return Assets.Scripts.Utility.MyTime.paused
+                || encounterService.IsWaiting
+                || (encounterWindows != null && encounterWindows.encounterInProgress);
         }
 
         private void TickReviverHint(uint localPlayerId, Vector3 localPosition)
@@ -287,6 +312,57 @@ namespace MegabonkTogether.Services
         public void Reset()
         {
             ResetForNextLevel();
+        }
+
+        public void ApplyDownedPose()
+        {
+            var downedModels = new System.Collections.Generic.List<Transform>();
+
+            var localRenderer = GameManager.Instance?.player?.playerRenderer;
+            if (IsLocalDowned && localRenderer != null)
+            {
+                downedModels.Add(localRenderer.transform);
+            }
+
+            foreach (var netPlayer in playerManagerService.GetAllSpawnedNetPlayers())
+            {
+                if (netPlayer != null && netPlayer.Model != null && playerManagerService.IsDowned(netPlayer.ConnectionId))
+                {
+                    downedModels.Add(netPlayer.Model.transform);
+                }
+            }
+
+            var posedIds = new System.Collections.Generic.HashSet<int>();
+            var wobblePhase = Time.unscaledTime * DAZED_WOBBLE_SPEED;
+            var pose = Quaternion.Euler(
+                DAZED_LEAN_DEGREES + Mathf.Sin(wobblePhase) * DAZED_WOBBLE_DEGREES,
+                0f,
+                Mathf.Cos(wobblePhase) * DAZED_WOBBLE_DEGREES);
+
+            foreach (var model in downedModels)
+            {
+                var id = model.GetInstanceID();
+                posedIds.Add(id);
+
+                // Something else (animation, interpolation) set the rotation since our last pose: that is the new base
+                var baseRotation = dazedModels.TryGetValue(id, out var posed) && model.rotation == posed.PosedRotation
+                    ? posed.BaseRotation
+                    : model.rotation;
+
+                var posedRotation = baseRotation * pose;
+                model.rotation = posedRotation;
+                dazedModels[id] = (model, baseRotation, posedRotation);
+            }
+
+            foreach (var id in dazedModels.Keys.Where(id => !posedIds.Contains(id)).ToList())
+            {
+                var posed = dazedModels[id];
+                if (posed.Transform != null && posed.Transform.rotation == posed.PosedRotation)
+                {
+                    posed.Transform.rotation = posed.BaseRotation; //Back on its feet
+                }
+                dazedModels.Remove(id);
+            }
         }
     }
 }
