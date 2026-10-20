@@ -9,13 +9,19 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
 ### Playing together
 - Online co-op for up to 6 players: **MEGAPHONK!** button in the main menu.
 - Rooms through **Steam**, no matchmaking server and no room codes:
-  - **Host**: MEGAPHONK! → Host. The character selection opens right away, friends can join until the run starts.
+  - **Host**: MEGAPHONK! → Host. The character selection opens right away, friends can join until the run starts. Nobody joined? The host can start the run alone, with the mod's features (run modifiers, challenges, team stats).
   - **Join**: MEGAPHONK! → Join → pick a friend from the list. The list shows Steam friends who have the game running and a room open, and refreshes every 2 seconds.
 - The host runs the game: enemies, damage and the clients' weapons, computed with each client's real stats.
 - Shared experience (on by default): one level for the whole party, and a reward window pauses the game for everyone.
 - Saving progression works during netplay (on by default).
 - Mod version check: a player with another build cannot join and is told why.
-- Fixes for Megabonk 1.0.69: startup crashes, stuck pauses, enemies wandering off, lag in long runs (big packets are split), instant coin and XP pickup.
+- Fixes for Megabonk 1.0.69: startup crashes, stuck pauses, enemies wandering off, instant coin and XP pickup, the teleport to the final boss leaving everyone stuck on "Waiting for other players".
+
+### Network and performance
+- The network messages of a frame are sent as one packet instead of hundreds of separate ones, so the late game no longer stutters when lots of XP, gold and enemies spawn and die. Big snapshots are split.
+- The host merges damage per enemy and per player each frame before sending it: clients see fewer, bigger damage numbers.
+- XP is synchronized once per frame, not on every orb.
+- Far enemies stay visible (they are only updated less often on clients), and the host resends every enemy's position at least once a second, so a lost packet never leaves an enemy stuck on a client's screen.
 
 ### Rewards
 - While anyone picks a reward (level up, chest, shrine), the game pauses for everyone. `RewardPauseMode = Own` turns the shared pause off: you pick without a pause and stay invulnerable meanwhile, the others keep playing.
@@ -41,7 +47,11 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
 - **Co-op challenges** (`ChallengesEnabled`), announced at the start of a stage, rewarded with chests that drop from the sky at the start of the next stage (downs don't count as deaths):
   - a chest for each player who didn't die during the stage;
   - a chest for each player who was alive when the stage boss appeared and didn't die before it was killed.
-- Enemies no longer chase a dead player.
+- **Enemy aggro** is decided by the host and spread across the party:
+  - regular enemies spawn next to a random alive player and chase them, then every 40-60 seconds may switch to another random player within 50 m;
+  - stage bosses switch target every 20-40 seconds, the final boss every 30-50 seconds, within 300 m;
+  - bosses, minibosses and other enemies spawned at a fixed spot start on a random alive player, not on the host;
+  - downed and dead players are never chased: their enemies switch to someone alive.
 
 ### Run modifiers
 The host ticks any number of them in **Netplay Options** on the character selection (or sets `RunModifiers` in the config). They apply to the whole party, and a notification announces them at the start of a run.
@@ -82,9 +92,11 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 
 Every player of a room needs the same mod version and must be on the host's Steam friends list. The `MegaphonkMod-X.Y.Z.zip` asset contains only the mod files: the mod uses it to update itself.
 
+Versions follow [semantic versioning](https://semver.org): X.Y.**Z** for fixes, X.**Y**.0 for new features, **X**.0.0 for changes that break compatibility (for example, players on different major versions cannot play together).
+
 ## Playing
 
-- Host: MEGAPHONK! → Host, pick a character, adjust Netplay Options if you want, wait for your friends.
+- Host: MEGAPHONK! → Host, pick a character, adjust Netplay Options if you want, wait for your friends, or start alone.
 - Others: MEGAPHONK! → Join → pick the host from the list.
 - Joining is possible only on the character selection, not during a run.
 
@@ -93,6 +105,7 @@ Every player of a room needs the same mod version and must be on the host's Stea
 - No Steam overlay invites or "Join Game" button: the game consumes the Steam callbacks they need.
 - Random matchmaking is disabled: it relied on the Megabonk Together server, whose players run an incompatible mod.
 - Joining through the friends list is new and has been tested on one PC only. If a friend does not show up, send `BepInEx\LogOutput.log` in an issue.
+- In a solo run there is no downed state (nobody can revive you) and no team meter (it needs kills by two players).
 
 ## Credits
 
@@ -109,13 +122,19 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 #### Игра вместе
 - Онлайн-кооп до 6 игроков: кнопка **MEGAPHONK!** в главном меню.
 - Комнаты через **Steam**, без сервера и без кодов:
-  - **Хост**: MEGAPHONK! → Host. Сразу открывается выбор персонажа, друзья могут войти до старта забега.
+  - **Хост**: MEGAPHONK! → Host. Сразу открывается выбор персонажа, друзья могут войти до старта забега. Никто не зашёл? Хост может начать забег один, с возможностями мода (модификаторы забега, испытания, статистика).
   - **Вход**: MEGAPHONK! → Join → выбрать друга в списке. В списке друзья из Steam, у которых запущена игра и открыта комната, список обновляется раз в 2 секунды.
 - Хост ведёт игру: врагов, урон и оружие клиентов, которое считается с их настоящими статами.
 - Общий опыт (включён по умолчанию): один уровень на всю пати, а окно награды ставит игру на паузу у всех.
 - Сохранение прогресса работает во время коопа (включено по умолчанию).
 - Проверка версии: игрока с другой версией мода не пустят в комнату и объяснят почему.
-- Исправления под Megabonk 1.0.69: вылеты при запуске, зависшие паузы, уходящие враги, лаги в длинных забегах (большие пакеты режутся на части), мгновенный подбор монет и опыта.
+- Исправления под Megabonk 1.0.69: вылеты при запуске, зависшие паузы, уходящие враги, мгновенный подбор монет и опыта, зависание всех на «Ждём других игроков» при телепорте к финальному боссу.
+
+#### Сеть и производительность
+- Сетевые сообщения за кадр уходят одним пакетом, а не сотнями отдельных: поздняя игра больше не фризит, когда появляется и умирает много опыта, золота и врагов. Большие снимки состояния режутся на части.
+- Хост сливает урон по каждому врагу от каждого игрока за кадр перед отправкой: у клиентов меньше цифр урона, но они крупнее.
+- Опыт синхронизируется раз в кадр, а не на каждую сферу.
+- Дальние враги остаются видимыми (у клиентов они просто реже обновляются), а хост раз в секунду заново шлёт позиции всех врагов, поэтому потерянный пакет не оставляет врага застрявшим у клиента.
 
 #### Награды
 - Пока кто-то выбирает награду (уровень, сундук, святилище), игра на паузе у всех. `RewardPauseMode = Own` отключает общую паузу: выбираешь без паузы и неуязвим, остальные играют.
@@ -141,7 +160,11 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - **Кооп-испытания** (`ChallengesEnabled`), объявляются в начале уровня, награда: сундуки, которые падают с неба в начале следующего уровня (нокдаун смертью не считается):
   - по сундуку каждому, кто ни разу не умер на уровне;
   - по сундуку каждому, кто был жив при появлении босса уровня и не умер до его смерти.
-- Враги больше не преследуют погибшего игрока.
+- **Агр врагов** решает хост и распределяет его по всей пати:
+  - обычные враги появляются рядом со случайным живым игроком и идут за ним, раз в 40–60 секунд могут переключиться на другого случайного игрока в пределах 50 м;
+  - боссы уровня меняют цель раз в 20–40 секунд, финальный босс раз в 30–50 секунд, в пределах 300 м;
+  - боссы, мини-боссы и другие враги, появляющиеся в заданном месте, сразу выбирают случайного живого игрока, а не хоста;
+  - упавших и погибших враги не преследуют и переключаются на живых.
 
 #### Модификаторы забега
 Хост отмечает любое их число в **Netplay Options** на экране выбора персонажа (или задаёт `RunModifiers` в конфиге). Они действуют на всю пати, в начале забега приходит уведомление.
@@ -181,8 +204,10 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 
 У всех в комнате должна быть одна версия мода, а игроки должны быть в списке друзей Steam у хоста. Архив `MegaphonkMod-X.Y.Z.zip` содержит только файлы мода: им мод обновляет сам себя.
 
+Версии нумеруются по [семантическому версионированию](https://semver.org/lang/ru/): X.Y.**Z** для исправлений, X.**Y**.0 для новых возможностей, **X**.0.0 для изменений, ломающих совместимость (например, игроки с разными первыми цифрами версии не смогут играть вместе).
+
 ### Как играть
-- Хост: MEGAPHONK! → Host, выбрать персонажа, при желании настроить Netplay Options и дождаться друзей.
+- Хост: MEGAPHONK! → Host, выбрать персонажа, при желании настроить Netplay Options и дождаться друзей или начать одному.
 - Остальные: MEGAPHONK! → Join → выбрать хоста в списке.
 - Войти можно только на экране выбора персонажа, не во время забега.
 
@@ -190,6 +215,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Нет приглашений через оверлей Steam и кнопки «Присоединиться к игре»: нужные им колбэки Steam перехватывает сама игра.
 - Случайный подбор игроков отключён: он работал через сервер Megabonk Together, игроки которого используют несовместимый мод.
 - Вход через список друзей новый и проверен только на одном ПК. Если друг не появился в списке, пришли `BepInEx\LogOutput.log` в issue.
+- В соло-забеге нет нокдауна (поднять некому) и командной шкалы (ей нужны убийства двух игроков).
 
 ### Благодарности
 За основу взят мод [Megabonk Together](https://github.com/Fcornaire/megabonk-together) (автор Fcornaire, лицензия GPL-2.0). Megaphonk Mod распространяется под той же лицензией.
