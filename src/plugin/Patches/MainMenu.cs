@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using MegabonkTogether.Common;
 using MegabonkTogether.Configuration;
+using MegabonkTogether.Helpers;
 using MegabonkTogether.Scripts.Button;
 using MegabonkTogether.Scripts.Modal;
 using MegabonkTogether.Services;
@@ -61,19 +62,7 @@ namespace MegabonkTogether.Patches
             var textWrapper = go.GetComponent<ButtonTextWrapper>();
             textWrapper.t_text.text = "MEGAPHONK!";
 
-            var version = new UnityEngine.GameObject("VersionText");
-            version.transform.SetParent(textWrapper.t_text.transform);
-            version.transform.localPosition = new UnityEngine.Vector3(0, -35, 0);
-            version.transform.localScale = UnityEngine.Vector3.one;
-
-            var tmpText = textWrapper.t_text;
-            var versionTmp = version.AddComponent<TMPro.TextMeshProUGUI>();
-            versionTmp.font = tmpText.font;
-            versionTmp.fontSize = tmpText.fontSize * 0.45f;
-            versionTmp.alignment = tmpText.alignment;
-            versionTmp.color = tmpText.color;
-            versionTmp.text = $"v{MyPluginInfo.PLUGIN_VERSION}";
-
+            CreateModVersionText(__instance);
 
             go.transform.SetParent(playBtn.transform.parent);
 
@@ -179,6 +168,61 @@ namespace MegabonkTogether.Patches
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The mod's version in the bottom right corner, in the line above the game's own version
+        /// </summary>
+        private static void CreateModVersionText(MainMenu menu)
+        {
+            CoroutineRunner.Instance.Run(CreateModVersionTextDelayed(menu));
+        }
+
+        // The game fills its version text a moment after the menu starts
+        private static System.Collections.IEnumerator CreateModVersionTextDelayed(MainMenu menu)
+        {
+            yield return new UnityEngine.WaitForSeconds(1f);
+
+            if (menu == null)
+            {
+                yield break;
+            }
+
+            TMPro.TextMeshProUGUI gameVersion = null;
+            foreach (var candidate in menu.transform.root.gameObject.RuntimeGetComponentsInChildren<TMPro.TextMeshProUGUI>(true))
+            {
+                if (candidate.text != null && candidate.name != "ModVersionText" && candidate.text.Contains(UnityEngine.Application.version))
+                {
+                    gameVersion = candidate;
+                    break;
+                }
+            }
+
+            if (gameVersion == null)
+            {
+                Plugin.Log.LogWarning("Game version text not found, mod version not shown");
+                yield break;
+            }
+
+            var versionObj = new UnityEngine.GameObject("ModVersionText");
+            versionObj.transform.SetParent(gameVersion.transform.parent, false);
+
+            var source = gameVersion.rectTransform;
+            var rect = versionObj.AddComponent<UnityEngine.RectTransform>();
+            rect.anchorMin = source.anchorMin;
+            rect.anchorMax = source.anchorMax;
+            rect.pivot = source.pivot;
+            rect.sizeDelta = source.sizeDelta;
+            rect.anchoredPosition = source.anchoredPosition + new UnityEngine.Vector2(0f, gameVersion.fontSize * 1.1f);
+
+            var text = versionObj.AddComponent<TMPro.TextMeshProUGUI>();
+            text.font = gameVersion.font;
+            text.fontSize = gameVersion.fontSize;
+            text.alignment = gameVersion.alignment;
+            text.color = gameVersion.color;
+            text.enableWordWrapping = false;
+            text.raycastTarget = false;
+            text.text = $"Megaphonk Mod v{MyPluginInfo.PLUGIN_VERSION}";
         }
 
         /// <summary>

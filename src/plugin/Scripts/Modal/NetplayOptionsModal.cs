@@ -161,11 +161,12 @@ namespace MegabonkTogether.Scripts.Modal
                 var x = i % 2 == 0 ? -CHECKBOX_COLUMN_X : CHECKBOX_COLUMN_X;
                 var y = -45f - (i / 2) * 62f;
 
-                var button = CreateButton($"{Loc.T(name)}\n<size=60%>{Loc.T(effect)}</size>", 26, new Vector2(x, y), new Vector2(470, 56));
-                var textWrapper = button.GetComponent<ButtonTextWrapper>();
-                textWrapper.t_text.alignment = TextAlignmentOptions.Left;
-                textWrapper.t_text.margin = new Vector4(64, 0, 10, 0);
-                textWrapper.t_text.enableWordWrapping = false;
+                var button = CreateButton("", 26, new Vector2(x, y), new Vector2(470, 56));
+
+                // The button's own text is centered and keeps being re-aligned: left aligned text of our own instead
+                var buttonText = button.GetComponent<ButtonTextWrapper>().t_text;
+                buttonText.enabled = false;
+                CreateLeftText(button.gameObject, $"{Loc.T(name)}\n<size=60%>{Loc.T(effect)}</size>", buttonText);
 
                 var check = CreateCheckbox(button.gameObject);
 
@@ -180,6 +181,29 @@ namespace MegabonkTogether.Scripts.Modal
                     Refresh();
                 });
             }
+        }
+
+        private static void CreateLeftText(GameObject parent, string text, TextMeshProUGUI template)
+        {
+            var textObj = new GameObject("LeftText");
+            textObj.transform.SetParent(parent.transform, false);
+
+            var rect = textObj.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = new Vector2(64f, 0f);
+            rect.offsetMax = new Vector2(-10f, 0f);
+
+            var tmp = textObj.AddComponent<TextMeshProUGUI>();
+            tmp.font = template.font;
+            tmp.fontSharedMaterial = template.fontSharedMaterial;
+            tmp.fontStyle = template.fontStyle;
+            tmp.fontSize = template.fontSize;
+            tmp.color = template.color;
+            tmp.alignment = TextAlignmentOptions.Left;
+            tmp.enableWordWrapping = false;
+            tmp.raycastTarget = false;
+            tmp.text = text;
         }
 
         /// <summary>
