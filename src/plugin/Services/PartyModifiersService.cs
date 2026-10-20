@@ -95,6 +95,7 @@ namespace MegabonkTogether.Services
         {
             if (modifiers == RunModifier.None)
             {
+                announcedModifiers = RunModifier.None;
                 return;
             }
 
@@ -151,6 +152,37 @@ namespace MegabonkTogether.Services
             {
                 wanted["PovertyGold"] = (EStat.GoldIncreaseMultiplier, EStatModifyType.Addition, -0.5f);
                 wanted["PovertyXp"] = (EStat.XpIncreaseMultiplier, EStatModifyType.Addition, 0.25f);
+            }
+
+            if (modifiers.HasFlag(RunModifier.Colossus))
+            {
+                wanted["ColossusXp"] = (EStat.XpIncreaseMultiplier, EStatModifyType.Addition, 0.5f);
+                if (isHost)
+                {
+                    wanted["ColossusEnemyHp"] = (EStat.EnemyHpMultiplier, EStatModifyType.Addition, 0.5f);
+                }
+            }
+
+            if (modifiers.HasFlag(RunModifier.BrittleSwarm) && isHost)
+            {
+                wanted["BrittleSwarmEnemyHp"] = (EStat.EnemyHpMultiplier, EStatModifyType.Addition, -0.4f);
+                wanted["BrittleSwarmEnemies"] = (EStat.EnemyAmountMultiplier, EStatModifyType.Addition, 0.5f);
+            }
+
+            if (modifiers.HasFlag(RunModifier.Bloodbath))
+            {
+                wanted["BloodbathGold"] = (EStat.GoldIncreaseMultiplier, EStatModifyType.Addition, 0.25f);
+                wanted["BloodbathHealing"] = (EStat.HealingMultiplier, EStatModifyType.Addition, -0.5f);
+                if (isHost)
+                {
+                    wanted["BloodbathEnemyDamage"] = (EStat.EnemyDamageMultiplier, EStatModifyType.Addition, 0.5f);
+                }
+            }
+
+            if (modifiers.HasFlag(RunModifier.Pinball))
+            {
+                wanted["PinballKnockback"] = (EStat.KnockbackMultiplier, EStatModifyType.Addition, 1f);
+                wanted["PinballSpeed"] = (EStat.MoveSpeedMultiplier, EStatModifyType.Addition, 0.15f);
             }
         }
 

@@ -82,6 +82,26 @@ namespace MegabonkTogether.Common.Messages.GameNetworkMessages
         /// Gold -50%, XP +25%
         /// </summary>
         Poverty = 1 << 5,
+
+        /// <summary>
+        /// Enemy HP +50%, XP +50%
+        /// </summary>
+        Colossus = 1 << 6,
+
+        /// <summary>
+        /// Enemy HP -40%, enemies x1.5
+        /// </summary>
+        BrittleSwarm = 1 << 7,
+
+        /// <summary>
+        /// Enemy damage +50%, healing -50%, gold +25%
+        /// </summary>
+        Bloodbath = 1 << 8,
+
+        /// <summary>
+        /// Knockback x2, move speed +15%
+        /// </summary>
+        Pinball = 1 << 9,
     }
 
     public enum PartyStatMode : byte

@@ -125,6 +125,7 @@ namespace MegabonkTogether
             ClassInjector.RegisterTypeInIl2Cpp<CustomButton>();
             ClassInjector.RegisterTypeInIl2Cpp<ModalBase>();
             ClassInjector.RegisterTypeInIl2Cpp<NetworkMenuTab>();
+            ClassInjector.RegisterTypeInIl2Cpp<NetplayOptionsModal>();
             ClassInjector.RegisterTypeInIl2Cpp<LoadingModal>();
             ClassInjector.RegisterTypeInIl2Cpp<UpdateAvailableModal>();
             ClassInjector.RegisterTypeInIl2Cpp<ChangelogModal>();

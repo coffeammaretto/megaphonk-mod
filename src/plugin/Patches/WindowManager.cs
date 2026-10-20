@@ -6,6 +6,7 @@ using MegabonkTogether.Configuration;
 using MegabonkTogether.Helpers;
 using MegabonkTogether.Patches.Enemies;
 using MegabonkTogether.Scripts.Button;
+using MegabonkTogether.Scripts.Modal;
 using MegabonkTogether.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
@@ -257,8 +258,14 @@ namespace MegabonkTogether.Patches
                 return;
             }
 
-            var copyButtonObj = GameObject.Instantiate(btn.gameObject);
-            copyButtonObj.name = "CopyCodeButton";
+            CreateInfoButton(btn.gameObject, "CopyCodeButton", "Copy Code", OnCopyCodeClicked, 10f);
+            CreateInfoButton(btn.gameObject, "NetplayOptionsButton", "Netplay Options", OnNetplayOptionsClicked, -35f);
+        }
+
+        private static void CreateInfoButton(GameObject template, string name, string label, System.Action onClick, float y)
+        {
+            var copyButtonObj = GameObject.Instantiate(template);
+            copyButtonObj.name = name;
             copyButtonObj.transform.SetParent(friendliesInfoDisplay.transform, false);
             copyButtonObj.SetActive(true);
 
@@ -288,7 +295,7 @@ namespace MegabonkTogether.Patches
             }
 
             var copyButton = copyButtonObj.AddComponent<CustomButton>();
-            copyButton.SetOnClickAction(OnCopyCodeClicked);
+            copyButton.SetOnClickAction(onClick);
             copyButton.OverrideStartHoverAction(() =>
             {
                 previousSelectedButton = ButtonManager.selectedButton2;
@@ -300,20 +307,33 @@ namespace MegabonkTogether.Patches
             });
 
             var textWrapper = copyButtonObj.GetComponent<ButtonTextWrapper>();
-            textWrapper.t_text.text = "Copy Code";
-            textWrapper.t_text.fontSize = 25;
+            textWrapper.t_text.text = label;
+            textWrapper.t_text.fontSize = label.Length > 10 ? 20 : 25;
 
             var copyButtonRect = copyButtonObj.GetComponent<RectTransform>();
             copyButtonRect.anchorMin = new Vector2(1f, 0f);
             copyButtonRect.anchorMax = new Vector2(1f, 0f);
             copyButtonRect.pivot = new Vector2(1f, 0f);
-            copyButtonRect.anchoredPosition = new Vector2(0f, 10f);
-            copyButtonRect.sizeDelta = new Vector2(200f, 40f);
+            copyButtonRect.anchoredPosition = new Vector2(0f, y);
+            copyButtonRect.sizeDelta = new Vector2(240f, 40f);
 
             copyButtonObj.transform.SetAsLastSibling();
 
             copyButton.state = MyButton.EButtonState.Active;
             copyButton.RefreshState();
+        }
+
+        private static void OnNetplayOptionsClicked()
+        {
+            if (NetplayOptionsModal.IsOpen)
+            {
+                return;
+            }
+
+            AudioManager.Instance.PlaySfx(AudioManager.Instance.uiSelect.sounds[0]);
+
+            var modalObj = new GameObject("NetplayOptionsModal");
+            modalObj.AddComponent<NetplayOptionsModal>().SetMainMenu(Plugin.Instance.GetMainMenu());
         }
 
         private static void OnCopyCodeClicked()

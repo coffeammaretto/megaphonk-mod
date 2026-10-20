@@ -35,11 +35,6 @@ namespace MegabonkTogether.Scripts
         private TMP_InputField codeInput;
         private GameObject codeLabel;
 
-        private CustomButton netplayOptionsButton;
-        private GameObject netplayOptionsTitle;
-        private CustomButton netplayOptionsBackButton;
-        private readonly System.Collections.Generic.List<GameObject> partySettingRows = [];
-
         protected void Awake()
         {
             filter = new ProfanityFilter.ProfanityFilter();
@@ -57,7 +52,6 @@ namespace MegabonkTogether.Scripts
             CreateMatchButtons();
             CreateStopButton();
             CreateFriendliesUI();
-            CreateNetplayOptionsUI();
         }
 
         private void CreateCloseButton()
@@ -145,181 +139,6 @@ namespace MegabonkTogether.Scripts
             labelText.alignment = TextAlignmentOptions.Center;
             labelText.fontSize = 50;
             labelText.color = Color.white;
-        }
-
-        /// <summary>
-        /// Party rules (host settings, apply to everyone), right column of the netplay options
-        /// </summary>
-        private void CreatePartySettings()
-        {
-            const float x = 0f;
-            var y = 200f;
-
-            CreateCycleSetting("Reward pause\nParty: everyone pauses, Own: no pause", new Vector2(x, y),
-                () => ModConfig.RewardPauseMode.Value.ToString(),
-                step => ModConfig.RewardPauseMode.Value = ModConfig.RewardPauseMode.Value == Common.Messages.GameNetworkMessages.RewardPauseMode.Party
-                    ? Common.Messages.GameNetworkMessages.RewardPauseMode.Own
-                    : Common.Messages.GameNetworkMessages.RewardPauseMode.Party);
-
-            CreateCycleSetting("Downed state\nA teammate can revive you", new Vector2(x, y -= 60f),
-                () => ModConfig.DownedEnabled.Value ? "ON" : "OFF",
-                step => ModConfig.DownedEnabled.Value = !ModConfig.DownedEnabled.Value);
-
-            CreateCycleSetting("Team meter\nKill together for a team buff", new Vector2(x, y -= 60f),
-                () => ModConfig.TeamMeterEnabled.Value ? "ON" : "OFF",
-                step => ModConfig.TeamMeterEnabled.Value = !ModConfig.TeamMeterEnabled.Value);
-
-            CreateCycleSetting("Coop challenges\nRewarded with chests", new Vector2(x, y -= 60f),
-                () => ModConfig.ChallengesEnabled.Value ? "ON" : "OFF",
-                step => ModConfig.ChallengesEnabled.Value = !ModConfig.ChallengesEnabled.Value);
-
-            var statModes = (Common.Messages.GameNetworkMessages.PartyStatMode[])System.Enum.GetValues(typeof(Common.Messages.GameNetworkMessages.PartyStatMode));
-            CreateCycleSetting("Party luck/difficulty\nHow players' values combine", new Vector2(x, y -= 60f),
-                () => ModConfig.PartyStatMode.Value.ToString(),
-                step => ModConfig.PartyStatMode.Value = statModes[(System.Array.IndexOf(statModes, ModConfig.PartyStatMode.Value) + step + statModes.Length) % statModes.Length]);
-
-            // One modifier from the menu, several through the config file
-            var modifiers = new[]
-            {
-                Common.Messages.GameNetworkMessages.RunModifier.None, Common.Messages.GameNetworkMessages.RunModifier.GlassCannon,
-                Common.Messages.GameNetworkMessages.RunModifier.Horde, Common.Messages.GameNetworkMessages.RunModifier.ThickSkinned,
-                Common.Messages.GameNetworkMessages.RunModifier.Frenzy, Common.Messages.GameNetworkMessages.RunModifier.Lucky,
-                Common.Messages.GameNetworkMessages.RunModifier.Poverty,
-            };
-            CreateCycleSetting("Run modifier\nHost picks, applies to everyone", new Vector2(x, y -= 60f),
-                () => ModConfig.RunModifiers.Value.ToString(),
-                step => ModConfig.RunModifiers.Value = modifiers[(System.Math.Max(0, System.Array.IndexOf(modifiers, ModConfig.RunModifiers.Value)) + step + modifiers.Length) % modifiers.Length]);
-        }
-
-        /// <summary>
-        /// A settings row (the game's enum setting: label, left/right arrows, value) bound to a config value
-        /// </summary>
-        private void CreateCycleSetting(string label, Vector2 position, System.Func<string> getValue, System.Action<int> step)
-        {
-            var settings = mainMenu.settings.GetComponent<Settings>();
-            var row = GameObject.Instantiate(settings.GetSettingPrefab(SettingType.Enum), panel.transform);
-
-            var rectTransform = row.GetComponent<RectTransform>();
-            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            rectTransform.anchoredPosition = position;
-            rectTransform.sizeDelta = new Vector2(700, 55);
-
-            TextMeshProUGUI valueText = null;
-            foreach (var textComp in Il2CppFindHelper.RuntimeGetComponentsInChildren<TextMeshProUGUI>(row))
-            {
-                if (textComp.name.StartsWith("Text"))
-                {
-                    textComp.text = label;
-                    textComp.fontSize = 18;
-                    textComp.enableWordWrapping = false;
-                }
-                else if (textComp.name.StartsWith("StatusText"))
-                {
-                    valueText = textComp;
-                    valueText.gameObject.SetActive(true);
-                }
-            }
-
-            void Refresh()
-            {
-                if (valueText != null)
-                {
-                    valueText.text = getValue();
-                    valueText.color = Color.white;
-                }
-            }
-
-            void OnArrow(int direction)
-            {
-                AudioManager.Instance.PlaySfx(AudioManager.Instance.uiClick.sounds[0]);
-                step(direction);
-                ModConfig.Save();
-                Refresh();
-            }
-
-            foreach (var btn in Il2CppFindHelper.RuntimeGetComponentsInChildren<UnityEngine.UI.Button>(row))
-            {
-                if (btn.name != "B_Left" && btn.name != "B_Right")
-                {
-                    continue;
-                }
-
-                var origButton = btn.GetComponent<MyButtonNormal>();
-                if (origButton != null)
-                {
-                    UnityEngine.Object.DestroyImmediate(origButton);
-                }
-
-                btn.onClick = new();
-                var direction = btn.name == "B_Left" ? -1 : 1;
-                btn.gameObject.AddComponent<CustomButton>().SetOnClickAction(() => OnArrow(direction));
-            }
-
-            Refresh();
-            row.SetActive(false);
-            partySettingRows.Add(row);
-        }
-
-        private void CreateNetplayOptionsUI()
-        {
-            netplayOptionsTitle = new GameObject("NetplayOptionsTitle");
-            netplayOptionsTitle.transform.SetParent(panel.transform, false);
-
-            var titleRect = netplayOptionsTitle.AddComponent<RectTransform>();
-            titleRect.anchorMin = new Vector2(0.5f, 0.85f);
-            titleRect.anchorMax = new Vector2(0.5f, 0.85f);
-            titleRect.pivot = new Vector2(0.5f, 0.5f);
-            titleRect.anchoredPosition = Vector2.zero;
-            titleRect.sizeDelta = new Vector2(400, 60);
-
-            var titleText = netplayOptionsTitle.AddComponent<TextMeshProUGUI>();
-            titleText.text = "Netplay Options";
-            titleText.alignment = TextAlignmentOptions.Center;
-            titleText.fontSize = 60;
-            titleText.color = Color.white;
-
-            netplayOptionsTitle.SetActive(false);
-
-            CreatePartySettings();
-
-            var backButtonObj = GameObject.Instantiate(mainMenu.btnPlay.gameObject);
-            backButtonObj.transform.SetParent(panel.transform, false);
-
-            var originalBackButton = backButtonObj.GetComponent<MyButtonNormal>();
-            if (originalBackButton != null)
-            {
-                UnityEngine.Object.DestroyImmediate(originalBackButton);
-            }
-
-            UnityEngine.UI.Button backButton = backButtonObj.GetComponentInChildren<UnityEngine.UI.Button>();
-            if (backButton != null)
-            {
-                backButton.onClick = new();
-            }
-
-            var localizeStringEventBack = backButtonObj.GetComponentInChildren<LocalizeStringEvent>();
-            if (localizeStringEventBack != null)
-            {
-                UnityEngine.Object.DestroyImmediate(localizeStringEventBack);
-            }
-
-            netplayOptionsBackButton = backButtonObj.AddComponent<CustomButton>();
-            netplayOptionsBackButton.SetOnClickAction(OnNetplayOptionsBackClicked);
-
-            var backTextWrapper = backButtonObj.GetComponent<ButtonTextWrapper>();
-            backTextWrapper.t_text.text = "Back";
-            backTextWrapper.t_text.fontSize = 36;
-
-            var backRectTransform = backButtonObj.GetComponent<RectTransform>();
-            backRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            backRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            backRectTransform.pivot = new Vector2(0.5f, 0.5f);
-            backRectTransform.anchoredPosition = new Vector2(0, -200f);
-            backRectTransform.sizeDelta = new Vector2(300, 70);
-
-            netplayOptionsBackButton.gameObject.SetActive(false);
         }
 
         private TextMeshProUGUI CreateInputText(GameObject parent)
@@ -476,41 +295,6 @@ namespace MegabonkTogether.Scripts
             friendliesRectTransform.pivot = new Vector2(0.5f, 0.5f);
             friendliesRectTransform.anchoredPosition = new Vector2(IS_RANDOM_MATCHMAKING_ENABLED ? 180f : 0f, -100f);
             friendliesRectTransform.sizeDelta = new Vector2(300, 70);
-
-            var optionsButtonObj = GameObject.Instantiate(mainMenu.btnPlay.gameObject);
-            optionsButtonObj.transform.SetParent(panel.transform, false);
-
-            var originalOptionsButton = optionsButtonObj.GetComponent<MyButtonNormal>();
-            if (originalOptionsButton != null)
-            {
-                UnityEngine.Object.DestroyImmediate(originalOptionsButton);
-            }
-
-            UnityEngine.UI.Button optBtn = optionsButtonObj.GetComponentInChildren<UnityEngine.UI.Button>();
-            if (optBtn != null)
-            {
-                optBtn.onClick = new();
-            }
-
-            var localizeStringEventOptions = optionsButtonObj.GetComponentInChildren<LocalizeStringEvent>();
-            if (localizeStringEventOptions != null)
-            {
-                UnityEngine.Object.DestroyImmediate(localizeStringEventOptions);
-            }
-
-            netplayOptionsButton = optionsButtonObj.AddComponent<CustomButton>();
-            netplayOptionsButton.SetOnClickAction(OnNetplayOptionsClicked);
-
-            var optionsTextWrapper = optionsButtonObj.GetComponent<ButtonTextWrapper>();
-            optionsTextWrapper.t_text.text = "Netplay Options";
-            optionsTextWrapper.t_text.fontSize = 30;
-
-            var optionsRectTransform = optionsButtonObj.GetComponent<RectTransform>();
-            optionsRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            optionsRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            optionsRectTransform.pivot = new Vector2(0.5f, 0.5f);
-            optionsRectTransform.anchoredPosition = new Vector2(0, -10f);
-            optionsRectTransform.sizeDelta = new Vector2(300, 70);
         }
 
         private void CreateFriendliesUI()
@@ -852,22 +636,6 @@ namespace MegabonkTogether.Scripts
             UpdateModalContents(true);
         }
 
-        private void OnNetplayOptionsClicked()
-        {
-            AudioManager.Instance.PlaySfx(AudioManager.Instance.uiSelect.sounds[0]);
-
-            UpdateModalContents(false);
-            UpdateNetplayOptionsUI(true);
-        }
-
-        private void OnNetplayOptionsBackClicked()
-        {
-            AudioManager.Instance.PlaySfx(AudioManager.Instance.uiSelect.sounds[0]);
-
-            UpdateNetplayOptionsUI(false);
-            UpdateModalContents(true);
-        }
-
         private void OnStopClicked()
         {
             AudioManager.Instance.PlaySfx(AudioManager.Instance.uiSelect.sounds[0]);
@@ -894,7 +662,6 @@ namespace MegabonkTogether.Scripts
         {
             randomButton.gameObject.SetActive(isVisible && IS_RANDOM_MATCHMAKING_ENABLED);
             friendliesButton.gameObject.SetActive(isVisible);
-            netplayOptionsButton.gameObject.SetActive(isVisible);
             closeButton.gameObject.SetActive(isVisible);
             playerNameInput.gameObject.SetActive(isVisible);
             label.SetActive(isVisible);
@@ -908,18 +675,6 @@ namespace MegabonkTogether.Scripts
             codeInput.gameObject.SetActive(isVisible);
             joinButton.gameObject.SetActive(isVisible);
             friendliesBackButton.gameObject.SetActive(isVisible);
-        }
-
-        private void UpdateNetplayOptionsUI(bool isVisible)
-        {
-            // Taller panel while the options are shown
-            panel.GetComponent<RectTransform>().sizeDelta = isVisible ? new Vector2(1000, 820) : PanelSize;
-            netplayOptionsTitle.SetActive(isVisible);
-            foreach (var row in partySettingRows)
-            {
-                row.SetActive(isVisible);
-            }
-            netplayOptionsBackButton.gameObject.SetActive(isVisible);
         }
 
         private IEnumerator HandleConnectionStatus()

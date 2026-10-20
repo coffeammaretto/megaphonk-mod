@@ -33,13 +33,13 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
 - **Downed state**: lethal damage downs a player, a teammate standing next to them revives them.
 - **Ping**: the middle mouse button marks a spot for the whole team (beam and minimap arrow).
 - **Team meter**: kills made together fill a meter, a full meter gives damage and speed to everyone.
-- **Run modifiers**: Glass Cannon, Horde, Thick Skinned, Frenzy, Lucky, Poverty.
+- **Run modifiers** (any number at once, checkboxes): Glass Cannon, Horde, Thick Skinned, Frenzy, Lucky, Poverty, Colossus, Brittle Swarm, Bloodbath, Pinball.
 - **Co-op challenges** with reward chests: "stage without deaths", "boss with everyone alive".
 - Enemy HP scales with the number of players.
 
 ### Convenience
 - Team table at the end of a run: damage, kills and gold of each player.
-- Party rules in the menu (MEGAPHONK! → Netplay Options), all values in the config file.
+- Party rules and run modifiers: the host's Netplay Options button on the character selection, all values in the config file.
 - Fixes for Megabonk 1.0.69: startup crashes, stuck pauses, enemies wandering off.
 
 ## Installation
@@ -76,8 +76,8 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - **Награды:** пока кто-то выбирает награду, пауза у всех (`RewardPauseMode = Own` отключает общую паузу). F8 снимает зависшую паузу. Первую секунду клики в окне награды игнорируются. Уведомление о том, что взял напарник.
 - **Сундуки и золото:** купленный сундук открывается у всех, платит покупатель. Цена растёт с числом игроков. Золото у каждого своё.
 - **Статы:** пассивки персонажей действуют на всю пати по всей карте. Общие удача и сложность. Урон, убийства и эффекты предметов засчитываются их владельцу.
-- **Механики:** нокдаун и поднятие напарником, пинг средней кнопкой мыши, командная шкала, модификаторы забега, кооп-испытания с сундуками, здоровье врагов растёт с числом игроков.
-- **Удобство:** таблица команды в конце забега, правила пати в меню (MEGAPHONK! → Netplay Options), исправления под Megabonk 1.0.69.
+- **Механики:** нокдаун и поднятие напарником, пинг средней кнопкой мыши, командная шкала, модификаторы забега (можно несколько сразу), кооп-испытания с сундуками, здоровье врагов растёт с числом игроков.
+- **Удобство:** таблица команды в конце забега, правила пати и модификаторы забега: кнопка Netplay Options у хоста на экране выбора персонажа, исправления под Megabonk 1.0.69.
 
 ### Установка
 1. Закрой игру.

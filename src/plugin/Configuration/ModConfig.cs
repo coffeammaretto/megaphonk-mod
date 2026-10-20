@@ -152,7 +152,7 @@ namespace MegabonkTogether.Configuration
             TeamBuffSeconds = config.Bind(party, "TeamBuffSeconds", 10f,
                 "Team buff duration (+25% damage, +15% move speed).");
             RunModifiers = config.Bind(party, "RunModifiers", RunModifier.None,
-                "Run modifiers, comma separated: GlassCannon (damage x2, max HP x0.5), Horde (enemies x1.5, XP +25%), ThickSkinned (enemy HP x2, luck +0.25), Frenzy (enemies 10% faster every 5 minutes), Lucky (luck +0.5, difficulty +0.3), Poverty (gold -50%, XP +25%). None for a normal run.");
+                "Run modifiers, comma separated: GlassCannon (damage x2, max HP x0.5), Horde (enemies x1.5, XP +25%), ThickSkinned (enemy HP x2, luck +0.25), Frenzy (enemies 10% faster every 5 minutes), Lucky (luck +0.5, difficulty +0.3), Poverty (gold -50%, XP +25%), Colossus (enemy HP +50%, XP +50%), BrittleSwarm (enemy HP -40%, enemies x1.5), Bloodbath (enemy damage +50%, healing -50%, gold +25%), Pinball (knockback x2, move speed +15%). None for a normal run.");
             ChallengesEnabled = config.Bind(party, "ChallengesEnabled", true,
                 "Coop challenges rewarded with chests: no death on a stage (bonus chest on the next one), stage boss killed with everyone alive (chest where it died).");
         }
