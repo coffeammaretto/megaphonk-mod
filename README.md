@@ -38,9 +38,9 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
 - **Downed state**: lethal damage downs a player instead of killing them. They bleed out for 25 seconds, invulnerable but unable to attack and 60% slower, and enemies ignore them. A downed player sways, dazed. A teammate standing within 8 meters revives them in 3 seconds with 30% HP. The timers stop while a reward (chest, level up...) is being picked. Nobody came in time: a normal death and a grave. Screen hints show the timer and the distance to a downed teammate.
 - **Ping**: the middle mouse button (`PingKey`) marks a spot for the whole team: a beam of the player's color and an arrow on the minimap, for 6 seconds.
 - **Team meter**: a kill fills the meter only when at least two different players killed within the last 5 seconds. A full meter gives everyone +25% damage and +15% move speed for 10 seconds, then the next threshold is 1.5 times higher.
-- **Co-op challenges** (`ChallengesEnabled`), announced at the start of a stage, rewarded with a chest that drops from the sky:
-  - a stage without anyone dying: a bonus chest on the next stage;
-  - a stage boss killed with everyone alive: a chest where it died.
+- **Co-op challenges** (`ChallengesEnabled`), announced at the start of a stage, rewarded with chests that drop from the sky at the start of the next stage (downs don't count as deaths):
+  - a chest for each player who didn't die during the stage;
+  - a chest for each player who was alive when the stage boss appeared and didn't die before it was killed.
 - Enemies no longer chase a dead player.
 
 ### Run modifiers
@@ -48,16 +48,22 @@ The host ticks any number of them in **Netplay Options** on the character select
 
 | Modifier | Effect |
 | --- | --- |
-| Glass Cannon | Damage x2, max HP x0.5 |
-| Horde | Enemies x1.5, XP +25% |
+| Glass Cannon | Damage +50%, max HP -40% |
+| Horde | Enemies x1.5 (more XP and gold from kills) |
 | Thick Skinned | Enemy HP x2, luck +0.25 |
-| Frenzy | Enemies get 10% faster every 5 minutes |
-| Lucky | Luck +0.5, difficulty +0.3 |
-| Poverty | Gold -50%, XP +25% |
-| Colossus | Enemy HP +50%, XP +50% |
-| Brittle Swarm | Enemy HP -40%, enemies x1.5 |
+| Frenzy | Enemies get 10% faster every 5 minutes, gold +20% |
+| Lucky | Luck +0.3, difficulty +0.3 |
+| Poverty | Gold -50%, XP +15% |
+| Colossus | Enemy HP +50%, XP +25% |
+| Brittle Swarm | Enemy HP -40%, enemies x1.5, XP -20% |
 | Bloodbath | Enemy damage +50%, healing -50%, gold +25% |
 | Pinball | Knockback x2, move speed +15% |
+| Silver Rush | Silver +50%, enemy damage +25% |
+| Overdrive | Move speed +20%, projectile speed +25%, enemies 20% faster |
+| Shockwave | Weapon area +25%, damage -20% |
+| Rising Tide | Enemies grow stronger 50% faster, chests 25% cheaper |
+
+Bonuses of several modifiers add up, with caps so that stacking them makes a harder run rather than an overpowered character: XP gain at most +50% counting the XP of the extra enemies (with Horde or Brittle Swarm the XP bonus goes down, even below zero), luck +0.5, gold +50%, damage +50%, move speed +30%. Penalties are not capped.
 
 ### Convenience
 - Netplay Options (the host's button on the character selection): reward pause, downed state, team meter, co-op challenges, party luck/difficulty mode and the run modifiers. The host's values apply to everyone and are resent when changed. Numeric values (timers, multipliers) are in the config file.
@@ -70,7 +76,7 @@ The host ticks any number of them in **Netplay Options** on the character select
 
 1. Close the game.
 2. If you used **Megabonk Together**, delete the `BepInEx\plugins\MegabonkTogether` folder from the game folder: both mods must not be installed together.
-3. Download `MegaphonkMod-1.0.3-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Download `MegaphonkMod-1.0.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 5. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -132,9 +138,9 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - **Нокдаун**: смертельный урон не убивает, а роняет игрока. Он истекает кровью 25 секунд, неуязвим, но не может атаковать и ходит на 60% медленнее, враги его игнорируют. Упавший персонаж шатается, как оглушённый. Напарник в радиусе 8 метров поднимает его за 3 секунды с 30% здоровья. Пока идёт выбор награды (сундук, уровень...), таймеры стоят. Не успели: обычная смерть и могила. Подсказки на экране показывают таймер и расстояние до упавшего напарника.
 - **Пинг**: средняя кнопка мыши (`PingKey`) ставит метку для всей команды: столб света цвета игрока и стрелка на миникарте, на 6 секунд.
 - **Командная шкала**: убийство заполняет шкалу, только если за последние 5 секунд убивали минимум двое разных игроков. Полная шкала даёт всем +25% урона и +15% скорости на 10 секунд, следующий порог в 1,5 раза выше.
-- **Кооп-испытания** (`ChallengesEnabled`), объявляются в начале уровня, награда: сундук, который падает с неба:
-  - уровень без смертей: бонусный сундук на следующем уровне;
-  - босс уровня убит при всех живых: сундук на месте босса.
+- **Кооп-испытания** (`ChallengesEnabled`), объявляются в начале уровня, награда: сундуки, которые падают с неба в начале следующего уровня (нокдаун смертью не считается):
+  - по сундуку каждому, кто ни разу не умер на уровне;
+  - по сундуку каждому, кто был жив при появлении босса уровня и не умер до его смерти.
 - Враги больше не преследуют погибшего игрока.
 
 #### Модификаторы забега
@@ -142,16 +148,22 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 
 | Модификатор | Эффект |
 | --- | --- |
-| Glass Cannon | Урон x2, здоровье x0,5 |
-| Horde | Врагов x1,5, опыт +25% |
+| Glass Cannon | Урон +50%, здоровье -40% |
+| Horde | Врагов x1,5 (больше опыта и золота с убийств) |
 | Thick Skinned | Здоровье врагов x2, удача +0,25 |
-| Frenzy | Каждые 5 минут враги на 10% быстрее |
-| Lucky | Удача +0,5, сложность +0,3 |
-| Poverty | Золото -50%, опыт +25% |
-| Colossus | Здоровье врагов +50%, опыт +50% |
-| Brittle Swarm | Здоровье врагов -40%, врагов x1,5 |
+| Frenzy | Каждые 5 минут враги на 10% быстрее, золото +20% |
+| Lucky | Удача +0,3, сложность +0,3 |
+| Poverty | Золото -50%, опыт +15% |
+| Colossus | Здоровье врагов +50%, опыт +25% |
+| Brittle Swarm | Здоровье врагов -40%, врагов x1,5, опыт -20% |
 | Bloodbath | Урон врагов +50%, лечение -50%, золото +25% |
 | Pinball | Отбрасывание x2, скорость +15% |
+| Silver Rush | Серебро +50%, урон врагов +25% |
+| Overdrive | Скорость +20%, скорость снарядов +25%, враги на 20% быстрее |
+| Shockwave | Область оружия +25%, урон -20% |
+| Rising Tide | Враги усиливаются на 50% быстрее, сундуки на 25% дешевле |
+
+Бонусы нескольких модификаторов складываются, но с потолками, чтобы вместе они давали тяжёлый забег, а не имбу: прирост опыта не больше +50% с учётом опыта лишних врагов (с Ордой или Хрупким роем бонус к опыту снижается, вплоть до минуса), удача +0,5, золото +50%, урон +50%, скорость +30%. Штрафы не ограничены.
 
 #### Удобство
 - Netplay Options (кнопка хоста на экране выбора персонажа): пауза при выборе награды, нокдаун, командная шкала, кооп-испытания, режим общей удачи и сложности и модификаторы забега. Значения хоста действуют на всех и рассылаются заново при изменении. Числовые параметры (таймеры, множители) только в конфиге.
@@ -163,7 +175,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 ### Установка
 1. Закрой игру.
 2. Если стоял **Megabonk Together**, удали папку `BepInEx\plugins\MegabonkTogether` в папке игры: оба мода вместе стоять не должны.
-3. Скачай `MegaphonkMod-1.0.3-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Скачай `MegaphonkMod-1.0.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 5. Запусти игру через Steam. Первый запуск дольше обычного.
 

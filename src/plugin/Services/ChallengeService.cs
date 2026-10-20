@@ -1,6 +1,7 @@
 using MegabonkTogether.Common.Messages;
 using MegabonkTogether.Common.Messages.GameNetworkMessages;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using MegabonkTogether.Helpers;
@@ -8,14 +9,16 @@ using MegabonkTogether.Helpers;
 namespace MegabonkTogether.Services
 {
     /// <summary>
-    /// Coop challenges, run by the host, rewarded with chests dropped from the sky (opened by everyone in shared experience):
-    /// - no death on a stage (downs don't count): a bonus chest when the next stage starts
-    /// - stage boss killed with everyone alive: a chest where the boss died
+    /// Coop challenges, run by the host, rewarded with chests dropped from the sky when the next stage starts
+    /// (opened by everyone in shared experience). Downs don't count as deaths.
+    /// - a chest for each player who didn't die during the whole stage
+    /// - a chest for each player who was alive when the stage boss appeared and didn't die before it was killed
     /// </summary>
     public interface IChallengeService
     {
         public void OnStageStarted();
-        public void OnPlayerDied();
+        public void OnPlayerDied(uint playerId);
+        public void OnStageBossSpawned();
         public void OnStageBossKilled(Vector3 position);
         public void OnStageEnded();
         public void Tick();
@@ -30,7 +33,8 @@ namespace MegabonkTogether.Services
         private readonly IPlayerManagerService playerManagerService;
         private readonly IPartySettingsService partySettingsService;
 
-        private int stageDeaths = 0;
+        private readonly HashSet<uint> diedThisStage = [];
+        private HashSet<uint> bossFightSurvivors = null; //null: the boss hasn't appeared yet this stage
         private int pendingRewardChests = 0;
         private float spawnRewardsAt = float.MaxValue;
         private bool hasStageBossRewarded = false;
@@ -44,11 +48,12 @@ namespace MegabonkTogether.Services
             EventManager.SubscribeChallengeNoticeEvents(notice => ShowNotice(notice.Text));
         }
 
-        private bool IsActive => (udpClientService.IsHost() ?? false) && partySettingsService.Current.ChallengesEnabled && playerManagerService.GetAllPlayers().Count() > 1;
+        private bool IsActive => (udpClientService.IsHost() ?? false) && partySettingsService.Current.ChallengesEnabled && (playerManagerService.GetAllPlayers().Count() > 1 || udpClientService.IsSoloSession());
 
         public void OnStageStarted()
         {
-            stageDeaths = 0;
+            diedThisStage.Clear();
+            bossFightSurvivors = null;
             hasStageBossRewarded = false;
             if (!IsActive)
             {
@@ -60,15 +65,29 @@ namespace MegabonkTogether.Services
                 spawnRewardsAt = Time.time + REWARD_CHEST_DELAY;
             }
 
-            Announce("Challenges: no death this stage, kill the boss with everyone alive");
+            Announce("Challenges: a chest for each player with no death this stage, and for each player who survives the boss fight");
         }
 
-        public void OnPlayerDied()
+        public void OnPlayerDied(uint playerId)
         {
-            if (stageDeaths++ == 0 && IsActive)
+            bossFightSurvivors?.Remove(playerId);
+
+            if (diedThisStage.Add(playerId) && IsActive)
             {
-                Announce("Challenge failed: someone died this stage");
+                Announce("Someone died: no stage chest for them this time");
             }
+        }
+
+        public void OnStageBossSpawned()
+        {
+            if (bossFightSurvivors != null)
+            {
+                return; //Only the first appearance starts the fight
+            }
+
+            bossFightSurvivors = [.. playerManagerService.GetAllPlayers()
+                .Where(p => !playerManagerService.IsDead(p.ConnectionId))
+                .Select(p => p.ConnectionId)];
         }
 
         public void OnStageBossKilled(Vector3 position)
@@ -78,26 +97,35 @@ namespace MegabonkTogether.Services
                 return;
             }
 
-            var everyoneAlive = playerManagerService.GetAllPlayers().All(p => !playerManagerService.IsDead(p.ConnectionId) && !playerManagerService.IsDowned(p.ConnectionId));
-            if (!everyoneAlive)
+            hasStageBossRewarded = true;
+
+            // Boss appearance missed: whoever is alive now
+            var survivors = (bossFightSurvivors ?? [.. playerManagerService.GetAllPlayers().Select(p => p.ConnectionId)])
+                .Count(id => playerManagerService.GetPlayer(id) != null && !playerManagerService.IsDead(id));
+            if (survivors == 0)
             {
                 return;
             }
 
-            hasStageBossRewarded = true;
-            SpawnRewardChest(position + Vector3.up * 2f);
-            Announce("Challenge complete: boss killed with everyone alive, a chest dropped!");
+            pendingRewardChests += survivors;
+            Announce("Boss defeated: a chest for each survivor of the fight awaits on the next stage!");
         }
 
         public void OnStageEnded()
         {
-            if (!IsActive || stageDeaths > 0)
+            if (!IsActive)
             {
                 return;
             }
 
-            pendingRewardChests++;
-            Announce("Challenge complete: no death this stage, a bonus chest awaits on the next one!");
+            var noDeathPlayers = playerManagerService.GetAllPlayers().Count(p => !diedThisStage.Contains(p.ConnectionId));
+            if (noDeathPlayers == 0)
+            {
+                return;
+            }
+
+            pendingRewardChests += noDeathPlayers;
+            Announce("Stage cleared: a chest for each player with no death awaits on the next stage!");
         }
 
         public void Tick()
@@ -115,9 +143,12 @@ namespace MegabonkTogether.Services
 
             try
             {
+                // In a circle around the host, a wider one when there are many chests
+                var radius = 3f + pendingRewardChests * 0.5f;
                 for (var i = 0; i < pendingRewardChests; i++)
                 {
-                    SpawnRewardChest(player.transform.position + new Vector3(3f + i * 2f, 2f, 3f));
+                    var angle = i * Mathf.PI * 2f / pendingRewardChests;
+                    SpawnRewardChest(player.transform.position + new Vector3(Mathf.Cos(angle) * radius, 2f, Mathf.Sin(angle) * radius));
                 }
             }
             catch (Exception ex)
@@ -150,7 +181,8 @@ namespace MegabonkTogether.Services
 
         public void Reset()
         {
-            stageDeaths = 0;
+            diedThisStage.Clear();
+            bossFightSurvivors = null;
             pendingRewardChests = 0;
             spawnRewardsAt = float.MaxValue;
             hasStageBossRewarded = false;

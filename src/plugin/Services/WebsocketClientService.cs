@@ -19,6 +19,11 @@ namespace MegabonkTogether.Services
         public Task Reset();
         Task SendRunStatistics(int playerCount, string mapName, int stageLevel, List<string> characters);
         Task<bool> SendGameStarting();
+
+        /// <summary>
+        /// Host: someone is joining the room but isn't a player yet
+        /// </summary>
+        bool HasJoiningPlayers();
     }
 
     internal class WebsocketClientService(IUdpClientService udpClientService, IPlayerManagerService playerManagerService) : IWebsocketClientService
@@ -32,6 +37,8 @@ namespace MegabonkTogether.Services
         private string currentServerUrl;
         private uint currentRdvServerPort;
         private bool isMessageLoopRunning = false;
+        private int udpResetGeneration = 0;
+        private int joiningPlayers = 0;
 
 
         public async Task ConnectAndMatchAsync(string serverUrl, uint rdvServerPort, NetworkHandler networkHandler)
@@ -54,6 +61,7 @@ namespace MegabonkTogether.Services
             }
 
             udpClientService.ResetHandledHost();
+            udpResetGeneration = udpClientService.GetResetGeneration();
 
             var mode = Plugin.Instance.Mode;
 
@@ -144,6 +152,16 @@ namespace MegabonkTogether.Services
 
             Plugin.Log.LogInfo($"Connection ID: {connectionId}");
 
+            if (role == Role.Host)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                udpClientService.RegisterHost(connectionId, new Random().Next(), udpResetGeneration); // Can start a run alone
+            }
+
             StartMessageLoop();
 
             if (role == Role.Host)
@@ -177,7 +195,8 @@ namespace MegabonkTogether.Services
                     switch (message)
                     {
                         case MatchInfo matchInfo:
-                            _ = HandleMatchInfo(matchInfo);
+                            Interlocked.Increment(ref joiningPlayers);
+                            _ = HandleMatchInfoTracked(matchInfo);
                             break;
                         case RunStatistics runStats:
                             break;
@@ -212,6 +231,23 @@ namespace MegabonkTogether.Services
             {
                 isMessageLoopRunning = false;
             }
+        }
+
+        private async Task HandleMatchInfoTracked(MatchInfo matchInfo)
+        {
+            try
+            {
+                await HandleMatchInfo(matchInfo);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref joiningPlayers);
+            }
+        }
+
+        public bool HasJoiningPlayers()
+        {
+            return Volatile.Read(ref joiningPlayers) > 0;
         }
 
         private async Task HandleMatchInfo(MatchInfo matchInfo)

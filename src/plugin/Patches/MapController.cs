@@ -75,6 +75,7 @@ namespace MegabonkTogether.Patches
         {
             Plugin.Instance.ShowModal("Locking lobby...");
 
+            var wasSolo = udpClientService.IsSoloSession();
             var task = websocketClientService.SendGameStarting();
 
             while (!task.IsCompleted)
@@ -82,8 +83,28 @@ namespace MegabonkTogether.Patches
                 yield return new WaitForSeconds(0.17f);
             }
 
-            if (task.Result)
+            if (task.Result && wasSolo && !udpClientService.IsSoloSession())
             {
+                // Someone joined just before the lock: wait for them like in any lobby, the host confirms again once they're ready
+                Plugin.Log.LogInfo("A player joined while locking the solo lobby, not starting alone");
+                Plugin.Instance.IS_HOST_READY = false;
+                isWaitingForServerResponse = false;
+                Plugin.Instance.ShowModal("A friend just joined: wait for them to be ready, then start the run again.");
+
+                yield return new WaitForSeconds(4f);
+
+                if (!isWaitingForServerResponse) // Not already starting again
+                {
+                    Plugin.Instance.HideModal();
+                }
+            }
+            else if (task.Result)
+            {
+                if (wasSolo)
+                {
+                    Plugin.Log.LogInfo("Lobby locked, starting a solo run");
+                }
+
                 Plugin.Instance.IS_HOST_READY = false;
                 Plugin.Instance.HideModal();
 

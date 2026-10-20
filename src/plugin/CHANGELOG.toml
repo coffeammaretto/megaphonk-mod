@@ -6,35 +6,14 @@
 #     "Change 2 description",
 # ]
 
-[version."1.0.3"]
-changes = [
-    "Downed timers (bleeding out and reviving) stop while a reward is being picked: chest, level up, shrine...",
-    "Revive radius doubled: 8 m (new setting DownedReviveRadiusMeters).",
-    "A downed player sways, dazed.",
-    "Bosses, minibosses and enemies spawned at a fixed spot chase a random player right away instead of the host first.",
-    "Fixed on the host: a failed enemy spawn could leave every position read redirected to a teammate until the next spawn.",
-]
-
-[version."1.0.2"]
-changes = [
-    "Far enemies stay visible: they no longer pop in only when a player comes within 60 m.",
-    "Fixed: on clients, enemies could stay stuck at an old position until a player came close (lost position updates are now resent every second).",
-]
-
-[version."1.0.1"]
-changes = [
-    "Less late game stutter: network messages of a frame go out in one packet, merged enemy damage, one XP update per frame, less log spam.",
-    "Fixed: the teleport to the final boss could leave both players stuck on \"Waiting for other players\".",
-    "Removed the \"teammate took ...\" notifications.",
-    "Fixed: notifications and pings did not work.",
-]
-
 [version."1.0.0"]
 changes = [
     "First release of Megaphonk Mod, a co-op mod for Megabonk 1.0.69 based on Megabonk Together.",
-    "Friendlies rooms go through Steam: no matchmaking server, the room code is the host's Steam account.",
-    "Party pause while anyone picks a reward, F8 unlocks a stuck pause, accidental click protection.",
-    "A chest bought by one player opens for everyone, gold is per player.",
-    "Character passives and party luck/difficulty are shared across the party.",
-    "New mechanics: downed state and revive, pings, team meter, run modifiers, co-op challenges, team stats at the end of a run.",
+    "Rooms through Steam, no server and no codes: the host presses Host, friends join from MEGAPHONK! -> Join. The host can also start a run alone.",
+    "Netplay Options on the host's character selection: party rules and 14 run modifiers, with caps on the combined bonuses.",
+    "Party pause while anyone picks a reward, F8 unlocks a stuck pause. A chest bought by one player opens for everyone, gold is per player.",
+    "Downed state and revive (8 m, dazed pose, timers stop during picks), pings, team meter, team stats at the end of a run.",
+    "Co-op challenges: a chest on the next stage for each player with no death, and for each player who survived the stage boss fight.",
+    "Network messages sent in one packet per frame, merged enemy damage: less late game stutter. Balanced enemy aggro across the party.",
+    "The mod's texts follow the game's language: English and Russian.",
 ]

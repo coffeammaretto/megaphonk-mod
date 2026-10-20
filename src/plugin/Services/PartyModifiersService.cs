@@ -26,6 +26,13 @@ namespace MegabonkTogether.Services
         private const float TICK_INTERVAL = 0.5f;
         private const string PREFIX = "MegabonkTogether_Party_";
 
+        // Caps on the player's bonuses from all run modifiers together (additions to the multipliers)
+        private const float MAX_XP_GAIN = 0.5f; //Counting the XP of the extra enemies
+        private const float MAX_GOLD_BONUS = 0.5f;
+        private const float MAX_DAMAGE_BONUS = 0.5f;
+        private const float MAX_MOVE_SPEED_BONUS = 0.3f;
+        private const float MAX_LUCK_BONUS = 0.5f;
+
         private readonly Dictionary<string, (EStat Stat, EStatModifyType Type, float Value)> applied = [];
         private IntPtr appliedInventory = IntPtr.Zero;
         private RunModifier announcedModifiers = RunModifier.None;
@@ -107,83 +114,145 @@ namespace MegabonkTogether.Services
                 Plugin.Log.LogInfo($"Run modifiers: {modifiers}");
             }
 
+            // Sum every enabled modifier per stat, then cap the player's bonuses: modifiers stay worth it alone,
+            // and stacking them all makes a hard run instead of a character that outscales everything
+            var player = new Dictionary<EStat, float>();
+            var enemy = new Dictionary<EStat, float>();
+            var party = new Dictionary<EStat, float>();
+
+            void Add(Dictionary<EStat, float> totals, EStat stat, float value) => totals[stat] = totals.GetValueOrDefault(stat) + value;
+
             if (modifiers.HasFlag(RunModifier.GlassCannon))
             {
-                wanted["GlassCannonDamage"] = (EStat.DamageMultiplier, EStatModifyType.Addition, 1f);
-                wanted["GlassCannonHp"] = (EStat.MaxHealth, EStatModifyType.Addition, -0.5f);
+                Add(player, EStat.DamageMultiplier, 0.5f);
+                Add(player, EStat.MaxHealth, -0.4f);
             }
 
             if (modifiers.HasFlag(RunModifier.Horde))
             {
-                wanted["HordeXp"] = (EStat.XpIncreaseMultiplier, EStatModifyType.Addition, 0.25f);
-                if (isHost)
-                {
-                    wanted["HordeEnemies"] = (EStat.EnemyAmountMultiplier, EStatModifyType.Addition, 0.5f);
-                }
+                Add(enemy, EStat.EnemyAmountMultiplier, 0.5f);
             }
 
             if (modifiers.HasFlag(RunModifier.ThickSkinned))
             {
-                if (isHost) //Luck is combined across the party: added once, on the host
-                {
-                    wanted["ThickSkinnedLuck"] = (EStat.Luck, EStatModifyType.Flat, 0.25f);
-                    wanted["ThickSkinnedEnemyHp"] = (EStat.EnemyHpMultiplier, EStatModifyType.Addition, 1f);
-                }
+                Add(enemy, EStat.EnemyHpMultiplier, 1f);
+                Add(party, EStat.Luck, 0.25f);
             }
 
-            if (modifiers.HasFlag(RunModifier.Frenzy) && isHost)
+            if (modifiers.HasFlag(RunModifier.Frenzy))
             {
+                Add(player, EStat.GoldIncreaseMultiplier, 0.2f);
                 var steps = Mathf.FloorToInt(Math.Max(0f, MyTime.runTimer) / 300f);
                 if (steps > 0)
                 {
-                    wanted["FrenzyEnemySpeed"] = (EStat.EnemySpeedMultiplier, EStatModifyType.Addition, 0.1f * steps);
+                    Add(enemy, EStat.EnemySpeedMultiplier, 0.1f * steps);
                 }
             }
 
             if (modifiers.HasFlag(RunModifier.Lucky))
             {
-                if (isHost) //Luck and difficulty are combined across the party: added once, on the host
-                {
-                    wanted["LuckyLuck"] = (EStat.Luck, EStatModifyType.Flat, 0.5f);
-                    wanted["LuckyDifficulty"] = (EStat.Difficulty, EStatModifyType.Flat, 0.3f);
-                }
+                Add(party, EStat.Luck, 0.3f);
+                Add(party, EStat.Difficulty, 0.3f);
             }
 
             if (modifiers.HasFlag(RunModifier.Poverty))
             {
-                wanted["PovertyGold"] = (EStat.GoldIncreaseMultiplier, EStatModifyType.Addition, -0.5f);
-                wanted["PovertyXp"] = (EStat.XpIncreaseMultiplier, EStatModifyType.Addition, 0.25f);
+                Add(player, EStat.GoldIncreaseMultiplier, -0.5f);
+                Add(player, EStat.XpIncreaseMultiplier, 0.15f);
             }
 
             if (modifiers.HasFlag(RunModifier.Colossus))
             {
-                wanted["ColossusXp"] = (EStat.XpIncreaseMultiplier, EStatModifyType.Addition, 0.5f);
-                if (isHost)
-                {
-                    wanted["ColossusEnemyHp"] = (EStat.EnemyHpMultiplier, EStatModifyType.Addition, 0.5f);
-                }
+                Add(enemy, EStat.EnemyHpMultiplier, 0.5f);
+                Add(player, EStat.XpIncreaseMultiplier, 0.25f);
             }
 
-            if (modifiers.HasFlag(RunModifier.BrittleSwarm) && isHost)
+            if (modifiers.HasFlag(RunModifier.BrittleSwarm))
             {
-                wanted["BrittleSwarmEnemyHp"] = (EStat.EnemyHpMultiplier, EStatModifyType.Addition, -0.4f);
-                wanted["BrittleSwarmEnemies"] = (EStat.EnemyAmountMultiplier, EStatModifyType.Addition, 0.5f);
+                Add(enemy, EStat.EnemyHpMultiplier, -0.4f);
+                Add(enemy, EStat.EnemyAmountMultiplier, 0.5f);
+                Add(player, EStat.XpIncreaseMultiplier, -0.2f);
             }
 
             if (modifiers.HasFlag(RunModifier.Bloodbath))
             {
-                wanted["BloodbathGold"] = (EStat.GoldIncreaseMultiplier, EStatModifyType.Addition, 0.25f);
-                wanted["BloodbathHealing"] = (EStat.HealingMultiplier, EStatModifyType.Addition, -0.5f);
-                if (isHost)
-                {
-                    wanted["BloodbathEnemyDamage"] = (EStat.EnemyDamageMultiplier, EStatModifyType.Addition, 0.5f);
-                }
+                Add(enemy, EStat.EnemyDamageMultiplier, 0.5f);
+                Add(player, EStat.HealingMultiplier, -0.5f);
+                Add(player, EStat.GoldIncreaseMultiplier, 0.25f);
             }
 
             if (modifiers.HasFlag(RunModifier.Pinball))
             {
-                wanted["PinballKnockback"] = (EStat.KnockbackMultiplier, EStatModifyType.Addition, 1f);
-                wanted["PinballSpeed"] = (EStat.MoveSpeedMultiplier, EStatModifyType.Addition, 0.15f);
+                Add(player, EStat.KnockbackMultiplier, 1f);
+                Add(player, EStat.MoveSpeedMultiplier, 0.15f);
+            }
+
+            if (modifiers.HasFlag(RunModifier.SilverRush))
+            {
+                Add(player, EStat.SilverIncreaseMultiplier, 0.5f);
+                Add(enemy, EStat.EnemyDamageMultiplier, 0.25f);
+            }
+
+            if (modifiers.HasFlag(RunModifier.Overdrive))
+            {
+                Add(player, EStat.MoveSpeedMultiplier, 0.2f);
+                Add(player, EStat.ProjectileSpeedMultiplier, 0.25f);
+                Add(enemy, EStat.EnemySpeedMultiplier, 0.2f);
+            }
+
+            if (modifiers.HasFlag(RunModifier.Shockwave))
+            {
+                Add(player, EStat.SizeMultiplier, 0.25f);
+                Add(player, EStat.DamageMultiplier, -0.2f);
+            }
+
+            if (modifiers.HasFlag(RunModifier.RisingTide))
+            {
+                Add(enemy, EStat.EnemyScalingMultiplier, 0.5f);
+                Add(player, EStat.ChestPriceMultiplier, -0.25f);
+            }
+
+            // Extra enemies already give extra XP: the XP bonus is lowered so that both together stay within +50%
+            var enemyAmount = enemy.GetValueOrDefault(EStat.EnemyAmountMultiplier);
+            Cap(player, EStat.XpIncreaseMultiplier, (1f + MAX_XP_GAIN) / (1f + enemyAmount) - 1f);
+            Cap(player, EStat.GoldIncreaseMultiplier, MAX_GOLD_BONUS);
+            Cap(player, EStat.DamageMultiplier, MAX_DAMAGE_BONUS);
+            Cap(player, EStat.MoveSpeedMultiplier, MAX_MOVE_SPEED_BONUS);
+            Cap(party, EStat.Luck, MAX_LUCK_BONUS);
+
+            foreach (var (stat, value) in player)
+            {
+                if (value != 0f)
+                {
+                    wanted["Run" + stat] = (stat, EStatModifyType.Addition, value);
+                }
+            }
+
+            if (isHost) //Enemies are simulated by the host; luck and difficulty are combined across the party: added once, on the host
+            {
+                foreach (var (stat, value) in enemy)
+                {
+                    if (value != 0f)
+                    {
+                        wanted["Run" + stat] = (stat, EStatModifyType.Addition, value);
+                    }
+                }
+
+                foreach (var (stat, value) in party)
+                {
+                    if (value != 0f)
+                    {
+                        wanted["Run" + stat] = (stat, EStatModifyType.Flat, value);
+                    }
+                }
+            }
+        }
+
+        private static void Cap(Dictionary<EStat, float> totals, EStat stat, float max)
+        {
+            if (totals.TryGetValue(stat, out var value) && value > max)
+            {
+                totals[stat] = max;
             }
         }
 

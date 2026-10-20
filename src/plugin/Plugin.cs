@@ -513,9 +513,10 @@ namespace MegabonkTogether
                 }
 
                 var target = player.transform.position;
-                if (player.IsDead())
+                var spectated = player.IsDead() ? Instance.CameraSwitcher?.GetCurrentTarget() : null;
+                if (spectated != null) //Nobody left to spectate (solo, everyone dead): stay on the own body
                 {
-                    target = Instance.CameraSwitcher.GetCurrentTarget().position;
+                    target = spectated.position;
                 }
 
                 distanceTarget = target;

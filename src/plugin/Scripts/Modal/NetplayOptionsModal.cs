@@ -19,16 +19,20 @@ namespace MegabonkTogether.Scripts.Modal
 
         internal static readonly (RunModifier Flag, string Name, string Effect)[] ModifierList =
         [
-            (RunModifier.GlassCannon, "Glass Cannon", "Damage x2, max HP x0.5"),
-            (RunModifier.Horde, "Horde", "Enemies x1.5, XP +25%"),
+            (RunModifier.GlassCannon, "Glass Cannon", "Damage +50%, max HP -40%"),
+            (RunModifier.Horde, "Horde", "Enemies x1.5"),
             (RunModifier.ThickSkinned, "Thick Skinned", "Enemy HP x2, luck +0.25"),
-            (RunModifier.Frenzy, "Frenzy", "Enemies +10% speed every 5 min"),
-            (RunModifier.Lucky, "Lucky", "Luck +0.5, difficulty +0.3"),
-            (RunModifier.Poverty, "Poverty", "Gold -50%, XP +25%"),
-            (RunModifier.Colossus, "Colossus", "Enemy HP +50%, XP +50%"),
-            (RunModifier.BrittleSwarm, "Brittle Swarm", "Enemy HP -40%, enemies x1.5"),
+            (RunModifier.Frenzy, "Frenzy", "Enemies +10% speed every 5 min, gold +20%"),
+            (RunModifier.Lucky, "Lucky", "Luck +0.3, difficulty +0.3"),
+            (RunModifier.Poverty, "Poverty", "Gold -50%, XP +15%"),
+            (RunModifier.Colossus, "Colossus", "Enemy HP +50%, XP +25%"),
+            (RunModifier.BrittleSwarm, "Brittle Swarm", "Enemy HP -40%, enemies x1.5, XP -20%"),
             (RunModifier.Bloodbath, "Bloodbath", "Enemy damage +50%, healing -50%, gold +25%"),
             (RunModifier.Pinball, "Pinball", "Knockback x2, move speed +15%"),
+            (RunModifier.SilverRush, "Silver Rush", "Silver +50%, enemy damage +25%"),
+            (RunModifier.Overdrive, "Overdrive", "Speed +20%, projectiles +25%, enemies +20% speed"),
+            (RunModifier.Shockwave, "Shockwave", "Weapon area +25%, damage -20%"),
+            (RunModifier.RisingTide, "Rising Tide", "Enemies scale 50% faster, chests -25% price"),
         ];
 
         private static bool isOpen;
@@ -142,7 +146,7 @@ namespace MegabonkTogether.Scripts.Modal
 
         private void CreateCloseButton()
         {
-            var closeButton = CreateButton("Close", 36, new Vector2(0f, -400f), new Vector2(300, 70));
+            var closeButton = CreateButton("Close", 36, new Vector2(0f, -420f), new Vector2(300, 60));
             closeButton.SetOnClickAction(() =>
             {
                 AudioManager.Instance.PlaySfx(AudioManager.Instance.uiSelect.sounds[0]);
@@ -159,9 +163,9 @@ namespace MegabonkTogether.Scripts.Modal
             {
                 var (flag, name, effect) = ModifierList[i];
                 var x = i % 2 == 0 ? -CHECKBOX_COLUMN_X : CHECKBOX_COLUMN_X;
-                var y = -45f - (i / 2) * 62f;
+                var y = -40f - (i / 2) * 52f;
 
-                var button = CreateButton("", 26, new Vector2(x, y), new Vector2(470, 56));
+                var button = CreateButton("", 24, new Vector2(x, y), new Vector2(470, 48));
 
                 // The button's own text is centered and keeps being re-aligned: left aligned text of our own instead
                 var buttonText = button.GetComponent<ButtonTextWrapper>().t_text;

@@ -121,8 +121,8 @@ namespace MegabonkTogether.Patches
         }
 
         /// <summary>
-        /// Make confirm button inactive on character menu if less than 2 players in friendlies host mode
-        /// Make map confirm button inactive if less than 2 players or not all ready in friendlies host mode
+        /// Make confirm button inactive on character menu if less than 2 players in friendlies host mode (a host alone can start solo)
+        /// Make map confirm button inactive if less than 2 players (unless solo) or not all ready in friendlies host mode
         /// </summary>
         [HarmonyPostfix]
         [HarmonyPatch(nameof(WindowManager.Update))]
@@ -150,7 +150,7 @@ namespace MegabonkTogether.Patches
 
             if (WindowManager.activeWindow?.name == "W_Character" && Plugin.Instance.Mode.Mode == NetworkModeType.Friendlies && Plugin.Instance.Mode.Role == Role.Host)
             {
-                if (playerManagerService.GetAllPlayers().Count() < 2)
+                if (playerManagerService.GetAllPlayers().Count() < 2 && !udpClientService.IsSoloSession())
                 {
                     var character = WindowManager.activeWindow as CharacterMenu;
                     character.b_confirm.state = MyButton.EButtonState.Inactive;
@@ -174,7 +174,7 @@ namespace MegabonkTogether.Patches
 
                     if (confirmButton == null) return;
 
-                    if (playerManagerService.GetAllPlayers().Count() < 2 || !udpClientService.AreAllPeersReady() || udpClientService.IsHandlingConnection())
+                    if ((playerManagerService.GetAllPlayers().Count() < 2 && !udpClientService.IsSoloSession()) ||!udpClientService.AreAllPeersReady() || udpClientService.IsHandlingConnection())
                     {
                         confirmButton.state = MyButton.EButtonState.Inactive;
                         confirmButton.RefreshState();

@@ -78,6 +78,22 @@ namespace MegabonkTogether.Services
         public void ResetHandledHost();
         public void RemovePeer(uint clientConnectionId);
         public int GetLocalPort();
+
+        /// <summary>
+        /// Friendlies host: the host is in its own room as soon as it opens, before anyone joins (HandleMatch only runs on a join)
+        /// </summary>
+        public void RegisterHost(uint selfConnectionId, int seed, int resetGeneration);
+
+        /// <summary>
+        /// Bumped by each Reset: work started before a reset can tell it's stale
+        /// </summary>
+        public int GetResetGeneration();
+
+        /// <summary>
+        /// Friendlies host alone in its room: no other player and no peer connected or connecting.
+        /// The run can then start (and go on) with the host only.
+        /// </summary>
+        public bool IsSoloSession();
     }
     internal class UdpClientService(
             IPlayerManagerService playerManagerService,
@@ -105,8 +121,11 @@ namespace MegabonkTogether.Services
         private int expectedPeerCount = 0;
         private bool hasStarted = false;
         private bool hasAllPeersConnected = false;
-        private bool isHandlingConnection = false;
+        private volatile bool isHandlingConnection = false;
         private bool hasHandledHost = false;
+        private volatile int resetGeneration = 0;
+        private readonly object registerHostLock = new();
+        private IWebsocketClientService matchmakingService;
         private bool isGameOver = false;
 
         private string rdvServerHost;
@@ -1126,6 +1145,11 @@ namespace MegabonkTogether.Services
 
         public void Reset()
         {
+            lock (registerHostLock) //A RegisterHost in progress finishes before the identity is cleared below, later ones are dropped
+            {
+                resetGeneration++;
+            }
+
             lock (pendingLock)
             {
                 try
@@ -2205,6 +2229,62 @@ namespace MegabonkTogether.Services
         public int GetLocalPort()
         {
             return GAME_UDP_PORT;
+        }
+
+        public int GetResetGeneration()
+        {
+            return resetGeneration;
+        }
+
+        public void RegisterHost(uint selfConnectionId, int seed, int resetGeneration)
+        {
+            // Runs on the matchmaking task: the user may have stopped (reset) or switched to joining meanwhile
+            lock (registerHostLock)
+            {
+                var mode = Plugin.Instance.Mode;
+                if (resetGeneration != this.resetGeneration || mode.Mode != NetworkModeType.Friendlies || mode.Role != Role.Host)
+                {
+                    Plugin.Log.LogInfo("Networking was reset or is no longer hosting: host not registered");
+                    return;
+                }
+
+                this.selfConnectionId ??= selfConnectionId;
+                isHost = true;
+
+                if (playerManagerService.GetAllPlayers().Any(p => p.ConnectionId == selfConnectionId))
+                {
+                    return; // A join was already handled: the match info set the room's seed
+                }
+
+                playerManagerService.AddPlayer(selfConnectionId, true, true);
+                playerManagerService.SetSeed(seed); // A join's match info brings the room's seed
+                Plugin.Log.LogInfo($"Host registered in its room ({selfConnectionId})");
+            }
+        }
+
+        public bool IsSoloSession()
+        {
+            var isHost = this.isHost;
+            var selfConnectionId = this.selfConnectionId;
+            if (isHost != true || !selfConnectionId.HasValue || Plugin.Instance.Mode.Mode != NetworkModeType.Friendlies)
+            {
+                return false;
+            }
+
+            if (isHandlingConnection || !gamePeers.IsEmpty || !gamePeersIntroduced.IsEmpty || !gamePeersIntroducedByRelay.IsEmpty || usesRelay.Count > 0)
+            {
+                return false;
+            }
+
+            // Members accepted by the room but not added as players yet
+            matchmakingService ??= (IWebsocketClientService)Plugin.Services.GetService(typeof(IWebsocketClientService));
+            if (matchmakingService != null && matchmakingService.HasJoiningPlayers())
+            {
+                return false;
+            }
+
+            var players = playerManagerService.GetAllPlayers().ToList();
+            return players.Count == 1 && players[0].ConnectionId == selfConnectionId.Value;
         }
     }
 }

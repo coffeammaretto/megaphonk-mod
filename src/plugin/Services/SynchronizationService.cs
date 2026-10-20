@@ -309,6 +309,11 @@ namespace MegabonkTogether.Services
 
             var allPlayers = playerManagerService.GetAllPlayers();
 
+            if (udpClientService.IsSoloSession()) //Host alone: nobody to wait for, nor to be connected to
+            {
+                return allPlayers.All(p => p.IsReady);
+            }
+
             if (allPlayers.Count() < 2)
             {
                 logger.LogInfo("Not enough players to start the game.");
@@ -975,6 +980,11 @@ namespace MegabonkTogether.Services
             {
                 logger.LogWarning("Enemy is null ?? when processing OnSpawnedEnemy.");
                 return;
+            }
+
+            if (enemy.IsStageBoss() && !enemy.IsFinalBoss())
+            {
+                GetChallengeService()?.OnStageBossSpawned();
             }
 
             var dynEnemy = DynamicData.For(enemy);
@@ -4008,7 +4018,7 @@ namespace MegabonkTogether.Services
             else
             {
                 udpClientService.SendToAllClients(diedMessage, LiteNetLib.DeliveryMethod.ReliableOrdered);
-                GetChallengeService()?.OnPlayerDied();
+                GetChallengeService()?.OnPlayerDied(playerId);
 
                 var allPlayersAliveIdWithout = playerManagerService.GetAllPlayersAlive().Where(p => p.ConnectionId != playerId).Select(p => p.ConnectionId).ToList();
                 var updated = enemyManagerService.ReTargetEnemies(playerId, allPlayersAliveIdWithout);
@@ -4054,7 +4064,7 @@ namespace MegabonkTogether.Services
                 };
 
                 udpClientService.SendToAllClients(diedMessage, LiteNetLib.DeliveryMethod.ReliableOrdered);
-                GetChallengeService()?.OnPlayerDied();
+                GetChallengeService()?.OnPlayerDied(died.PlayerId);
 
                 var allPlayersAliveIdWithout = playerManagerService.GetAllPlayersAlive().Where(p => p.ConnectionId != died.PlayerId).Select(p => p.ConnectionId).ToList();
                 var updated = enemyManagerService.ReTargetEnemies(died.PlayerId, allPlayersAliveIdWithout);
@@ -4824,7 +4834,8 @@ namespace MegabonkTogether.Services
         public bool IsPartyPauseEnabled()
         {
             partySettingsService ??= (IPartySettingsService)Plugin.Services.GetService(typeof(IPartySettingsService));
-            return IsSharedExperienceEnabled() && partySettingsService?.Current.RewardPauseMode != RewardPauseMode.Own;
+            // Alone, nobody to wait for: the game's own reward pause is enough
+            return IsSharedExperienceEnabled() && partySettingsService?.Current.RewardPauseMode != RewardPauseMode.Own && !udpClientService.IsSoloSession();
         }
 
         public bool IsSharedExperienceEnabled()

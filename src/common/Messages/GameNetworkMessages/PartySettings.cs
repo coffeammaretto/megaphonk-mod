@@ -54,12 +54,12 @@ namespace MegabonkTogether.Common.Messages.GameNetworkMessages
         None = 0,
 
         /// <summary>
-        /// Damage x2, max HP x0.5
+        /// Damage +50%, max HP -40%
         /// </summary>
         GlassCannon = 1 << 0,
 
         /// <summary>
-        /// Enemies x1.5, XP +25%
+        /// Enemies x1.5 (more XP and gold from kills)
         /// </summary>
         Horde = 1 << 1,
 
@@ -69,27 +69,27 @@ namespace MegabonkTogether.Common.Messages.GameNetworkMessages
         ThickSkinned = 1 << 2,
 
         /// <summary>
-        /// Enemies 10% faster every 5 minutes
+        /// Enemies 10% faster every 5 minutes, gold +20%
         /// </summary>
         Frenzy = 1 << 3,
 
         /// <summary>
-        /// Luck +0.5, difficulty +0.3
+        /// Luck +0.3, difficulty +0.3
         /// </summary>
         Lucky = 1 << 4,
 
         /// <summary>
-        /// Gold -50%, XP +25%
+        /// Gold -50%, XP +15%
         /// </summary>
         Poverty = 1 << 5,
 
         /// <summary>
-        /// Enemy HP +50%, XP +50%
+        /// Enemy HP +50%, XP +25%
         /// </summary>
         Colossus = 1 << 6,
 
         /// <summary>
-        /// Enemy HP -40%, enemies x1.5
+        /// Enemy HP -40%, enemies x1.5, XP -20%
         /// </summary>
         BrittleSwarm = 1 << 7,
 
@@ -102,6 +102,26 @@ namespace MegabonkTogether.Common.Messages.GameNetworkMessages
         /// Knockback x2, move speed +15%
         /// </summary>
         Pinball = 1 << 9,
+
+        /// <summary>
+        /// Silver +50%, enemy damage +25%
+        /// </summary>
+        SilverRush = 1 << 10,
+
+        /// <summary>
+        /// Move speed +20%, projectile speed +25%, enemies 20% faster
+        /// </summary>
+        Overdrive = 1 << 11,
+
+        /// <summary>
+        /// Weapon area +25%, damage -20%
+        /// </summary>
+        Shockwave = 1 << 12,
+
+        /// <summary>
+        /// Enemies grow stronger 50% faster, chests 25% cheaper
+        /// </summary>
+        RisingTide = 1 << 13,
     }
 
     public enum PartyStatMode : byte

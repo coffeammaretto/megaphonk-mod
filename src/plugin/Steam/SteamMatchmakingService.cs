@@ -52,6 +52,7 @@ namespace MegabonkTogether.Steam
         private readonly Dictionary<ulong, DateTime> members = [];
         private readonly Dictionary<ulong, string> memberNames = [];
         private readonly ConcurrentQueue<ulong> sessionRequests = new();
+        private int joiningMembers = 0;
 
         private NetworkHandler networkHandler;
         private int session = 0;
@@ -89,6 +90,8 @@ namespace MegabonkTogether.Steam
             }
 
             udpClientService.ResetHandledHost();
+            var udpResetGeneration = udpClientService.GetResetGeneration();
+            var connectSession = session;
 
             selfSteamId = SteamApi.GetLocalSteamId();
             isHost = Plugin.Instance.Mode.Role == Role.Host;
@@ -101,6 +104,12 @@ namespace MegabonkTogether.Steam
             {
                 hostSteamId = selfSteamId;
                 seed = (uint)new Random().Next();
+                if (connectSession != session)
+                {
+                    return; // Stopped meanwhile
+                }
+
+                udpClientService.RegisterHost(SteamApi.AccountId(selfSteamId), (int)seed, udpResetGeneration); // Can start a run alone
                 SteamApi.SetSessionRequestHandler(sessionRequests.Enqueue);
                 Plugin.Instance.Mode.RoomCode = SteamApi.SteamIdToCode(selfSteamId);
                 Plugin.Log.LogInfo($"Steam room open, code {Plugin.Instance.Mode.RoomCode}");
@@ -286,6 +295,7 @@ namespace MegabonkTogether.Steam
                         return;
                     }
 
+                    Interlocked.Increment(ref joiningMembers); // Until HandleMatch is done with it (player added, connected or not)
                     members[sender] = DateTime.UtcNow;
                     transport.AddPeer(sender);
                     Plugin.Log.LogInfo($"Steam member {sender} ({hello.Name}) joined");
@@ -295,7 +305,7 @@ namespace MegabonkTogether.Steam
                     {
                         SendControl(member, matchInfo);
                     }
-                    _ = HandleMatchAsync(matchInfo);
+                    _ = HandleJoinAsync(matchInfo);
                     break;
                 case ClientDisconnected:
                     if (members.ContainsKey(sender))
@@ -398,6 +408,32 @@ namespace MegabonkTogether.Steam
 
             Plugin.Log.LogInfo($"Steam room match info: {matchInfo.Peers.Count()} players");
             _ = HandleMatchAsync(matchInfo);
+        }
+
+        private async Task HandleJoinAsync(MatchInfo matchInfo)
+        {
+            var joinSession = session;
+            try
+            {
+                await HandleMatchAsync(matchInfo);
+            }
+            finally
+            {
+                if (joinSession == session) // A reset already cleared the count
+                {
+                    Interlocked.Decrement(ref joiningMembers);
+                }
+            }
+        }
+
+        public bool HasJoiningPlayers()
+        {
+            if (usesServer)
+            {
+                return serverMatchmaking.HasJoiningPlayers();
+            }
+
+            return isHost && (Volatile.Read(ref joiningMembers) > 0 || !sessionRequests.IsEmpty);
         }
 
         private async Task HandleMatchAsync(MatchInfo matchInfo)
@@ -505,6 +541,7 @@ namespace MegabonkTogether.Steam
             members.Clear();
             memberNames.Clear();
             while (sessionRequests.TryDequeue(out _)) { }
+            Volatile.Write(ref joiningMembers, 0);
             isHost = false;
             selfSteamId = 0;
             hostSteamId = 0;
