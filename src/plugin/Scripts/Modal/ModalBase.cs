@@ -19,7 +19,7 @@ namespace MegabonkTogether.Scripts.Modal
         protected virtual Vector2 LoaderSize => new Vector2(80, 80);
         protected virtual Vector2 StatusTextSize => new Vector2(500, 70);
         protected virtual float StatusTextFontSize => 36f;
-        protected virtual Color PanelBackgroundColor => new Color(0.1f, 0.1f, 0.1f, 0.9f);
+        protected virtual Color PanelBackgroundColor => new Color(0.1f, 0.1f, 0.1f, 1f);
         protected virtual Color BlockerColor => new Color(0, 0, 0, 0.5f);
 
         public virtual void Start()
