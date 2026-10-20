@@ -1,0 +1,198 @@
+﻿using HarmonyLib;
+using MegabonkTogether.Common;
+using MegabonkTogether.Configuration;
+using MegabonkTogether.Scripts.Button;
+using MegabonkTogether.Scripts.Modal;
+using MegabonkTogether.Services;
+using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
+
+namespace MegabonkTogether.Patches
+{
+    [HarmonyPatch(typeof(MainMenu))]
+    internal static class MainMenuPatches
+    {
+        private static readonly ISynchronizationService synchronizationService = Plugin.Services.GetRequiredService<ISynchronizationService>();
+        private static readonly IPlayerManagerService playerManagerService = Plugin.Services.GetRequiredService<IPlayerManagerService>();
+        private static readonly IAutoUpdaterService autoUpdaterService = Plugin.Services.GetRequiredService<IAutoUpdaterService>();
+        private static readonly IChangelogService changelogService = Plugin.Services.GetRequiredService<IChangelogService>();
+
+        private static bool hasCheckedChangelog = false;
+
+        /// <summary>
+        /// Add "MEGAPHONK!" button to main menu
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(nameof(MainMenu.Start))]
+        public static void Start_Postfix(MainMenu __instance)
+        {
+            var playBtn = __instance.btnPlay;
+
+            var go = UnityEngine.Object.Instantiate(playBtn.gameObject);
+
+            var originalButton = go.GetComponent<MyButtonNormal>();
+
+            UnityEngine.UI.Button button = go.GetComponentInChildren<UnityEngine.UI.Button>();
+            if (button != null)
+            {
+                button.onClick = new();
+            }
+
+            var customButton = go.AddComponent<PlayTogetherButton>();
+            customButton.SetMainMenu(__instance);
+
+            // AddComponent does not carry the serialized references over: without them StartHover/StopHover throw
+            // (null background), which aborts ButtonManager mid-switch and leaves the menu selection stuck on this button
+            if (originalButton != null)
+            {
+                customButton.background = originalButton.background;
+                customButton.defaultColor = originalButton.defaultColor;
+                customButton.hoverColor = originalButton.hoverColor;
+                customButton.colorInited = originalButton.colorInited;
+                customButton.scaleOnHover = originalButton.scaleOnHover;
+                customButton.hoverScale = originalButton.hoverScale;
+                customButton.button = originalButton.button;
+                customButton.disabledOverlay = originalButton.disabledOverlay;
+                customButton.customSfx = originalButton.customSfx;
+
+                UnityEngine.Object.DestroyImmediate(originalButton);
+            }
+
+            var textWrapper = go.GetComponent<ButtonTextWrapper>();
+            textWrapper.t_text.text = "MEGAPHONK!";
+
+            var version = new UnityEngine.GameObject("VersionText");
+            version.transform.SetParent(textWrapper.t_text.transform);
+            version.transform.localPosition = new UnityEngine.Vector3(0, -35, 0);
+            version.transform.localScale = UnityEngine.Vector3.one;
+
+            var tmpText = textWrapper.t_text;
+            var versionTmp = version.AddComponent<TMPro.TextMeshProUGUI>();
+            versionTmp.font = tmpText.font;
+            versionTmp.fontSize = tmpText.fontSize * 0.45f;
+            versionTmp.alignment = tmpText.alignment;
+            versionTmp.color = tmpText.color;
+            versionTmp.text = $"v{MyPluginInfo.PLUGIN_VERSION}";
+
+
+            go.transform.SetParent(playBtn.transform.parent);
+
+            Plugin.Instance.PlayTogetherButton = customButton;
+            Plugin.Instance.SetMainMenu(__instance);
+
+            if (autoUpdaterService.IsCustomBuild() && autoUpdaterService.IsAnUpdateAvailable())
+            {
+                customButton.gameObject.SetActive(false);
+            }
+
+            if (!hasCheckedChangelog)
+            {
+                hasCheckedChangelog = true;
+
+                // Steam is up by the main menu: fetch the interfaces once, logs the account
+                if (ModConfig.UseSteamNetworking.Value)
+                {
+                    Steam.SteamApi.Initialize();
+                }
+
+                if (string.IsNullOrEmpty(ModConfig.PreviousVersion.Value) && !autoUpdaterService.IsCustomBuild())
+                {
+                    Plugin.Log.LogInfo("First time with changelog system detected");
+                    ModConfig.ShowChangelog.Value = true;
+                    ModConfig.PreviousVersion.Value = "1.0.0";
+                    ModConfig.Save();
+                }
+
+                bool shouldShow = changelogService.ShouldShowChangelog();
+
+                if (shouldShow)
+                {
+                    ShowChangelogModal();
+                }
+            }
+        }
+
+        private static void ShowChangelogModal()
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var previousVersion = Configuration.ModConfig.PreviousVersion.Value;
+                    var currentVersion = MyPluginInfo.PLUGIN_VERSION;
+
+                    Plugin.Log.LogInfo($"Fetching changelog for versions: {previousVersion} -> {currentVersion}");
+
+                    var changelog = await changelogService.LoadChangelogAsync();
+                    if (changelog == null || changelog.Count == 0)
+                    {
+                        Plugin.Log.LogInfo("No changelog data available");
+                        changelogService.MarkChangelogAsShown();
+                        return;
+                    }
+
+                    var changes = changelogService.GetChangesBetweenVersions(changelog, previousVersion, currentVersion);
+                    if (changes == null || changes.Count == 0)
+                    {
+                        Plugin.Log.LogInfo("No changes found between versions");
+                        changelogService.MarkChangelogAsShown();
+                        return;
+                    }
+
+                    Plugin.Log.LogInfo($"Found {changes.Count} version(s) with changes to display");
+
+                    ChangelogModal.Show(changes);
+                }
+                catch (System.Exception ex)
+                {
+                    Plugin.Log.LogError($"Error showing changelog: {ex.Message}");
+                    changelogService.MarkChangelogAsShown();
+                }
+            });
+        }
+
+        /// <summary>
+        /// Synchronize the selected character and prevent going to map selection if not host (Wait for host)
+        /// </summary>
+        /// <returns></returns>
+        [HarmonyPrefix]
+        [HarmonyPatch(nameof(MainMenu.GoToMapSelection))]
+        public static bool GoToMapSelection_Prefix()
+        {
+            if (!Plugin.Instance.NetworkHandler.HasFoundMatch.HasValue || !Plugin.Instance.NetworkHandler.HasFoundMatch.Value)
+            {
+                return true;
+            }
+
+            if (synchronizationService.IsLoading())
+            {
+                return false;
+            }
+
+            synchronizationService.OnSelectedCharacter();
+
+            var isHost = synchronizationService.IsServerMode() ?? false;
+            if (!isHost)
+            {
+                Plugin.Instance.ShowModal("Waiting for the host...");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Restore "MEGAPHONK!" button text when going back to main menu (because its disappears for some reason)
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(nameof(MainMenu.GoToMenu))]
+        public static void GoToMenu_Postfix()
+        {
+            if (Plugin.Instance.PlayTogetherButton != null)
+            {
+                var textWrapper = Plugin.Instance.PlayTogetherButton.GetComponent<ButtonTextWrapper>();
+                textWrapper.t_text.text = "MEGAPHONK!";
+            }
+        }
+    }
+}

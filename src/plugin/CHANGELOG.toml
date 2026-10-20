@@ -1,0 +1,17 @@
+﻿# Megaphonk Mod Changelog
+# Format:
+# [version."X.Y.Z"]
+# changes = [
+#     "Change 1 description",
+#     "Change 2 description",
+# ]
+
+[version."1.0.0"]
+changes = [
+    "First release of Megaphonk Mod, a co-op mod for Megabonk 1.0.69 based on Megabonk Together.",
+    "Friendlies rooms go through Steam: no matchmaking server, the room code is the host's Steam account.",
+    "Party pause while anyone picks a reward, F8 unlocks a stuck pause, accidental click protection.",
+    "A chest bought by one player opens for everyone, gold is per player.",
+    "Character passives and party luck/difficulty are shared across the party.",
+    "New mechanics: downed state and revive, pings, team meter, run modifiers, co-op challenges, team stats at the end of a run.",
+]
