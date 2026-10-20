@@ -17,7 +17,7 @@ namespace MegabonkTogether.Scripts.Modal
     {
         private const float CHECKBOX_COLUMN_X = 245f;
 
-        private static readonly (RunModifier Flag, string Name, string Effect)[] ModifierList =
+        internal static readonly (RunModifier Flag, string Name, string Effect)[] ModifierList =
         [
             (RunModifier.GlassCannon, "Glass Cannon", "Damage x2, max HP x0.5"),
             (RunModifier.Horde, "Horde", "Enemies x1.5, XP +25%"),
@@ -88,7 +88,7 @@ namespace MegabonkTogether.Scripts.Modal
             rect.sizeDelta = size;
 
             var title = titleObj.AddComponent<TextMeshProUGUI>();
-            title.text = text;
+            title.text = Loc.T(text);
             title.alignment = TextAlignmentOptions.Center;
             title.fontSize = fontSize;
             title.enableWordWrapping = false;
@@ -124,7 +124,7 @@ namespace MegabonkTogether.Scripts.Modal
             var customButton = buttonObj.AddComponent<CustomButton>();
 
             var textWrapper = buttonObj.GetComponent<ButtonTextWrapper>();
-            textWrapper.t_text.text = text;
+            textWrapper.t_text.text = Loc.T(text);
             textWrapper.t_text.fontSize = fontSize;
 
             var rect = buttonObj.GetComponent<RectTransform>();
@@ -161,7 +161,7 @@ namespace MegabonkTogether.Scripts.Modal
                 var x = i % 2 == 0 ? -CHECKBOX_COLUMN_X : CHECKBOX_COLUMN_X;
                 var y = -45f - (i / 2) * 62f;
 
-                var button = CreateButton($"{name}\n<size=60%>{effect}</size>", 26, new Vector2(x, y), new Vector2(470, 56));
+                var button = CreateButton($"{Loc.T(name)}\n<size=60%>{Loc.T(effect)}</size>", 26, new Vector2(x, y), new Vector2(470, 56));
                 var textWrapper = button.GetComponent<ButtonTextWrapper>();
                 textWrapper.t_text.alignment = TextAlignmentOptions.Left;
                 textWrapper.t_text.margin = new Vector4(64, 0, 10, 0);
@@ -277,7 +277,7 @@ namespace MegabonkTogether.Scripts.Modal
             {
                 if (textComp.name.StartsWith("Text"))
                 {
-                    textComp.text = label;
+                    textComp.text = Loc.T(label);
                     textComp.fontSize = 18;
                     textComp.enableWordWrapping = false;
                 }
@@ -292,7 +292,7 @@ namespace MegabonkTogether.Scripts.Modal
             {
                 if (valueText != null)
                 {
-                    valueText.text = getValue();
+                    valueText.text = Loc.T(getValue());
                     valueText.color = Color.white;
                 }
             }

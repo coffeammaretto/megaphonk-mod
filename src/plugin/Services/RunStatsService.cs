@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using MegabonkTogether.Helpers;
 
 namespace MegabonkTogether.Services
 {
@@ -121,10 +122,10 @@ namespace MegabonkTogether.Services
 
         private void ShowPanel(TeamStats stats)
         {
-            var text = new StringBuilder("<b>TEAM</b>\n");
+            var text = new StringBuilder("<b>" + Loc.T("TEAM") + "</b>\n");
             foreach (var entry in stats.Entries.OrderByDescending(e => e.Damage))
             {
-                text.Append($"{entry.Name}: {FormatNumber(entry.Damage)} damage, {entry.Kills} kills, {FormatNumber(entry.GoldEarned)} gold\n");
+                text.Append(Loc.F("{0}: {1} damage, {2} kills, {3} gold", entry.Name, FormatNumber(entry.Damage), entry.Kills, FormatNumber(entry.GoldEarned)) + "\n");
             }
             Plugin.Log.LogInfo(text.ToString().Replace("<b>", "").Replace("</b>", ""));
 

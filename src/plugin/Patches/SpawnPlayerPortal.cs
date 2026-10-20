@@ -60,7 +60,7 @@ namespace MegabonkTogether.Patches
             synchronizeText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             synchronizeText.rectTransform.anchoredPosition = new Vector2(0, 0);
             synchronizeText.alignment = TMPro.TextAlignmentOptions.Center;
-            synchronizeText.text = "Waiting for other players";
+            synchronizeText.text = Loc.T("Waiting for other players");
             synchronizeText.fontSize = 48;
 
             dotAnimTimer = 0f;
@@ -76,7 +76,7 @@ namespace MegabonkTogether.Patches
                     dotAnimTimer = 0f;
                     dotCount = (dotCount + 1) % 4;
                     string dots = new string('.', dotCount);
-                    synchronizeText.text = $"Waiting for other players {dots}";
+                    synchronizeText.text = Loc.T("Waiting for other players") + " " + dots;
                 }
 
                 Plugin.Log.LogInfo("Lobby not ready yet, waiting...");

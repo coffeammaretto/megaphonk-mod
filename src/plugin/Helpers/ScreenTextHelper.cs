@@ -17,7 +17,7 @@ namespace MegabonkTogether.Helpers
                 textComponent = go.AddComponent<TMPro.TextMeshProUGUI>();
             }
 
-            textComponent.text = text;
+            textComponent.text = Loc.T(text);
             textComponent.enabled = true;
             textComponent.transform.SetParent(UiManager.Instance.transform);
             textComponent.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);

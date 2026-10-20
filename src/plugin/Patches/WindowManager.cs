@@ -240,15 +240,15 @@ namespace MegabonkTogether.Patches
             var text = textObj.AddComponent<TextMeshProUGUI>();
             // Steam rooms are joined through the friends list, only the server mode still has a code
             var usesCode = !ModConfig.UseSteamNetworking.Value;
-            text.text = usesCode ? $"Role: {roleText}\nCode: ******" : $"Role: {roleText}";
+            text.text = usesCode ? Loc.F("Role: {0}", Loc.T(roleText)) + "\nCode: ******" : Loc.F("Role: {0}", Loc.T(roleText));
             var sharedExpValue = Plugin.Instance.Mode.Role == Role.Host ? ModConfig.EnabledSharedExperience.Value : Plugin.Instance.Mode.EnabledSharedExperience;
             if (sharedExpValue.HasValue)
             {
                 var sharedExpStatus = sharedExpValue.Value
-                ? "<color=green>ON</color>"
-                : "<color=red>OFF</color>";
+                ? "<color=green>" + Loc.T("ON") + "</color>"
+                : "<color=red>" + Loc.T("OFF") + "</color>";
 
-                text.text += $"\nShared Experience: {sharedExpStatus}";
+                text.text += "\n" + Loc.F("Shared Experience: {0}", sharedExpStatus);
             }
             text.enableWordWrapping = false;
             text.alignment = TextAlignmentOptions.TopLeft;
@@ -312,7 +312,7 @@ namespace MegabonkTogether.Patches
             });
 
             var textWrapper = copyButtonObj.GetComponent<ButtonTextWrapper>();
-            textWrapper.t_text.text = label;
+            textWrapper.t_text.text = Loc.T(label);
             textWrapper.t_text.fontSize = label.Length > 10 ? 20 : 25;
 
             var copyButtonRect = copyButtonObj.GetComponent<RectTransform>();
@@ -392,7 +392,7 @@ namespace MegabonkTogether.Patches
             textRectTransform.sizeDelta = new Vector2(0f, 80f);
 
             var text = textObj.AddComponent<TextMeshProUGUI>();
-            text.text = "Waiting for players to be ready...";
+            text.text = Loc.T("Waiting for players to be ready...");
             text.enableWordWrapping = false;
             text.alignment = TextAlignmentOptions.TopRight;
             text.fontSize = 36;
@@ -411,7 +411,7 @@ namespace MegabonkTogether.Patches
             int readyCount = udpClientService.GetCurrentReadyPeersCount();
             int totalCount = playerManagerService.GetAllPlayers().Count() - 1;
 
-            text.text = $"Waiting for players to be ready...\nReady: {readyCount}/{totalCount}";
+            text.text = Loc.F("Waiting for players to be ready...\nReady: {0}/{1}", readyCount, totalCount);
         }
 
         private static void DestroyReadyStatusDisplay()

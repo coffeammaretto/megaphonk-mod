@@ -128,7 +128,7 @@ namespace MegabonkTogether.Scripts.Modal
             loader.SetActive(true);
             if (!string.IsNullOrEmpty(message))
             {
-                statusText.text = message;
+                statusText.text = Loc.T(message);
             }
 
             if (!isAnimating)
@@ -150,7 +150,7 @@ namespace MegabonkTogether.Scripts.Modal
                 nextMessage = text;
                 return;
             }
-            statusText.text = text;
+            statusText.text = Loc.T(text);
         }
 
         protected virtual void Update()

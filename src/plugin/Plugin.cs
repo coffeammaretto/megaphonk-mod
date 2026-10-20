@@ -409,10 +409,10 @@ namespace MegabonkTogether
         {
             if (modal != null)
             {
-                modal.UpdateMessage(message);
+                modal.UpdateMessage(Loc.T(message));
                 return;
             }
-            modal = LoadingModal.Show(message);
+            modal = LoadingModal.Show(Loc.T(message));
         }
 
         public void HideModal()

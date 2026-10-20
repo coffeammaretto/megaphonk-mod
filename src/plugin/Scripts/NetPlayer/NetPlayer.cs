@@ -487,7 +487,7 @@ namespace MegabonkTogether.Scripts.NetPlayer
                 return;
             }
             var isDowned = playerManagerService.IsDowned(connectionId);
-            var text = isDowned ? $"{player.Name} - DOWN" : player.Name;
+            var text = isDowned ? Loc.F("{0} - DOWN", player.Name) : player.Name;
             if (nameplateText.text != text)
             {
                 nameplateText.text = text;

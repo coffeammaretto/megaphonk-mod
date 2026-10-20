@@ -65,6 +65,7 @@ The host ticks any number of them in **Netplay Options** on the character select
 - Team table at the end of a run: damage, kills and gold of each player (defeat screen).
 - Player name, key bindings and every party rule in `BepInEx\config\MegaphonkMod.cfg`.
 - Automatic check for new versions on GitHub (`CheckForUpdates`) and a changelog window.
+- The mod's texts follow the game's language: English and Russian (other languages show English).
 
 ## Installation
 
@@ -159,6 +160,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Таблица команды в конце забега: урон, убийства и золото каждого игрока (экран поражения).
 - Имя игрока, клавиши и все правила пати в `BepInEx\config\MegaphonkMod.cfg`.
 - Автоматическая проверка новых версий на GitHub (`CheckForUpdates`) и окно со списком изменений.
+- Тексты мода следуют языку игры: английский и русский (в остальных языках английский).
 
 ### Установка
 1. Закрой игру.

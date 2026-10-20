@@ -84,7 +84,7 @@ namespace MegabonkTogether.Scripts
             closeButton.SetOnClickAction(OnCloseClicked);
 
             var textWrapper = buttonObj.GetComponent<ButtonTextWrapper>();
-            textWrapper.t_text.text = "Close";
+            textWrapper.t_text.text = Loc.T("Close");
             textWrapper.t_text.fontSize = 36;
 
             var rectTransform = buttonObj.GetComponent<RectTransform>();
@@ -138,7 +138,7 @@ namespace MegabonkTogether.Scripts
             labelRect.sizeDelta = new Vector2(300, 40);
 
             var labelText = label.AddComponent<TextMeshProUGUI>();
-            labelText.text = "Player Name:";
+            labelText.text = Loc.T("Player Name:");
             labelText.alignment = TextAlignmentOptions.Center;
             labelText.fontSize = 50;
             labelText.color = Color.white;
@@ -177,7 +177,7 @@ namespace MegabonkTogether.Scripts
             rectTransform.anchoredPosition = Vector2.zero;
 
             var text = placeholderObj.AddComponent<TextMeshProUGUI>();
-            text.text = "Enter your name...";
+            text.text = Loc.T("Enter your name...");
             text.alignment = TextAlignmentOptions.Left;
             text.verticalAlignment = VerticalAlignmentOptions.Middle;
             text.fontSize = 24;
@@ -253,7 +253,7 @@ namespace MegabonkTogether.Scripts
             randomButton.SetOnClickAction(OnRandomClicked);
 
             var randomTextWrapper = randomButtonObj.GetComponent<ButtonTextWrapper>();
-            randomTextWrapper.t_text.text = "Random";
+            randomTextWrapper.t_text.text = Loc.T("Random");
             randomTextWrapper.t_text.fontSize = 36;
 
             var randomRectTransform = randomButtonObj.GetComponent<RectTransform>();
@@ -289,7 +289,7 @@ namespace MegabonkTogether.Scripts
             friendliesButton.SetOnClickAction(OnHostClicked);
 
             var friendliesTextWrapper = friendliesButtonObj.GetComponent<ButtonTextWrapper>();
-            friendliesTextWrapper.t_text.text = "Host";
+            friendliesTextWrapper.t_text.text = Loc.T("Host");
             friendliesTextWrapper.t_text.fontSize = 36;
 
             var friendliesRectTransform = friendliesButtonObj.GetComponent<RectTransform>();
@@ -315,7 +315,7 @@ namespace MegabonkTogether.Scripts
             titleRect.sizeDelta = new Vector2(400, 60);
 
             var titleText = friendliesTitle.AddComponent<TextMeshProUGUI>();
-            titleText.text = "Friends";
+            titleText.text = Loc.T("Friends");
             titleText.alignment = TextAlignmentOptions.Center;
             titleText.fontSize = 60;
             titleText.color = Color.white;
@@ -347,7 +347,7 @@ namespace MegabonkTogether.Scripts
             friendliesBackButton.SetOnClickAction(OnFriendliesBackClicked);
 
             var backTextWrapper = backButtonObj.GetComponent<ButtonTextWrapper>();
-            backTextWrapper.t_text.text = "Back";
+            backTextWrapper.t_text.text = Loc.T("Back");
             backTextWrapper.t_text.fontSize = 36;
 
             var backRectTransform = backButtonObj.GetComponent<RectTransform>();
@@ -411,7 +411,7 @@ namespace MegabonkTogether.Scripts
             customButton.SetOnClickAction(onClick);
 
             var textWrapper = buttonObj.GetComponent<ButtonTextWrapper>();
-            textWrapper.t_text.text = text;
+            textWrapper.t_text.text = Loc.T(text);
             textWrapper.t_text.fontSize = fontSize;
 
             var rect = buttonObj.GetComponent<RectTransform>();
@@ -536,7 +536,7 @@ namespace MegabonkTogether.Scripts
             stopButton.gameObject.SetActive(false);
 
             var closeTextWrapper = closeButton.gameObject.GetComponent<ButtonTextWrapper>();
-            closeTextWrapper.t_text.text = "Close";
+            closeTextWrapper.t_text.text = Loc.T("Close");
             SetStatusText("");
         }
 
@@ -599,7 +599,7 @@ namespace MegabonkTogether.Scripts
                 rect.anchoredPosition = new Vector2(0f, 40f);
                 rect.sizeDelta = new Vector2(600, 120);
                 var text = noFriendsLabel.AddComponent<TextMeshProUGUI>();
-                text.text = "No Steam friends are hosting right now.\nAsk a friend to press Host.";
+                text.text = Loc.T("No Steam friends are hosting right now.\nAsk a friend to press Host.");
                 text.alignment = TextAlignmentOptions.Center;
                 text.fontSize = 28;
                 text.color = Color.white;
@@ -618,7 +618,7 @@ namespace MegabonkTogether.Scripts
         {
             stopButton.gameObject.SetActive(true);
             var stopTextWrapper = stopButton.gameObject.GetComponent<ButtonTextWrapper>();
-            stopTextWrapper.t_text.text = "Stop";
+            stopTextWrapper.t_text.text = Loc.T("Stop");
 
             float timeout = 30f;
             float elapsed = 0f;
@@ -632,7 +632,7 @@ namespace MegabonkTogether.Scripts
             if (!Plugin.Instance.NetworkHandler.IsConnectedToMatchMaker.Value)
             {
                 HideLoader();
-                SetStatusText($"Failed to connect to server : {Plugin.Instance.NetworkHandler.MatchMakerFailureMessage}");
+                SetStatusText(Loc.F("Failed to connect to server : {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                 Plugin.Instance.NetworkHandler.ResetNetworking();
 
                 stopButton.gameObject.SetActive(false);
@@ -654,7 +654,7 @@ namespace MegabonkTogether.Scripts
                 if (Plugin.Instance.NetworkHandler.IsNetworkInterruptedStatus)
                 {
                     HideLoader();
-                    SetStatusText($"Network interrupted. Please try again : {Plugin.Instance.NetworkHandler.MatchMakerFailureMessage}");
+                    SetStatusText(Loc.F("Network interrupted. Please try again : {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                     Plugin.Instance.NetworkHandler.ResetNetworking();
 
                     stopButton.gameObject.SetActive(false);
@@ -670,7 +670,7 @@ namespace MegabonkTogether.Scripts
             if (!Plugin.Instance.NetworkHandler.HasFoundMatch.HasValue || !Plugin.Instance.NetworkHandler.HasFoundMatch.Value)
             {
                 HideLoader();
-                SetStatusText($"Failed to connect: {Plugin.Instance.NetworkHandler.MatchMakerFailureMessage}");
+                SetStatusText(Loc.F("Failed to connect: {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                 Plugin.Instance.NetworkHandler.ResetNetworking();
                 stopButton.gameObject.SetActive(false);
                 yield return new WaitForSeconds(4f);
@@ -705,7 +705,7 @@ namespace MegabonkTogether.Scripts
         {
             stopButton.gameObject.SetActive(true);
             var stopTextWrapper = stopButton.gameObject.GetComponent<ButtonTextWrapper>();
-            stopTextWrapper.t_text.text = "Stop";
+            stopTextWrapper.t_text.text = Loc.T("Stop");
 
             float timeout = 30f;
             float elapsed = 0f;
@@ -719,7 +719,7 @@ namespace MegabonkTogether.Scripts
             if (!Plugin.Instance.NetworkHandler.IsConnectedToMatchMaker.Value)
             {
                 HideLoader();
-                SetStatusText($"Failed to connect to server : {Plugin.Instance.NetworkHandler.MatchMakerFailureMessage}");
+                SetStatusText(Loc.F("Failed to connect to server : {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                 Plugin.Instance.NetworkHandler.ResetNetworking();
 
                 stopButton.gameObject.SetActive(false);
@@ -739,7 +739,7 @@ namespace MegabonkTogether.Scripts
                 if (Plugin.Instance.NetworkHandler.IsNetworkInterruptedStatus)
                 {
                     HideLoader();
-                    SetStatusText($"Network interrupted. Please try again : {Plugin.Instance.NetworkHandler.MatchMakerFailureMessage}");
+                    SetStatusText(Loc.F("Network interrupted. Please try again : {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                     Plugin.Instance.NetworkHandler.ResetNetworking();
 
                     stopButton.gameObject.SetActive(false);
@@ -756,7 +756,7 @@ namespace MegabonkTogether.Scripts
             if (!Plugin.Instance.NetworkHandler.HasFoundMatch.HasValue || !Plugin.Instance.NetworkHandler.HasFoundMatch.Value)
             {
                 HideLoader();
-                SetStatusText($"Failed to connect: {Plugin.Instance.NetworkHandler.MatchMakerFailureMessage}");
+                SetStatusText(Loc.F("Failed to connect: {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                 Plugin.Instance.NetworkHandler.ResetNetworking();
                 stopButton.gameObject.SetActive(false);
                 yield return new WaitForSeconds(4f);

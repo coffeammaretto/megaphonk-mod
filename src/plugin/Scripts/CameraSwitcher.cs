@@ -70,7 +70,7 @@ namespace MegabonkTogether.Scripts
             deathRect.sizeDelta = new Vector2(800, 100);
 
             deathMessageText = deathMessageUI.AddComponent<TextMeshProUGUI>();
-            deathMessageText.text = "You are dead!";
+            deathMessageText.text = Loc.T("You are dead!");
             deathMessageText.fontSize = 72;
             deathMessageText.fontStyle = FontStyles.Bold;
             deathMessageText.color = Color.red;
@@ -114,7 +114,7 @@ namespace MegabonkTogether.Scripts
             hintRect.sizeDelta = new Vector2(0, 30);
 
             spectatorHintText = hintTextObj.AddComponent<TextMeshProUGUI>();
-            spectatorHintText.text = "Left Click: Previous | Right Click: Next";
+            spectatorHintText.text = Loc.T("Left Click: Previous | Right Click: Next");
             spectatorHintText.fontSize = 24;
             spectatorHintText.color = new Color(1f, 1f, 1f, 0.7f);
             spectatorHintText.alignment = TextAlignmentOptions.Center;
@@ -136,7 +136,7 @@ namespace MegabonkTogether.Scripts
                 spectatorInfoUI.SetActive(true);
 
                 int totalPlayers = playerManager.GetAllSpawnedNetPlayers().Count();
-                spectatorNameText.text = $"Spectating: {targetPlayerName} ({targetIndex + 1}/{totalPlayers})";
+                spectatorNameText.text = Loc.F("Spectating: {0} ({1}/{2})", targetPlayerName, targetIndex + 1, totalPlayers);
             }
             else
             {

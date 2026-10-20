@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using MegabonkTogether.Helpers;
 
 namespace MegabonkTogether.Services
 {
@@ -168,14 +169,14 @@ namespace MegabonkTogether.Services
             hudText.enabled = true;
             if (IsBuffActive)
             {
-                hudText.text = $"TEAM BUFF! {buffSecondsLeft:0}s";
+                hudText.text = Loc.F("TEAM BUFF! {0}s", buffSecondsLeft.ToString("0"));
                 hudText.color = new Color(1f, 0.85f, 0.2f);
             }
             else
             {
                 const int segments = 20;
                 var filled = Mathf.RoundToInt(progress * segments);
-                hudText.text = $"TEAM [{new string('|', filled)}{new string('.', segments - filled)}]";
+                hudText.text = Loc.F("TEAM [{0}]", new string('|', filled) + new string('.', segments - filled));
                 hudText.color = Color.white;
             }
         }

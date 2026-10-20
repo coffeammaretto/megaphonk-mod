@@ -175,7 +175,7 @@ namespace MegabonkTogether.Patches
             {
                 int seconds = Mathf.FloorToInt(timer);
                 int milliseconds = Mathf.FloorToInt((timer - seconds) * 1000);
-                infoText.text = $"You will be vulnerable in {seconds.ToString("D2")}:{milliseconds.ToString("D3")} secondes";
+                infoText.text = Loc.F("You will be vulnerable in {0}:{1} seconds", seconds.ToString("D2"), milliseconds.ToString("D3"));
                 yield return null;
                 timer -= Time.deltaTime;
 
@@ -227,7 +227,7 @@ namespace MegabonkTogether.Patches
             {
                 int seconds = Mathf.FloorToInt(timer);
                 int milliseconds = Mathf.FloorToInt((timer - seconds) * 1000);
-                infoText.text = $"You will be vulnerable in {seconds.ToString("D2")}:{milliseconds.ToString("D3")} secondes";
+                infoText.text = Loc.F("You will be vulnerable in {0}:{1} seconds", seconds.ToString("D2"), milliseconds.ToString("D3"));
                 yield return null;
                 timer -= Time.deltaTime;
 
@@ -241,7 +241,7 @@ namespace MegabonkTogether.Patches
             GameManager.Instance.player.isTeleporting = false;
             Plugin.Instance.IS_MANUAL_INVINCIBLE = false;
 
-            infoText.text = "You are now vulnerable!";
+            infoText.text = Loc.T("You are now vulnerable!");
             infoText.color = Color.red;
         }
     }

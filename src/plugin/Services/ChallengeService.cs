@@ -3,6 +3,7 @@ using MegabonkTogether.Common.Messages.GameNetworkMessages;
 using System;
 using System.Linq;
 using UnityEngine;
+using MegabonkTogether.Helpers;
 
 namespace MegabonkTogether.Services
 {
@@ -144,7 +145,7 @@ namespace MegabonkTogether.Services
         private static void ShowNotice(string text)
         {
             Plugin.Log.LogInfo(text);
-            Plugin.StartNotification(("MegabonkTogether", "Challenge"), ("MegabonkTogether", "Challenge_Description"), [text]);
+            Plugin.StartNotification(("MegabonkTogether", "Challenge"), ("MegabonkTogether", "Challenge_Description"), [Loc.T(text)]);
         }
 
         public void Reset()

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using MegabonkTogether.Helpers;
 
 namespace MegabonkTogether.Services
 {
@@ -49,7 +50,7 @@ namespace MegabonkTogether.Services
         {
             if (LocalizationOverrides.TryGetValue((category, key), out var localizedValue))
             {
-                return localizedValue;
+                return Helpers.Loc.T(localizedValue);
             }
             return string.Empty;
         }

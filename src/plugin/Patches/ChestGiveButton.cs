@@ -77,7 +77,7 @@ namespace MegabonkTogether.Patches
                 giveButton.SetActive(true);
                 if (giveButtonText != null)
                 {
-                    giveButtonText.text = $"Give to {recipient.Name}";
+                    giveButtonText.text = Loc.F("Give to {0}", recipient.Name);
                 }
             }
             catch (System.Exception ex)

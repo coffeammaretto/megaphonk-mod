@@ -3,6 +3,7 @@ using MegabonkTogether.Scripts.Button;
 using Microsoft.Extensions.DependencyInjection;
 using TMPro;
 using UnityEngine;
+using MegabonkTogether.Helpers;
 
 namespace MegabonkTogether.Scripts.Modal
 {
@@ -61,11 +62,11 @@ namespace MegabonkTogether.Scripts.Modal
             var text = textObj.AddComponent<TextMeshProUGUI>();
             if (autoUpdaterService.IsCustomBuild())
             {
-                text.text = $"Megaphonk Mod version {autoUpdaterService.GetDownloadedVersion()}\nis available!\nDownload it from GitHub.";
+                text.text = Loc.F("Megaphonk Mod version {0}\nis available!\nDownload it from GitHub.", autoUpdaterService.GetDownloadedVersion());
             }
             else
             {
-                text.text = $"Megaphonk Mod version {autoUpdaterService.GetDownloadedVersion()}\ndownloaded and ready\nto be applied! Restart the game after the update!";
+                text.text = Loc.F("Megaphonk Mod version {0}\ndownloaded and ready\nto be applied! Restart the game after the update!", autoUpdaterService.GetDownloadedVersion());
             }
             text.alignment = TextAlignmentOptions.Center;
             text.fontSize = 30;
@@ -100,7 +101,7 @@ namespace MegabonkTogether.Scripts.Modal
             closeButton.SetOnClickAction(OnCloseClicked);
 
             var textWrapper = buttonObj.GetComponent<ButtonTextWrapper>();
-            textWrapper.t_text.text = "Close";
+            textWrapper.t_text.text = Loc.T("Close");
             textWrapper.t_text.fontSize = 32;
 
             var rectTransform = buttonObj.GetComponent<RectTransform>();
@@ -139,7 +140,7 @@ namespace MegabonkTogether.Scripts.Modal
             updateButton.SetOnClickAction(OnUpdateClicked);
 
             var textWrapper = buttonObj.GetComponent<ButtonTextWrapper>();
-            textWrapper.t_text.text = "Quit & Update";
+            textWrapper.t_text.text = Loc.T("Quit & Update");
             textWrapper.t_text.fontSize = 36;
 
             var rectTransform = buttonObj.GetComponent<RectTransform>();

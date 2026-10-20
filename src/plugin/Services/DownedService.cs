@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using MegabonkTogether.Helpers;
 
 namespace MegabonkTogether.Services
 {
@@ -140,8 +141,8 @@ namespace MegabonkTogether.Services
             }
 
             ShowHud(isTeammateNear
-                ? $"DOWN! Reviving... {reviveProgress / settings.DownedReviveSeconds:P0}"
-                : $"DOWN! {remaining:0}s left\nA teammate must stand next to you", Color.red);
+                ? Loc.F("DOWN! Reviving... {0}", (reviveProgress / settings.DownedReviveSeconds).ToString("P0"))
+                : Loc.F("DOWN! {0}s left\nA teammate must stand next to you", remaining.ToString("0")), Color.red);
         }
 
         private void TickReviverHint(uint localPlayerId, Vector3 localPosition)
@@ -161,8 +162,8 @@ namespace MegabonkTogether.Services
             }
 
             ShowHud(downedNearby.Distance <= settings.DownedReviveRadius
-                ? $"Reviving {downedNearby.Name}..."
-                : $"{downedNearby.Name} is down! {downedNearby.Distance:0}m", new Color(1f, 0.6f, 0.2f));
+                ? Loc.F("Reviving {0}...", downedNearby.Name)
+                : Loc.F("{0} is down! {1}m", downedNearby.Name, downedNearby.Distance.ToString("0")), new Color(1f, 0.6f, 0.2f));
         }
 
         private void Revive(uint localPlayerId, PlayerHealth health)

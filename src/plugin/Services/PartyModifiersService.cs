@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using MegabonkTogether.Helpers;
 
 namespace MegabonkTogether.Services
 {
@@ -102,7 +103,7 @@ namespace MegabonkTogether.Services
             if (modifiers != announcedModifiers)
             {
                 announcedModifiers = modifiers;
-                Plugin.StartNotification(("MegabonkTogether", "RunModifiers"), ("MegabonkTogether", "RunModifiers_Description"), [modifiers.ToString()]);
+                Plugin.StartNotification(("MegabonkTogether", "RunModifiers"), ("MegabonkTogether", "RunModifiers_Description"), [string.Join(", ", Scripts.Modal.NetplayOptionsModal.ModifierList.Where(m => modifiers.HasFlag(m.Flag)).Select(m => Loc.T(m.Name)))]);
                 Plugin.Log.LogInfo($"Run modifiers: {modifiers}");
             }
 

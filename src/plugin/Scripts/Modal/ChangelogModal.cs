@@ -55,7 +55,7 @@ namespace MegabonkTogether.Scripts.Modal
             rectTransform.sizeDelta = new Vector2(600, 60);
 
             var text = titleObj.AddComponent<TextMeshProUGUI>();
-            text.text = "Megaphonk Mod: What's New?";
+            text.text = Loc.T("Megaphonk Mod: What's New?");
             text.alignment = TextAlignmentOptions.Center;
             text.fontSize = 30;
             text.fontStyle = FontStyles.Bold;
@@ -270,7 +270,7 @@ namespace MegabonkTogether.Scripts.Modal
             closeButton.SetOnClickAction(OnCloseClicked);
 
             var textWrapper = buttonObj.GetComponent<ButtonTextWrapper>();
-            textWrapper.t_text.text = "Got it!";
+            textWrapper.t_text.text = Loc.T("Got it!");
             textWrapper.t_text.fontSize = 36;
 
             var rectTransform = buttonObj.GetComponent<RectTransform>();
