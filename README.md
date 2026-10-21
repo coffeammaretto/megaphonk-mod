@@ -86,7 +86,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 
 1. Close the game.
 2. If you used **Megabonk Together**, delete the `BepInEx\plugins\MegabonkTogether` folder from the game folder: both mods must not be installed together.
-3. Download `MegaphonkMod-2.0.2-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Download `MegaphonkMod-2.0.3-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 5. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -198,7 +198,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 ### Установка
 1. Закрой игру.
 2. Если стоял **Megabonk Together**, удали папку `BepInEx\plugins\MegabonkTogether` в папке игры: оба мода вместе стоять не должны.
-3. Скачай `MegaphonkMod-2.0.2-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Скачай `MegaphonkMod-2.0.3-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 5. Запусти игру через Steam. Первый запуск дольше обычного.
 

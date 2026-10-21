@@ -1833,6 +1833,41 @@ namespace MegabonkTogether.Services
             return playerManagerService.GetLocalPlayer().ConnectionId;
         }
 
+        /// <summary>
+        /// The hit's direction is not sent: without it every replayed knockback goes the same way. Push the enemy away from
+        /// the attacker instead (what the attacker's own hits and outgoing projectiles do)
+        /// </summary>
+        private Vector3 GetKnockbackDirection(Enemy enemy, uint attackerId)
+        {
+            Vector3? attackerPosition = null;
+            var localPlayer = playerManagerService.GetLocalPlayer();
+            if (localPlayer != null && localPlayer.ConnectionId == attackerId)
+            {
+                var player = GameManager.Instance?.player;
+                if (player != null)
+                {
+                    attackerPosition = player.transform.position;
+                }
+            }
+            else
+            {
+                var netPlayer = playerManagerService.GetNetPlayerByNetplayId(attackerId);
+                if (netPlayer != null && netPlayer.Model != null)
+                {
+                    attackerPosition = netPlayer.Model.transform.position;
+                }
+            }
+
+            if (!attackerPosition.HasValue)
+            {
+                return Vector3.zero;
+            }
+
+            var direction = enemy.transform.position - attackerPosition.Value;
+            direction.y = 0f;
+            return direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.zero;
+        }
+
         private void OnReceivedEnemyDamaged(EnemyDamaged damaged)
         {
             var enemy = enemyManagerService.GetEnemyById(damaged.EnemyId);
@@ -1852,6 +1887,7 @@ namespace MegabonkTogether.Services
                 knockback = damaged.DamageKnockback,
                 damageSource = damaged.DamageSource
             };
+            damageContainer.direction = GetKnockbackDirection(enemy, damaged.AttackerId);
 
             Plugin.Instance.DAMAGE_BEING_REPLAYED = damageContainer.Pointer;
             playerManagerService.AddGetNetplayerPositionRequest(damaged.AttackerId);

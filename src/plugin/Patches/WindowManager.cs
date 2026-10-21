@@ -114,7 +114,11 @@ namespace MegabonkTogether.Patches
         {
             if (closedWindow.name == "W_Character" && Plugin.Instance.Mode.Mode == NetworkModeType.Friendlies)
             {
-                var character = closedWindow as CharacterMenu;
+                var character = AsCharacterMenu(closedWindow);
+                if (character == null)
+                {
+                    return;
+                }
                 character.b_confirm.state = MyButton.EButtonState.Active;
                 character.b_confirm.RefreshState();
             }
@@ -152,13 +156,13 @@ namespace MegabonkTogether.Patches
             {
                 if (playerManagerService.GetAllPlayers().Count() < 2 && !udpClientService.IsSoloSession())
                 {
-                    var character = WindowManager.activeWindow as CharacterMenu;
+                    var character = AsCharacterMenu(WindowManager.activeWindow);
                     character.b_confirm.state = MyButton.EButtonState.Inactive;
                     character.b_confirm.RefreshState();
                 }
                 else
                 {
-                    var character = WindowManager.activeWindow as CharacterMenu;
+                    var character = AsCharacterMenu(WindowManager.activeWindow);
                     character.b_confirm.state = MyButton.EButtonState.Active;
                     character.b_confirm.RefreshState();
                 }
@@ -204,9 +208,26 @@ namespace MegabonkTogether.Patches
             }
         }
 
+        /// <summary>
+        /// A Window wrapper made for a patch parameter or field is a plain Window: a C# "as" cast to the real class then gives
+        /// null. Callers check the window name first (W_Character), so wrap its pointer as a CharacterMenu
+        /// </summary>
+        private static CharacterMenu AsCharacterMenu(Window window)
+        {
+            if (window == null)
+            {
+                return null;
+            }
+            return window as CharacterMenu ?? new CharacterMenu(window.Ptr());
+        }
+
         private static void CreateFriendliesInfoDisplay(Transform parent, Window newWindow)
         {
-            var menu = newWindow as CharacterMenu;
+            var menu = AsCharacterMenu(newWindow);
+            if (menu == null)
+            {
+                return;
+            }
             var btn = menu.b_confirm;
             DestroyFriendliesInfoDisplay();
 

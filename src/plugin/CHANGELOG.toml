@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.3"]
+changes = [
+    "Enemies hit by another player are knocked back away from that player, not all in the same direction.",
+    "Fixed an error when joining a room that hid the lobby info on the character selection.",
+]
+
 [version."2.0.2"]
 changes = [
     "Enemies near you are synced like in 1.0.0 again: 40 updates a second, and when a packet is late they wait instead of guessing ahead. No more enemies jumping into you.",
