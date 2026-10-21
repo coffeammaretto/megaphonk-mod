@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.4"]
+changes = [
+    "Clients no longer push enemies around locally when they are hit: only the host knocks enemies back, so they no longer fly off to the side or into you.",
+]
+
 [version."2.0.3"]
 changes = [
     "Enemies hit by another player are knocked back away from that player, not all in the same direction.",
