@@ -16,7 +16,9 @@ namespace MegabonkTogether.Scripts
         private const float lobbyUpdatetickInterval = 1f / LOBBY_UPDATE_TICK_RATE;
         private float lobbyUpdateAccumulator = 0f;
 
-        private const float ENEMY_UPDATE_TICK_RATE = 40f;
+        // Far enemies are read every 2nd/4th tick (EnemySnapshotPlanner), clients extrapolate in between (dead reckoning).
+        // Counted in unscaled time: keyframes and the "stop" of a pause still go out when the time scale is 0
+        private const float ENEMY_UPDATE_TICK_RATE = 20f;
         private const float enemyUpdatetickInterval = 1f / ENEMY_UPDATE_TICK_RATE;
         private float enemyUpdateAccumulator = 0f;
 
@@ -67,6 +69,15 @@ namespace MegabonkTogether.Scripts
         public static int FrameIndex { get; private set; }
         public static double FrameTimeAsDouble { get; private set; }
         public static float FrameDeltaTime { get; private set; }
+        public static float FrameUnscaledDeltaTime { get; private set; }
+        /// <summary>
+        /// The game is paused (party pause, menus: MyTime) or its time scale is 0 (hit stop): enemies don't move
+        /// </summary>
+        public static bool IsGamePaused { get; private set; }
+        /// <summary>
+        /// Game time for enemy dead reckoning: stops while IsGamePaused, on the host and on clients alike
+        /// </summary>
+        public static double EnemyClock { get; private set; }
 
         // Created once: a method group passed to SafeTick allocated a delegate per call, every frame
         private System.Action[] updateTicks;
@@ -85,11 +96,13 @@ namespace MegabonkTogether.Scripts
         private void OnPortalOpened()
         {
             isGameStarted = false;
+            udpClientService?.ForceFullInventories();
         }
 
         private void OnGameStarted()
         {
             isGameStarted = true;
+            udpClientService?.ForceFullInventories(); //Level changed: everyone gets the full inventories again
         }
 
         public void Update()
@@ -97,6 +110,12 @@ namespace MegabonkTogether.Scripts
             FrameIndex++;
             FrameTimeAsDouble = Time.timeAsDouble;
             FrameDeltaTime = Time.deltaTime;
+            FrameUnscaledDeltaTime = Time.unscaledDeltaTime;
+            IsGamePaused = Assets.Scripts.Utility.MyTime.paused || FrameDeltaTime <= 0f;
+            if (!IsGamePaused)
+            {
+                EnemyClock += FrameDeltaTime;
+            }
 
             try
             {
@@ -134,7 +153,7 @@ namespace MegabonkTogether.Scripts
 
                 if (isHost && isGameStarted)
                 {
-                    enemyUpdateAccumulator += deltaTime;
+                    enemyUpdateAccumulator += FrameUnscaledDeltaTime;
                     projectileUpdateAccumulator += deltaTime;
 
                     if (MapController.runConfig.mapData.eMap == EMap.Desert)

@@ -1,6 +1,6 @@
 ﻿using Actors.Enemies;
 using Assets.Scripts.Actors.Enemies;
-using MegabonkTogether.Common.Models;
+using MegabonkTogether.Common.Messages;
 using MegabonkTogether.Helpers;
 using MegabonkTogether.Scripts.Enemies;
 using MegabonkTogether.Scripts.Snapshot;
@@ -14,7 +14,15 @@ namespace MegabonkTogether.Services
     public interface IEnemyManagerService
     {
         public IEnumerable<(uint, uint)> ReTargetEnemies(uint oldTargetId, IEnumerable<uint> currentPlayersExcludingOldOneId);
-        public List<EnemyModel> GetAllEnemiesDeltaAndUpdate();
+        /// <summary>
+        /// Host, once per enemy tick: the enemies to send. <paramref name="referencePositions"/> are where the remote players
+        /// look from (distance tiers). Empty: every enemy is sent as near.
+        /// </summary>
+        public List<EnemySnapshotEntry> GetAllEnemiesDeltaAndUpdate(List<System.Numerics.Vector3> referencePositions);
+        /// <summary>
+        /// Host, any thread: a client lost a snapshot packet with these enemies, send them absolute next tick
+        /// </summary>
+        public void MarkSendsLost(IEnumerable<uint> enemyIds);
         public uint AddSpawnedEnemy(Enemy enemy);
         public void SetSpawnedEnemy(uint enemyId, Enemy enemy, EnemyInterpolator interpolator = null);
         public Enemy GetEnemyById(uint id);
@@ -34,19 +42,11 @@ namespace MegabonkTogether.Services
     internal class EnemyManagerService : IEnemyManagerService
     {
         /// <summary>
-        /// Host snapshot state of one enemy: its transform (fetched once) and what was last sent for it, quantized
+        /// Host snapshot state of one enemy: its transform (fetched once) and what the clients were last sent for it
         /// </summary>
-        private class EnemySyncState
+        private class EnemySyncState : EnemySendState
         {
             public Transform Transform;
-            public bool HasSent;
-            public short X;
-            public short Y;
-            public short Z;
-            public ushort Yaw;
-            public float Hp;
-            public float LastSentAt;
-            public long LastTick;
         }
 
         private readonly ConcurrentDictionary<uint, Enemy> spawnedEnemies = [];
@@ -58,14 +58,11 @@ namespace MegabonkTogether.Services
         private readonly Dictionary<uint, EnemySyncState> syncStates = [];
         private readonly List<uint> staleSyncStates = [];
         private long snapshotTick = 0;
+        // Host: enemies whose last sends a client reported lost (filled from the network thread)
+        private readonly ConcurrentQueue<uint> lostEnemySends = new();
         private readonly ConcurrentDictionary<Enemy, string> reviverEnemies_NetplayNames = [];
         private readonly ConcurrentDictionary<uint, int> reviverSpawnCountPerOwner = [];
         private uint currentEnemyId = 0; //TODO: concurrency?
-
-        private const float POSITION_TRESHOLD = 0.1f;
-        private const float YAW_TRESHOLD = 5.0f;
-        private const ushort HP_TRESHOLD = 1;
-        private const float FULL_RESEND_INTERVAL_SECONDS = 1f;
 
         /// <summary>
         /// Server side, retarget enemies when a player dies (or other use case ? )
@@ -126,17 +123,27 @@ namespace MegabonkTogether.Services
         }
 
         /// <summary>
-        /// This should be called once per server tick
+        /// This should be called once per server tick. Clients extrapolate each enemy from its last sent position and velocity:
+        /// only the enemies that drift from that prediction (or change velocity, yaw, hp, or are due a keyframe) are sent,
+        /// see EnemySnapshotPlanner. Enemies far from every remote player are only read every 2nd/4th tick (staggered by id).
         /// </summary>
-        /// <returns></returns>
-        public List<EnemyModel> GetAllEnemiesDeltaAndUpdate()
+        public List<EnemySnapshotEntry> GetAllEnemiesDeltaAndUpdate(List<System.Numerics.Vector3> referencePositions)
         {
-            // Snapshots are unreliable: compare against what was last sent (not the last tick) so slow moves add up,
-            // and resend every enemy at least once a second so a lost packet doesn't leave a client copy stuck.
-            // The state is quantized and compared first: a model is only allocated for what is sent.
             snapshotTick++;
-            var now = Time.realtimeSinceStartup;
-            var deltas = new List<EnemyModel>();
+            var realTime = Time.realtimeSinceStartup;
+            var gameTime = Scripts.NetworkHandler.EnemyClock; //Clients extrapolate on the same clock: a pause stops both
+            var paused = Scripts.NetworkHandler.IsGamePaused;
+
+            // Enemies a client lost a packet of (acks): next send absolute
+            while (lostEnemySends.TryDequeue(out var lostId))
+            {
+                if (syncStates.TryGetValue(lostId, out var lostState) && lostState.HasSent)
+                {
+                    lostState.ForceAbsolute = true;
+                }
+            }
+            var frame = Quantizer.GetFrame();
+            var deltas = new List<EnemySnapshotEntry>();
             var count = 0;
 
             foreach (var (id, enemy) in spawnedEnemies)
@@ -147,6 +154,19 @@ namespace MegabonkTogether.Services
                     state = new EnemySyncState();
                     syncStates[id] = state;
                 }
+                state.LastTick = snapshotTick;
+
+                if (!EnemySnapshotPlanner.IsReadDue(state, snapshotTick, id, realTime, out var keyframe, out var absolute, out var positionDue))
+                {
+                    continue;
+                }
+
+                var hp = enemy.hp;
+                var hpChanged = EnemySnapshotPlanner.HasHpChanged(state, hp);
+                if (!positionDue && !hpChanged)
+                {
+                    continue;
+                }
 
                 var transform = state.Transform;
                 if (transform is null || transform.CachedPtr() == System.IntPtr.Zero)
@@ -156,29 +176,11 @@ namespace MegabonkTogether.Services
                 }
 
                 var position = transform.position;
-                var x = Quantizer.Quantize(position.x);
-                var y = Quantizer.Quantize(position.y);
-                var z = Quantizer.Quantize(position.z);
-                var yaw = Quantizer.QuantizeYawValue(transform.eulerAngles.y);
-                var hp = enemy.hp;
-                state.LastTick = snapshotTick;
-
-                if (!state.HasSent || HasDelta(state, x, y, z, yaw, hp) || now - state.LastSentAt >= FULL_RESEND_INTERVAL_SECONDS)
+                var yaw = Quantizer.QuantizeYawByte(transform.eulerAngles.y);
+                if (EnemySnapshotPlanner.TryPlan(state, id, new System.Numerics.Vector3(position.x, position.y, position.z), yaw, hp,
+                    keyframe, absolute, hpChanged, paused, gameTime, realTime, frame, referencePositions, out var entry))
                 {
-                    var model = new EnemyModel { Id = id, Hp = hp };
-                    model.Position.QuantizedX = x;
-                    model.Position.QuantizedY = y;
-                    model.Position.QuantizedZ = z;
-                    model.Yaw.QuantizedYaw = yaw;
-                    deltas.Add(model);
-
-                    state.HasSent = true;
-                    state.X = x;
-                    state.Y = y;
-                    state.Z = z;
-                    state.Yaw = yaw;
-                    state.Hp = hp;
-                    state.LastSentAt = now;
+                    deltas.Add(entry);
                 }
             }
 
@@ -202,25 +204,6 @@ namespace MegabonkTogether.Services
             }
 
             return deltas;
-        }
-
-        private static bool HasDelta(EnemySyncState previous, short x, short y, short z, ushort yaw, float hp)
-        {
-            float positionDelta = Vector3.Distance(
-                new Vector3(Quantizer.Dequantize(previous.X), Quantizer.Dequantize(previous.Y), Quantizer.Dequantize(previous.Z)),
-                new Vector3(Quantizer.Dequantize(x), Quantizer.Dequantize(y), Quantizer.Dequantize(z))
-            );
-
-            float yawDelta = Mathf.Abs(
-                Quantizer.DequantizeYaw(previous.Yaw)
-                - Quantizer.DequantizeYaw(yaw)
-            );
-
-            float hpDelta = Mathf.Abs(previous.Hp - hp);
-
-            return positionDelta > POSITION_TRESHOLD ||
-                   yawDelta > YAW_TRESHOLD ||
-                   hpDelta > HP_TRESHOLD;
         }
 
         public Enemy GetEnemyById(uint id)
@@ -317,6 +300,14 @@ namespace MegabonkTogether.Services
             }
             enemyInterpolators.TryRemove(id, out _);
             syncStates.Remove(id);
+        }
+
+        public void MarkSendsLost(IEnumerable<uint> enemyIds)
+        {
+            foreach (var id in enemyIds)
+            {
+                lostEnemySends.Enqueue(id);
+            }
         }
 
         public void ResetForNextLevel()

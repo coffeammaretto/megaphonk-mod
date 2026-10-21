@@ -1,62 +1,57 @@
 ﻿using Assets.Scripts.Actors.Enemies;
+using MegabonkTogether.Common.Messages;
 using MegabonkTogether.Helpers;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace MegabonkTogether.Scripts.Snapshot
 {
+    /// <summary>
+    /// Client: shows a host enemy by dead reckoning. The host sends a position and a velocity only when the enemy drifts from
+    /// that prediction (and a keyframe every second): the enemy moves along the last one, and a correction fades the
+    /// difference out when a new one arrives (a teleport snaps). No interpolation delay.
+    /// </summary>
     //TODO: Find a way to make abstract class work with IL2CPP because its not working for some reason ¯\_(ツ)_/¯
     public class EnemyInterpolator : MonoBehaviour
     {
         private Enemy enemy;
         private Transform enemyTransform;
 
-        private readonly List<EnemySnapshot> snapshotsBuffer = new List<EnemySnapshot>();
+        // A correction further than this is a teleport: snap
+        private const float SNAP_DISTANCE = 3f;
+        // Time constants of the exponential fade: ~95% of a correction gone after 120 ms
+        private const float CORRECTION_TIME_CONSTANT = 0.04f;
+        private const float ROTATION_TIME_CONSTANT = 0.05f;
 
-        protected float interpolationDelayMs = 0.1f;
-        protected int maxBufferSize = 200;
+        // The enemy is at origin + velocity * (time - originTime) (at most MAX_EXTRAPOLATION_SECONDS), plus the correction
+        private bool hasState;
+        private Vector3 origin;
+        private Vector3 velocity;
+        private double originTime;
+        private Vector3 correction;
+        private Quaternion rotation = Quaternion.identity;
+        private Quaternion targetRotation = Quaternion.identity;
+
+        // Delta baseline: the position of the last send received, and its seq. A delta only applies on top of the send just
+        // before it; after a lost one the position waits for the next absolute send (keyframe at the latest).
+        private bool hasBaseline;
+        private short baseX;
+        private short baseY;
+        private short baseZ;
+        private byte lastSeq;
+
+        // The hp is only sent when it changed: the last known one
+        private bool hasLastHp;
+        private float lastHp;
 
         protected void Update()
         {
-            if (!HasEnoughSnapshots())
+            if (!hasState)
                 return;
 
-            double renderTime = NetworkHandler.FrameTimeAsDouble - interpolationDelayMs;
-            PerformInterpolation(renderTime);
-            CleanupOldSnapshots(renderTime);
-        }
-
-        /// <summary>
-        /// Called on every spawn: pooled enemies keep their interpolator, so the previous life's snapshots are dropped
-        /// </summary>
-        public void Initialize(Enemy enemy)
-        {
-            this.enemy = enemy;
-            enemyTransform = enemy.transform;
-            snapshotsBuffer.Clear();
-        }
-
-        public void AddSnapshot(EnemySnapshot snapshot)
-        {
-            snapshotsBuffer.Add(snapshot);
-
-            if (snapshotsBuffer.Count > maxBufferSize)
+            if (hasLastHp)
             {
-                snapshotsBuffer.RemoveAt(0);
+                enemy.hp = lastHp;
             }
-        }
-
-        protected bool HasEnoughSnapshots()
-        {
-            return snapshotsBuffer.Count >= 2;
-        }
-
-        protected void PerformInterpolation(double renderTime)
-        {
-            if (!FindSnapshotPair(renderTime, out EnemySnapshot older, out EnemySnapshot newer))
-                return;
-
-            enemy.hp = newer.Hp;
 
             var transform = enemyTransform;
             if (transform is null || transform.CachedPtr() == System.IntPtr.Zero)
@@ -64,58 +59,118 @@ namespace MegabonkTogether.Scripts.Snapshot
                 return;
             }
 
-            float dist = Vector3.Distance(older.Position, newer.Position);
-            if (dist > 2.0f)
-            {
-                transform.position = newer.Position;
-                transform.rotation = newer.Rotation;
-                return;
-            }
+            var deltaTime = NetworkHandler.FrameDeltaTime;
+            correction *= Mathf.Exp(-deltaTime / CORRECTION_TIME_CONSTANT);
+            rotation = Quaternion.Slerp(rotation, targetRotation, 1f - Mathf.Exp(-deltaTime / ROTATION_TIME_CONSTANT));
 
-            float t = CalculateInterpolationFactor(renderTime, older.Timestamp, newer.Timestamp);
-            t = Mathf.Clamp01(t);
-
-            transform.position = Vector3.Lerp(older.Position, newer.Position, t);
-            transform.rotation = Quaternion.Slerp(older.Rotation, newer.Rotation, t);
+            // EnemyClock stops while the game is paused (party pause pauses everyone): no extrapolation past the pause
+            transform.SetPositionAndRotation(GetPredictedPosition(NetworkHandler.EnemyClock) + correction, rotation);
         }
 
-        private bool FindSnapshotPair(double renderTime, out EnemySnapshot older, out EnemySnapshot newer)
+        /// <summary>
+        /// Called on every spawn: pooled enemies keep their interpolator, so the previous life's state is dropped
+        /// </summary>
+        public void Initialize(Enemy enemy)
         {
-            older = null;
-            newer = null;
+            this.enemy = enemy;
+            enemyTransform = enemy.transform;
+            hasState = false;
+            correction = Vector3.zero;
+            velocity = Vector3.zero;
+            hasBaseline = false;
+            hasLastHp = false;
+            lastHp = 0f;
+        }
 
-            for (int i = 0; i < snapshotsBuffer.Count - 1; i++)
+        public void ApplySnapshot(EnemySnapshotEntry entry, double now)
+        {
+            if (entry.HasHp)
             {
-                if (snapshotsBuffer[i].Timestamp <= renderTime &&
-                    snapshotsBuffer[i + 1].Timestamp >= renderTime)
+                hasLastHp = true;
+                lastHp = entry.Hp;
+            }
+
+            targetRotation = Quaternion.Euler(0, Quantizer.DequantizeYawByte(entry.Yaw), 0);
+            var newVelocity = entry.HasVelocity
+                ? new Vector3(
+                    EnemySnapshotCodec.DequantizeVelocity(entry.VX),
+                    EnemySnapshotCodec.DequantizeVelocity(entry.VY),
+                    EnemySnapshotCodec.DequantizeVelocity(entry.VZ))
+                : Vector3.zero;
+
+            bool hasPosition;
+            if (!entry.IsDelta)
+            {
+                baseX = entry.X;
+                baseY = entry.Y;
+                baseZ = entry.Z;
+                hasBaseline = true;
+                hasPosition = true;
+            }
+            else if (hasBaseline && entry.Seq == ((lastSeq + 1) & EnemySnapshotCodec.SEQ_MASK))
+            {
+                baseX = (short)(baseX + entry.X);
+                baseY = (short)(baseY + entry.Y);
+                baseZ = (short)(baseZ + entry.Z);
+                hasPosition = true;
+            }
+            else
+            {
+                hasBaseline = false; //A send was lost: its delta base is unknown until the next absolute one
+                hasPosition = false;
+            }
+            lastSeq = entry.Seq;
+
+            if (hasPosition)
+            {
+                var position = new Vector3(Quantizer.Dequantize(baseX), Quantizer.Dequantize(baseY), Quantizer.Dequantize(baseZ));
+                Vector3 shown;
+                if (hasState)
                 {
-                    older = snapshotsBuffer[i];
-                    newer = snapshotsBuffer[i + 1];
-                    return true;
+                    shown = GetPredictedPosition(now) + correction;
                 }
+                else
+                {
+                    // First news of this enemy: start from where it spawned, and its yaw at once
+                    var transform = enemyTransform;
+                    shown = transform is not null && transform.CachedPtr() != System.IntPtr.Zero ? transform.position : position;
+                    rotation = targetRotation;
+                }
+
+                correction = shown - position;
+                if (correction.sqrMagnitude > SNAP_DISTANCE * SNAP_DISTANCE)
+                {
+                    correction = Vector3.zero;
+                }
+                origin = position;
+            }
+            else if (hasState)
+            {
+                // Velocity, yaw and hp still apply: keep extrapolating from where it is predicted now
+                origin = GetPredictedPosition(now);
+            }
+            else
+            {
+                // Its first send came before the spawn (or was lost): move it from where it is until the next absolute one
+                var transform = enemyTransform;
+                if (transform is null || transform.CachedPtr() == System.IntPtr.Zero)
+                {
+                    return;
+                }
+                origin = transform.position;
+                rotation = targetRotation;
+                correction = Vector3.zero;
             }
 
-            return false;
+            velocity = newVelocity;
+            originTime = now;
+            hasState = true;
         }
 
-        private float CalculateInterpolationFactor(double renderTime, double olderTime, double newerTime)
+        private Vector3 GetPredictedPosition(double now)
         {
-            return (float)((renderTime - olderTime) / (newerTime - olderTime));
-        }
-
-        protected void CleanupOldSnapshots(double renderTime)
-        {
-            int removeCount = 0;
-            while (removeCount < snapshotsBuffer.Count - 2 &&
-                   snapshotsBuffer[removeCount].Timestamp < renderTime - interpolationDelayMs)
-            {
-                removeCount++;
-            }
-
-            if (removeCount > 0)
-            {
-                snapshotsBuffer.RemoveRange(0, removeCount);
-            }
+            var elapsed = (float)System.Math.Min(now - originTime, EnemySnapshotPlanner.MAX_EXTRAPOLATION_SECONDS);
+            return origin + velocity * Mathf.Max(0f, elapsed);
         }
     }
 }

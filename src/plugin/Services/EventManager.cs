@@ -13,7 +13,7 @@ namespace MegabonkTogether.Services
         private static event Action<SpawnedEnemy> SpawnedEnemyEvents;
         private static event Action<PlayerUpdate> PlayerUpdatesEvents;
         private static event Action<SelectedCharacter> SelectedCharacterEvents;
-        private static event Action<IEnumerable<EnemyModel>> EnemiesUpdateEvents;
+        private static event Action<EnemiesUpdate> EnemiesUpdateEvents;
         private static event Action<EnemyDied> EnemyDiedEvents;
         private static event Action<AbstractSpawnedProjectile> SpawnedProjectileEvents;
         private static event Action<ProjectileDone> ProjectileDoneEvents;
@@ -130,12 +130,12 @@ namespace MegabonkTogether.Services
             });
         }
 
-        public static void SubscribeEnemiesUpdateEvents(Action<IEnumerable<EnemyModel>> action)
+        public static void SubscribeEnemiesUpdateEvents(Action<EnemiesUpdate> action)
         {
             EnemiesUpdateEvents += action;
         }
 
-        public static void OnEnemiesUpdate(IEnumerable<EnemyModel> enemies)
+        public static void OnEnemiesUpdate(EnemiesUpdate enemies)
         {
             MainThreadDispatcher.Enqueue(() =>
             {

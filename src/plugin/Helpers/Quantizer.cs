@@ -1,4 +1,5 @@
-﻿using MegabonkTogether.Common.Models;
+﻿using MegabonkTogether.Common.Messages;
+using MegabonkTogether.Common.Models;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
@@ -19,6 +20,14 @@ namespace MegabonkTogether.Helpers
         private static float GetRange()
         {
             return GetWorldMax() - GetWorldMin();
+        }
+
+        /// <summary>
+        /// The current world range, to quantize many values (same results as Quantize/Dequantize)
+        /// </summary>
+        public static QuantizationFrame GetFrame()
+        {
+            return new QuantizationFrame(GetWorldMin(), GetRange());
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -129,6 +138,21 @@ namespace MegabonkTogether.Helpers
         public static float DequantizeYaw(ushort qYaw)
         {
             return (qYaw / (float)ushort.MaxValue) * 360f;
+        }
+
+        /// <summary>
+        /// Yaw on one byte (256 steps of ~1.4 degrees), for enemy snapshots
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte QuantizeYawByte(float yawDeg)
+        {
+            return (byte)Mathf.RoundToInt(Mathf.Repeat(yawDeg, 360f) / 360f * 256f); //256 wraps to 0
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float DequantizeYawByte(byte qYaw)
+        {
+            return qYaw * (360f / 256f);
         }
     }
 }

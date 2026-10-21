@@ -147,6 +147,11 @@ namespace MegabonkTogether.Scripts.NetPlayer
 
         private void UpdatePlayerInventory(uint playerId, InventoryInfo inventoryInfo)
         {
+            if (inventoryInfo == null)
+            {
+                return; //Unchanged: only sent when it changed
+            }
+
             foreach (var playerCard in playerCards)
             {
                 if (playerCard.Player.ConnectionId == playerId)

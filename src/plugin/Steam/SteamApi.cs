@@ -59,6 +59,7 @@ namespace MegabonkTogether.Steam
 
                 if (IsAvailable)
                 {
+                    RaiseSendRateLimits();
                     // Start finding the relay network now, the first connection is faster
                     SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess(networkingUtils);
                     Plugin.Log.LogInfo($"Steam ready: {GetPersonaName()} ({GetLocalSteamId()}), app {SteamAPI_ISteamUtils_GetAppID(utils)}");
@@ -75,6 +76,39 @@ namespace MegabonkTogether.Steam
             }
 
             return IsAvailable;
+        }
+
+        // ESteamNetworkingConfigValue, bytes per second
+        private const int CONFIG_SEND_RATE_MIN = 10;
+        private const int CONFIG_SEND_RATE_MAX = 11;
+        // Steam's default is 256 KB/s for both, and the send rate is clamped between them. The minimum stays at the default
+        // (set explicitly: weak uplinks are not pushed harder), the maximum goes to 1 MB/s so the rate may go up to it.
+        private const int SEND_RATE_MIN = 256 * 1024;
+        private const int SEND_RATE_MAX = 1024 * 1024;
+
+        /// <summary>
+        /// Global config, so every session opened afterwards gets it. Missing export or failure: logged, Steam's defaults stay.
+        /// </summary>
+        private static void RaiseSendRateLimits()
+        {
+            try
+            {
+                // Max first: a min above the current max may be refused
+                var maxSet = SteamAPI_ISteamNetworkingUtils_SetGlobalConfigValueInt32(networkingUtils, CONFIG_SEND_RATE_MAX, SEND_RATE_MAX);
+                var minSet = SteamAPI_ISteamNetworkingUtils_SetGlobalConfigValueInt32(networkingUtils, CONFIG_SEND_RATE_MIN, SEND_RATE_MIN);
+                if (minSet && maxSet)
+                {
+                    Plugin.Log.LogInfo($"Steam send rate set to {SEND_RATE_MIN / 1024}-{SEND_RATE_MAX / 1024} KB/s");
+                }
+                else
+                {
+                    Plugin.Log.LogWarning($"Steam send rate not fully set (min: {minSet}, max: {maxSet}), Steam's defaults are used");
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"Steam send rate could not be set, Steam's defaults are used: {ex.Message}");
+            }
         }
 
         public static ulong GetLocalSteamId() => SteamAPI_ISteamUser_GetSteamID(user);
@@ -380,6 +414,10 @@ namespace MegabonkTogether.Steam
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool SteamAPI_ISteamNetworkingUtils_SetGlobalCallback_MessagesSessionRequest(IntPtr self, IntPtr callback);
+
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool SteamAPI_ISteamNetworkingUtils_SetGlobalConfigValueInt32(IntPtr self, int value, int val);
 
         #endregion
     }

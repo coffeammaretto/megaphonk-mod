@@ -13,7 +13,11 @@ namespace MegabonkTogether.Common.Messages
 
         public AnimatorState AnimatorState { get; set; } = new();
 
-        public InventoryInfo Inventory { get; set; } = new();
+        /// <summary>
+        /// Only sent when it changed, and every few seconds in case a packet was lost (this message is unreliable).
+        /// Null otherwise: receivers keep the last one.
+        /// </summary>
+        public InventoryInfo? Inventory { get; set; }
 
         public string Name { get; set; } = "";
         public uint Hp { get; set; }

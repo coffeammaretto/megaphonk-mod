@@ -6,6 +6,17 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.0"]
+changes = [
+    "Much less network traffic with many enemies (several times less for 400 moving enemies): no more growing ping in big fights.",
+    "Enemies are predicted from their position and velocity: the host only sends an enemy when it leaves its predicted path (turns, stops, knockback, hp change), and every enemy in full once a second. Far enemies are checked less often.",
+    "Packed enemy format: position changes in 3 bytes when small, the hp only when it changes. The client confirms what it received, enemies of a lost packet are resent in full at once.",
+    "Remote enemies move with no interpolation delay (they used to be shown 0.1 s late), small corrections are smoothed out.",
+    "Network packets are compressed when that makes them smaller (damage and pickup bursts shrink 2-3x).",
+    "Player inventories are only sent when they change (and every 2 seconds), not 60 times a second.",
+    "Not compatible with 1.0.0: every player needs 2.0.0.",
+]
+
 [version."1.0.0"]
 changes = [
     "First release of Megaphonk Mod, a co-op mod for Megabonk 1.0.69 based on Megabonk Together.",

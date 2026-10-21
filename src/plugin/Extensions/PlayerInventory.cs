@@ -28,5 +28,47 @@ namespace MegabonkTogether.Extensions
             }
             return inventoryInfo;
         }
+
+        /// <summary>
+        /// Same weapons and tomes at the same levels, in the same order (a different order only costs a resend)
+        /// </summary>
+        public static bool HasSameContent(this InventoryInfo inventory, InventoryInfo other)
+        {
+            if (inventory == null || other == null)
+            {
+                return inventory == other;
+            }
+
+            if (inventory.WeaponInfos.Count != other.WeaponInfos.Count || inventory.TomeInfos.Count != other.TomeInfos.Count)
+            {
+                return false;
+            }
+
+            using (var a = inventory.WeaponInfos.GetEnumerator())
+            using (var b = other.WeaponInfos.GetEnumerator())
+            {
+                while (a.MoveNext() && b.MoveNext())
+                {
+                    if (a.Current.EWeapon != b.Current.EWeapon || a.Current.Level != b.Current.Level)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            using (var a = inventory.TomeInfos.GetEnumerator())
+            using (var b = other.TomeInfos.GetEnumerator())
+            {
+                while (a.MoveNext() && b.MoveNext())
+                {
+                    if (a.Current.ETome != b.Current.ETome || a.Current.Level != b.Current.Level)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
     }
 }

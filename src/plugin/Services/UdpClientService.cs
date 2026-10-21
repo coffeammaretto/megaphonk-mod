@@ -42,6 +42,10 @@ namespace MegabonkTogether.Services
     {
         public bool Initialize();
         public void Update();
+        /// <summary>
+        /// Send the full inventories in the player updates for a moment (peer connected, level changed)
+        /// </summary>
+        public void ForceFullInventories();
 
         public void Poll();
 
@@ -106,6 +110,28 @@ namespace MegabonkTogether.Services
             ManualLogSource logger) : IUdpClientService
     {
         private const int MAX_PACKET_SIZE_BYTES = 1000;
+        // Packed enemies per EnemiesUpdate: room left for the message header and a relay envelope
+        private const int ENEMY_SNAPSHOT_MAX_BYTES = MAX_PACKET_SIZE_BYTES - RELAY_ENVELOPE_OVERHEAD_BYTES - 16;
+        // Inventories are sent only when they changed, and at least this often (player updates are unreliable)
+        private const float INVENTORY_RESEND_INTERVAL_SECONDS = 2f;
+        // Last inventory sent per player (client: only the local one), main thread only
+        private readonly Dictionary<uint, (InventoryInfo Inventory, float SentAt)> sentInventories = [];
+        // Until then (Environment.TickCount64, settable from any thread) every update carries the full inventories
+        private const long FORCE_INVENTORIES_MS = 1000;
+        private long forceInventoriesUntilMs = 0;
+        private readonly List<System.Numerics.Vector3> enemyReferencePositions = [];
+        // Enemy snapshot acks: host side packet history, client side what arrived (sent ~10 Hz)
+        private EnemySnapshotHistory enemySnapshotHistory = new();
+        private EnemySnapshotAckBuilder enemyAckBuilder = new();
+        private readonly List<int> enemyBlobCounts = [];
+        private int ackUpdateCounter = 0;
+        private const int ACK_EVERY_UPDATES = 6; // Update() runs at 60 Hz
+        // Who can decode compressed packets (PeerCapabilities): direct peers by NetPeer id, everyone by connection id (relay)
+        private readonly ConcurrentDictionary<int, byte> compressionPeerIds = [];
+        private readonly ConcurrentDictionary<uint, byte> compressionConnectionIds = [];
+        private int undecodableCompressedPackets = 0;
+        // Host: remote players whose position was received at least once (PlayerUpdate)
+        private readonly ConcurrentDictionary<uint, byte> positionReceivedPlayers = [];
         private const int STARTING_GAME_UDP_PORT = 27015;
         private int GAME_UDP_PORT = STARTING_GAME_UDP_PORT;
         private NetManager netManager;
@@ -163,6 +189,11 @@ namespace MegabonkTogether.Services
         // so it is built from the bytes already serialized (callers may reuse or change their message after sending it)
         private static readonly byte[] batchHeader = MemoryPackSerializer.Serialize<IGameNetworkMessage>(new MessageBatch());
         private static readonly bool isBatchFormatValid = CheckBatchFormat();
+
+        // Packets of the per frame flush are compressed (PacketCompression) when that makes them smaller
+        private static readonly bool isCompressionAvailable = CheckCompression();
+        // The version check is always sent alone and uncompressed: any other build can read it and tell the player
+        private static readonly byte modVersionInfoTag = MemoryPackSerializer.Serialize<IGameNetworkMessage>(new ModVersionInfo())[0];
 
         public bool Initialize()
         {
@@ -259,6 +290,7 @@ namespace MegabonkTogether.Services
                 if (this.rdvServerHost == null || peer.Address.ToString() != DnsHelper.ResolveDomainToIp(this.rdvServerHost))
                 {
                     gamePeers.TryAdd(peer.Id, peer);
+                    ForceFullInventories();
                 }
                 else
                 {
@@ -296,6 +328,7 @@ namespace MegabonkTogether.Services
                     };
 
                     SendToHost(introduced);
+                    SendToHost(new PeerCapabilities { OwnerId = selfConnectionId.Value, SupportsCompression = isCompressionAvailable }, DeliveryMethod.ReliableOrdered);
                 }
             };
 
@@ -306,6 +339,19 @@ namespace MegabonkTogether.Services
                     // Deserialized straight from the packet buffer, no copy: MemoryPack copies what it keeps (arrays, strings)
                     // and the reader is only recycled after this handler returns
                     var data = new ReadOnlySpan<byte>(reader.RawData, reader.Position, reader.AvailableBytes);
+                    if (PacketCompression.IsCompressed(data))
+                    {
+                        if (!isCompressionAvailable || !PacketCompression.TryDecompress(data, out var decompressed))
+                        {
+                            undecodableCompressedPackets++;
+                            if (undecodableCompressedPackets == 1)
+                            {
+                                logger.LogWarning($"Could not decompress a packet from {peer.Address} (compression available here: {isCompressionAvailable}), dropping such packets");
+                            }
+                            return;
+                        }
+                        data = decompressed;
+                    }
 
                     IGameNetworkMessage deserializedMsg;
                     try
@@ -574,6 +620,7 @@ namespace MegabonkTogether.Services
                 switch (message)
                 {
                     case Introduced introduced:
+                        ForceFullInventories();
                         if (relayPeer != null && netPeerId == relayPeer.Id)
                         {
                             if (!gamePeersIntroducedByRelay.TryAdd(introduced.ConnectionId, new PeerIntroduction(introduced.Name, introduced.ConnectionId, introduced.IsHost)))
@@ -640,6 +687,13 @@ namespace MegabonkTogether.Services
                         break;
                     case LobbyUpdates lobbyUpdate:
                         OnLobbyUpdate(lobbyUpdate);
+                        break;
+                    case EnemiesUpdate enemiesUpdate:
+                        enemyAckBuilder.OnReceived(enemiesUpdate.Seq);
+                        EventManager.OnEnemiesUpdate(enemiesUpdate);
+                        break;
+                    case PeerCapabilities hostCapabilities:
+                        OnPeerCapabilities(hostCapabilities, netPeerId);
                         break;
                     case ProjectilesUpdate projectilesUpdate:
                         EventManager.OnProjectilesUpdate(projectilesUpdate.Projectiles);
@@ -828,6 +882,7 @@ namespace MegabonkTogether.Services
                 switch (message)
                 {
                     case Introduced introduced:
+                        ForceFullInventories();
                         if (relayPeer != null && netPeerId == relayPeer.Id)
                         {
                             if (!gamePeersIntroducedByRelay.TryAdd(introduced.ConnectionId, new PeerIntroduction(introduced.Name, introduced.ConnectionId, introduced.IsHost)))
@@ -891,6 +946,19 @@ namespace MegabonkTogether.Services
                         Plugin.Log.LogInfo($"Player {clientReadyId} is ready.");
 
                         break;
+                    case EnemiesAck enemiesAck:
+                        var lostEnemies = new List<uint>();
+                        enemySnapshotHistory.OnAck(enemiesAck.ConnectionId, enemiesAck.Latest, enemiesAck.ReceivedMask, lostEnemies);
+                        if (lostEnemies.Count > 0)
+                        {
+                            enemyManagerService.MarkSendsLost(lostEnemies);
+                        }
+                        break;
+                    case PeerCapabilities clientCapabilities:
+                        OnPeerCapabilities(clientCapabilities, netPeerId);
+                        // Answer with the host's own, through the same route
+                        SendToAllClients(new PeerCapabilities { OwnerId = selfConnectionId ?? 0, SupportsCompression = isCompressionAvailable }, DeliveryMethod.ReliableOrdered);
+                        break;
                     case PlayerUpdate playerUpdate:
                         var playerUpdateId = playerUpdate.ConnectionId;
                         var playerToUpdate = playerManagerService.GetPlayer(playerUpdateId);
@@ -901,6 +969,7 @@ namespace MegabonkTogether.Services
                         }
 
                         playerToUpdate.Position = Quantizer.Quantize(playerUpdate.Position.ToUnityVector3());
+                        positionReceivedPlayers[playerUpdateId] = 0;
                         playerToUpdate.MovementState = playerUpdate.MovementState;
                         playerToUpdate.AnimatorState = playerUpdate.AnimatorState;
                         playerToUpdate.ConnectionId = playerUpdate.ConnectionId;
@@ -912,7 +981,10 @@ namespace MegabonkTogether.Services
                         playerToUpdate.MaxHp = playerUpdate.MaxHp;
                         playerToUpdate.MaxShield = playerUpdate.MaxShield;
                         //playerToUpdate.Xp = playerUpdate.Xp;
-                        playerToUpdate.Inventory = playerUpdate.Inventory;
+                        if (playerUpdate.Inventory != null) //Only sent when it changed
+                        {
+                            playerToUpdate.Inventory = playerUpdate.Inventory;
+                        }
                         playerToUpdate.Name = playerUpdate.Name;
 
                         playerManagerService.UpdatePlayer(playerToUpdate);
@@ -1174,6 +1246,13 @@ namespace MegabonkTogether.Services
             expectedPeerCount = 0;
             hasAllPeersConnected = false;
             isGameOver = false;
+            sentInventories.Clear();
+            positionReceivedPlayers.Clear();
+            enemySnapshotHistory = new();
+            enemyAckBuilder = new();
+            compressionPeerIds.Clear();
+            compressionConnectionIds.Clear();
+            undecodableCompressedPackets = 0;
             gamePeers.Clear();
             netManager?.Stop();
             hasStarted = false;
@@ -1211,6 +1290,7 @@ namespace MegabonkTogether.Services
                     //{
                     //    player.Hp = 0;
                     //}
+                    player.Inventory ??= existingPlayer.Inventory; //Only sent when it changed
                     playerManagerService.UpdatePlayer(player);
 
                     var playerUpdate = new PlayerUpdate
@@ -1237,7 +1317,6 @@ namespace MegabonkTogether.Services
                 }
             }
 
-            EventManager.OnEnemiesUpdate(lobbyUpdate.Enemies);
             EventManager.OnFinalBossOrbsUpdate(lobbyUpdate.BossOrbs);
         }
 
@@ -1485,7 +1564,18 @@ namespace MegabonkTogether.Services
                     Plugin.Log.LogWarning("Local player update is null, cannot send to host");
                     return;
                 }
+                // The local player already got the inventory above: leave it out of the message when the host has it
+                if (!ShouldSendInventory(localPlayerUpdate.ConnectionId, localPlayerUpdate.Inventory))
+                {
+                    localPlayerUpdate.Inventory = null;
+                }
                 SendToHost(playerUpdate, DeliveryMethod.Unreliable);
+
+                if (++ackUpdateCounter >= ACK_EVERY_UPDATES && enemyAckBuilder.TryBuild(out var latestEnemies, out var receivedEnemies))
+                {
+                    ackUpdateCounter = 0;
+                    SendToHost(new EnemiesAck { ConnectionId = localPlayerUpdate.ConnectionId, Latest = latestEnemies, ReceivedMask = receivedEnemies }, DeliveryMethod.Unreliable);
+                }
             }
         }
 
@@ -1564,9 +1654,55 @@ namespace MegabonkTogether.Services
             playerManagerService.UpdatePlayer(player);
         }
 
+        /// <summary>
+        /// Whether a player's inventory must be in this update: it changed since the last one sent, or that one is old enough
+        /// that it may have been lost. Records it as sent when true.
+        /// </summary>
+        private bool ShouldSendInventory(uint connectionId, InventoryInfo inventory)
+        {
+            if (inventory == null)
+            {
+                return false;
+            }
+
+            var now = UnityEngine.Time.realtimeSinceStartup;
+            var forced = Environment.TickCount64 < Interlocked.Read(ref forceInventoriesUntilMs);
+            if (!forced
+                && sentInventories.TryGetValue(connectionId, out var sent)
+                && now - sent.SentAt < INVENTORY_RESEND_INTERVAL_SECONDS
+                && sent.Inventory.HasSameContent(inventory))
+            {
+                return false;
+            }
+
+            sentInventories[connectionId] = (inventory, now);
+            return true;
+        }
+
+        /// <summary>
+        /// A peer connected or a level changed: it may not have the inventories, send them in full for a moment
+        /// </summary>
+        public void ForceFullInventories()
+        {
+            Interlocked.Exchange(ref forceInventoriesUntilMs, Environment.TickCount64 + FORCE_INVENTORIES_MS);
+        }
+
         private void SendLobbyUpdate()
         {
-            var players = playerManagerService.GetAllPlayers().ToList();
+            // Copies without the inventories that did not change: the stored players keep theirs
+            var players = playerManagerService.GetAllPlayers()
+                .Select(player =>
+                {
+                    if (ShouldSendInventory(player.ConnectionId, player.Inventory))
+                    {
+                        return player;
+                    }
+
+                    var copy = player.ShallowCopy();
+                    copy.Inventory = null;
+                    return copy;
+                })
+                .ToList();
 
             var message = new LobbyUpdates
             {
@@ -1584,23 +1720,84 @@ namespace MegabonkTogether.Services
             SendSnapshotInChunks(players, chunk => new LobbyUpdates { Players = chunk });
         }
 
+        /// <summary>
+        /// Where the remote players look from, for the enemy distance tiers: each remote player, and when one of them is dead
+        /// (it may spectate anyone) every living player, the host included. False when there is no remote player.
+        /// Read from the stored players: no native call.
+        /// </summary>
+        private bool CollectEnemyReferencePositions(List<System.Numerics.Vector3> positions)
+        {
+            positions.Clear();
+            var anyRemote = false;
+            var anyRemoteDead = false;
+            foreach (var player in playerManagerService.GetAllPlayersExceptLocal())
+            {
+                anyRemote = true;
+                if (!positionReceivedPlayers.ContainsKey(player.ConnectionId))
+                {
+                    continue; //Default position is the world corner: every enemy would look far
+                }
+                positions.Add(Quantizer.Dequantize(player.Position).ToNumericsVector3());
+                anyRemoteDead |= player.Hp == 0;
+            }
+
+            if (!anyRemote)
+            {
+                return false;
+            }
+
+            if (positions.Count == 0)
+            {
+                return true; //No remote position yet: empty list, every enemy is sent as near
+            }
+
+            if (anyRemoteDead)
+            {
+                foreach (var player in playerManagerService.GetAllPlayers())
+                {
+                    if (player.Hp > 0)
+                    {
+                        positions.Add(Quantizer.Dequantize(player.Position).ToNumericsVector3());
+                    }
+                }
+            }
+
+            return true;
+        }
+
         private void SendEnemiesUpdate()
         {
-            var enemies = enemyManagerService.GetAllEnemiesDeltaAndUpdate();
+            if (!CollectEnemyReferencePositions(enemyReferencePositions))
+            {
+                return; //Nobody to send enemies to
+            }
+
+            var enemies = enemyManagerService.GetAllEnemiesDeltaAndUpdate(enemyReferencePositions);
             var bossFinalOrb = finalBossOrbManagerService.GetAllOrbs().ToList();
 
-            if (enemies.Count == 0 && bossFinalOrb.Count == 0)
+            // One message per blob, merged into as few packets as possible by the end of frame batching
+            // Each packet is numbered and remembered with its enemies: clients ack them, lost ones are resent absolute
+            enemyBlobCounts.Clear();
+            var blobs = EnemySnapshotCodec.Encode(enemies, ENEMY_SNAPSHOT_MAX_BYTES, enemyBlobCounts);
+            var start = 0;
+            for (var i = 0; i < blobs.Count; i++)
+            {
+                var ids = new uint[enemyBlobCounts[i]];
+                for (var j = 0; j < ids.Length; j++)
+                {
+                    ids[j] = enemies[start + j].Id;
+                }
+                start += ids.Length;
+
+                SendToAllClients(new EnemiesUpdate { Seq = enemySnapshotHistory.Record(ids), Data = blobs[i] }, DeliveryMethod.Unreliable);
+            }
+
+            if (bossFinalOrb.Count == 0)
             {
                 return;
             }
 
-            var message = new LobbyUpdates
-            {
-                Enemies = enemies,
-                BossOrbs = bossFinalOrb,
-            };
-
-            byte[] serialized = MemoryPackSerializer.Serialize<IGameNetworkMessage>(message);
+            byte[] serialized = MemoryPackSerializer.Serialize<IGameNetworkMessage>(new LobbyUpdates { BossOrbs = bossFinalOrb });
 
             if (serialized.Length < MAX_PACKET_SIZE_BYTES)
             {
@@ -1608,7 +1805,6 @@ namespace MegabonkTogether.Services
                 return;
             }
 
-            SendSnapshotInChunks(enemies, chunk => new LobbyUpdates { Enemies = chunk });
             SendSnapshotInChunks(bossFinalOrb, chunk => new LobbyUpdates { BossOrbs = chunk });
         }
 
@@ -1970,7 +2166,7 @@ namespace MegabonkTogether.Services
                 try
                 {
                     var maxSize = Math.Min(MAX_PACKET_SIZE_BYTES, peer.GetMaxSinglePacketSize(deliveryMethod));
-                    SendPacked(pending, maxSize, data => TrySendQueued(() => peer.Send(data, deliveryMethod)));
+                    SendPacked(pending, maxSize, compressionPeerIds.ContainsKey(peer.Id), data => TrySendQueued(() => peer.Send(data, deliveryMethod)));
                 }
                 catch (Exception ex)
                 {
@@ -1997,6 +2193,7 @@ namespace MegabonkTogether.Services
                         maxSize = relayPeer != null ? relayPeer.GetMaxSinglePacketSize(deliveryMethod) : MAX_PACKET_SIZE_BYTES;
                     }
                     maxSize = Math.Min(MAX_PACKET_SIZE_BYTES, maxSize) - RELAY_ENVELOPE_OVERHEAD_BYTES;
+                    var relayCompression = AllRemotePlayersSupportCompression();
 
                     // One envelope per run of consecutive messages going to the same players, keeping the order
                     var start = 0;
@@ -2010,7 +2207,7 @@ namespace MegabonkTogether.Services
                         }
 
                         var run = pending.GetRange(start, end - start).Select(p => p.Data).ToList();
-                        SendPacked(run, maxSize, data => TrySendQueued(() => SendToRelay(target, data, deliveryMethod)));
+                        SendPacked(run, maxSize, relayCompression, data => TrySendQueued(() => SendToRelay(target, data, deliveryMethod)));
                         start = end;
                     }
                 }
@@ -2048,18 +2245,27 @@ namespace MegabonkTogether.Services
         /// Send the messages in order, as few packets as possible under maxSize. A message alone (or too big to share a packet)
         /// is sent as is.
         /// </summary>
-        private static void SendPacked(List<byte[]> messages, int maxSize, Action<byte[]> send)
+        private static void SendPacked(List<byte[]> messages, int maxSize, bool compress, Action<byte[]> send)
         {
             var batch = new List<byte[]>();
             var batchSize = batchHeader.Length;
 
             foreach (var message in messages)
             {
-                if (batch.Count > 0 && batchSize + message.Length >= maxSize)
+                // The version check goes alone and raw, so a mismatched build still reads it
+                var isVersionInfo = message.Length > 0 && message[0] == modVersionInfoTag;
+
+                if (batch.Count > 0 && (isVersionInfo || batchSize + message.Length >= maxSize))
                 {
-                    send(PackBatch(batch, batchSize));
+                    send(MaybeCompress(PackBatch(batch, batchSize), compress));
                     batch.Clear();
                     batchSize = batchHeader.Length;
+                }
+
+                if (isVersionInfo)
+                {
+                    send(message);
+                    continue;
                 }
 
                 batch.Add(message);
@@ -2068,8 +2274,76 @@ namespace MegabonkTogether.Services
 
             if (batch.Count > 0)
             {
-                send(PackBatch(batch, batchSize));
+                send(MaybeCompress(PackBatch(batch, batchSize), compress));
             }
+        }
+
+        /// <summary>
+        /// Packets are built under the size limit uncompressed, so the compressed one (only used when smaller) fits too
+        /// </summary>
+        private static byte[] MaybeCompress(byte[] packet, bool compress)
+        {
+            if (!compress || !isCompressionAvailable)
+            {
+                return packet;
+            }
+
+            try
+            {
+                return PacketCompression.Compress(packet) ?? packet;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogDebug($"Packet compression failed, sent raw: {ex.Message}");
+                return packet;
+            }
+        }
+
+        private void OnPeerCapabilities(PeerCapabilities capabilities, int netPeerId)
+        {
+            if (!capabilities.SupportsCompression)
+            {
+                logger.LogWarning($"Player {capabilities.OwnerId} can't decompress packets: sending it uncompressed packets");
+                return;
+            }
+
+            compressionConnectionIds[capabilities.OwnerId] = 0;
+            bool isRelay;
+            lock (relayPeerLock)
+            {
+                isRelay = relayPeer != null && relayPeer.Id == netPeerId;
+            }
+            if (!isRelay)
+            {
+                compressionPeerIds[netPeerId] = 0;
+            }
+        }
+
+        /// <summary>
+        /// Relay packets may go to any player: compressed only if every one of them said it can decode them
+        /// </summary>
+        private bool AllRemotePlayersSupportCompression()
+        {
+            var any = false;
+            foreach (var player in playerManagerService.GetAllPlayersExceptLocal())
+            {
+                any = true;
+                if (!compressionConnectionIds.ContainsKey(player.ConnectionId))
+                {
+                    return false;
+                }
+            }
+            return any;
+        }
+
+        private static bool CheckCompression()
+        {
+            var available = PacketCompression.SelfTest();
+            if (!available)
+            {
+                Plugin.Log.LogWarning("Packet compression unavailable: packets are sent uncompressed");
+            }
+            return available;
         }
 
         private static byte[] PackBatch(List<byte[]> messages, int batchSize)

@@ -83,6 +83,10 @@ namespace MegabonkTogether.Common.Messages
     [MemoryPackUnion(78, typeof(RunStatsReport))]
     [MemoryPackUnion(79, typeof(TeamStats))]
     [MemoryPackUnion(80, typeof(MessageBatch))]
+    [MemoryPackUnion(81, typeof(EnemiesUpdate))]
+    [MemoryPackUnion(82, typeof(EnemiesAck))]
+    [MemoryPackUnion(83, typeof(PeerCapabilities))]
+    // 249 is reserved: first byte of a compressed packet (PacketCompression)
     public partial interface IGameNetworkMessage
     {
 

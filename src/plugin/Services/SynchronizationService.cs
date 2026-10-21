@@ -1653,10 +1653,14 @@ namespace MegabonkTogether.Services
             playerManagerService.UpdatePlayer(player);
         }
 
-        private void OnReceivedEnemiesUpdate(IEnumerable<EnemyModel> enemiesModel)
+        private readonly List<EnemySnapshotEntry> receivedEnemyEntries = [];
+
+        private void OnReceivedEnemiesUpdate(EnemiesUpdate enemiesUpdate)
         {
-            var now = Time.timeAsDouble;
-            foreach (var enemyModel in enemiesModel)
+            var now = Scripts.NetworkHandler.EnemyClock; //Same clock as the interpolators extrapolate on
+            receivedEnemyEntries.Clear();
+            EnemySnapshotCodec.Decode(enemiesUpdate.Data, receivedEnemyEntries);
+            foreach (var enemyModel in receivedEnemyEntries)
             {
                 // Interpolator kept with the spawned enemy: no GetComponent per enemy per snapshot
                 var interpolator = enemyManagerService.GetEnemyInterpolatorById(enemyModel.Id);
@@ -1665,9 +1669,7 @@ namespace MegabonkTogether.Services
                     continue;
                 }
 
-                var snapshot = enemyModel.ToSnapshot(now);
-
-                interpolator.AddSnapshot(snapshot);
+                interpolator.ApplySnapshot(enemyModel, now);
             }
         }
 

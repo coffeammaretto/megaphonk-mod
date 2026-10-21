@@ -28,14 +28,6 @@ namespace MegabonkTogether.Scripts.Snapshot
         public Vector3 Rotation { get; set; }
     }
 
-    public class EnemySnapshot : ISnapshot
-    {
-        public double Timestamp { get; set; }
-        public Vector3 Position { get; set; }
-        public Quaternion Rotation { get; set; }
-        public float Hp { get; internal set; }
-    }
-
     public class BossOrbSnapshot : ISnapshot
     {
         public uint Id { get; set; }
