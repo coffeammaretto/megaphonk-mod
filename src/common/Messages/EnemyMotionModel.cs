@@ -5,20 +5,22 @@ namespace MegabonkTogether.Common.Messages
     /// <summary>
     /// Client: where to show a host enemy, from the snapshot entries received (no Unity here: it is tested offline).
     /// Every received position becomes a timed sample; the enemy is shown RENDER_DELAY behind:
-    ///  - between two close samples (near enemies, sent every tick) it is interpolated linearly, exactly as in 1.0.0;
-    ///  - between two far apart samples (mid/far enemies, dead reckoning) each one is extrapolated with its velocity and the
-    ///    two are blended, so the path stays smooth and still ends exactly on each sample;
-    ///  - past the newest sample it is extrapolated with its velocity (lost packets, sparse sends). When the next sample
-    ///    arrives, the shown position becomes a sample itself, so the enemy blends to the new path over RENDER_DELAY: no pop.
-    /// Only a real teleport snaps. One code path for every tier: changing tier doesn't jump.
+    ///  - near enemies (sent every tick, samples close together): linear interpolation between samples, and past the newest
+    ///    one it holds there, exactly as 1.0.0. No extrapolation: a late packet can't carry an enemy past where it really is;
+    ///  - mid/far enemies (sparse sends, dead reckoning on the host): between two samples each one is extrapolated with its
+    ///    velocity and the two are blended; past the newest one it is extrapolated, as the host predicts.
+    /// When a sample arrives while the enemy is shown past the newest one (held or extrapolated), what is shown becomes a sample,
+    /// so the enemy continues from there over RENDER_DELAY instead of jumping. Only a real teleport snaps.
     /// </summary>
     public sealed class EnemyMotionModel
     {
-        public const double RENDER_DELAY = 0.1; // 2 enemy ticks
-        // Samples closer than this are interpolated linearly (near tier: one per 50 ms tick, a lost one makes 100 ms)
+        public const double RENDER_DELAY = 0.1; // 4 enemy ticks at 40 Hz
+        // A sample arriving this soon after the previous one is a near enemy sample (one per 25 ms tick, a few lost still count)
         private const double LINEAR_GAP = 0.16;
         // Further than this from where the enemy was going: a teleport, snap
         private const float TELEPORT_DISTANCE = 6f;
+        // Plus this speed times the time since the newest sample (strong knockback between two near samples)
+        private const float TELEPORT_SPEED = 60f;
         private const int MAX_SAMPLES = 32;
 
         private struct Sample
@@ -26,6 +28,8 @@ namespace MegabonkTogether.Common.Messages
             public double Time;
             public Vector3 Position;
             public Vector3 Velocity;
+            // Near sample: hold at it past it, never extrapolate
+            public bool Hold;
         }
 
         private readonly List<Sample> samples = new();
@@ -83,6 +87,9 @@ namespace MegabonkTogether.Common.Messages
             lastSeq = entry.Seq;
 
             var renderTime = now - RENDER_DELAY;
+            // samples[^1] is always a received sample here (shown position samples go before the new one)
+            var near = samples.Count > 0 && now - samples[^1].Time <= LINEAR_GAP;
+
             Vector3 position;
             if (hasPosition)
             {
@@ -90,7 +97,7 @@ namespace MegabonkTogether.Common.Messages
             }
             else if (samples.Count > 0)
             {
-                position = Extrapolate(samples[^1], now); //Keep the path, take the new velocity
+                position = Project(samples[^1], now); //Position unknown: keep the path (held when near)
             }
             else if (shownPosition.HasValue)
             {
@@ -105,20 +112,22 @@ namespace MegabonkTogether.Common.Messages
             {
                 if (shownPosition.HasValue && Vector3.DistanceSquared(shownPosition.Value, position) < TELEPORT_DISTANCE * TELEPORT_DISTANCE)
                 {
-                    samples.Add(new Sample { Time = renderTime, Position = shownPosition.Value });
+                    samples.Add(new Sample { Time = renderTime, Position = shownPosition.Value, Hold = true });
                 }
             }
             else
             {
                 var newest = samples[^1];
-                if (Vector3.DistanceSquared(Extrapolate(newest, now), position) > TELEPORT_DISTANCE * TELEPORT_DISTANCE)
+                var expected = Project(newest, now);
+                var limit = TELEPORT_DISTANCE + TELEPORT_SPEED * (float)Math.Min(now - newest.Time, LINEAR_GAP);
+                if (Vector3.DistanceSquared(expected, position) > limit * limit)
                 {
                     samples.Clear(); //Teleport: shown right away
                 }
                 else if (renderTime > newest.Time)
                 {
-                    // Shown past the newest sample (extrapolated): continue from what is shown, not from where it should have been
-                    samples.Add(new Sample { Time = renderTime, Position = Evaluate(renderTime), Velocity = newest.Velocity });
+                    // Shown past the newest sample (held or extrapolated): continue from what is shown
+                    samples.Add(new Sample { Time = renderTime, Position = Evaluate(renderTime), Velocity = newest.Velocity, Hold = newest.Hold });
                 }
             }
 
@@ -127,7 +136,7 @@ namespace MegabonkTogether.Common.Messages
                 samples.RemoveAt(samples.Count - 1); //Same instant (paused clock): the newer one wins
             }
 
-            samples.Add(new Sample { Time = now, Position = position, Velocity = velocity });
+            samples.Add(new Sample { Time = now, Position = position, Velocity = velocity, Hold = near });
             if (samples.Count > MAX_SAMPLES)
             {
                 samples.RemoveAt(0);
@@ -181,22 +190,30 @@ namespace MegabonkTogether.Common.Messages
 
                 var gap = newer.Time - older.Time;
                 var t = gap > 0 ? (float)((renderTime - older.Time) / gap) : 1f;
-                if (gap <= LINEAR_GAP)
+                if (gap <= LINEAR_GAP || newer.Hold)
                 {
                     return Vector3.Lerp(older.Position, newer.Position, t);
                 }
 
-                // Far apart: each one along its velocity, blended from the older to the newer
-                var fromOlder = Extrapolate(older, renderTime);
+                // Far apart sparse samples: each one along its velocity, blended from the older to the newer
+                var fromOlder = Project(older, renderTime);
                 var fromNewer = newer.Position + newer.Velocity * (float)(renderTime - newer.Time);
                 return Vector3.Lerp(fromOlder, fromNewer, t);
             }
 
-            return Extrapolate(samples[^1], renderTime);
+            return Project(samples[^1], renderTime);
         }
 
-        private static Vector3 Extrapolate(Sample sample, double time)
+        /// <summary>
+        /// Where a sample says the enemy is at <paramref name="time"/> (after it): held for a near sample, extrapolated else
+        /// </summary>
+        private static Vector3 Project(Sample sample, double time)
         {
+            if (sample.Hold)
+            {
+                return sample.Position;
+            }
+
             var elapsed = Math.Clamp(time - sample.Time, 0, EnemySnapshotPlanner.MAX_EXTRAPOLATION_SECONDS);
             return sample.Position + sample.Velocity * (float)elapsed;
         }

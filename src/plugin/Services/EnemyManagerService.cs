@@ -125,7 +125,7 @@ namespace MegabonkTogether.Services
         /// <summary>
         /// This should be called once per server tick. Clients extrapolate each enemy from its last sent position and velocity:
         /// only the enemies that drift from that prediction (or change velocity, yaw, hp, or are due a keyframe) are sent,
-        /// see EnemySnapshotPlanner. Enemies far from every remote player are only read every 2nd/4th tick (staggered by id).
+        /// see EnemySnapshotPlanner. Enemies far from every remote player are only read every 4th/8th tick (staggered by id).
         /// </summary>
         public List<EnemySnapshotEntry> GetAllEnemiesDeltaAndUpdate(List<System.Numerics.Vector3> referencePositions)
         {

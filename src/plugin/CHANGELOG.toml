@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.2"]
+changes = [
+    "Enemies near you are synced like in 1.0.0 again: 40 updates a second, and when a packet is late they wait instead of guessing ahead. No more enemies jumping into you.",
+    "Far enemies keep the low traffic of 2.0.0.",
+]
+
 [version."2.0.1"]
 changes = [
     "Enemies near you move smoothly and where they really are again: they are sent every update and shown 0.1 s behind like in 1.0.0, no more jumps when a correction arrives.",

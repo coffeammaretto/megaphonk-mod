@@ -16,9 +16,10 @@ namespace MegabonkTogether.Scripts
         private const float lobbyUpdatetickInterval = 1f / LOBBY_UPDATE_TICK_RATE;
         private float lobbyUpdateAccumulator = 0f;
 
-        // Far enemies are read every 2nd/4th tick (EnemySnapshotPlanner), clients extrapolate in between (dead reckoning).
+        // Near enemies are sent every tick they move and interpolated 0.1 s behind on clients (4 ticks, as 1.0.0); mid/far ones
+        // are read every 4th/8th tick (EnemySnapshotPlanner), clients extrapolate in between (dead reckoning).
         // Counted in unscaled time: keyframes and the "stop" of a pause still go out when the time scale is 0
-        private const float ENEMY_UPDATE_TICK_RATE = 20f;
+        private const float ENEMY_UPDATE_TICK_RATE = 40f;
         private const float enemyUpdatetickInterval = 1f / ENEMY_UPDATE_TICK_RATE;
         private float enemyUpdateAccumulator = 0f;
 

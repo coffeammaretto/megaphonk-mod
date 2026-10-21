@@ -7,7 +7,7 @@ namespace MegabonkTogether.Common.Messages
     /// </summary>
     public sealed class EnemySnapshotHistory
     {
-        private const int SIZE = 256; // ~10 s of packets
+        private const int SIZE = 1024; // ~20 s of packets at the 40 Hz enemy tick
         private const int ACK_WINDOW = 64;
 
         private readonly object historyLock = new();

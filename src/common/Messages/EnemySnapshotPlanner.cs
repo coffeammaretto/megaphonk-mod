@@ -81,17 +81,17 @@ namespace MegabonkTogether.Common.Messages
         // Clients stop extrapolating after this long without news (lost packets): the keyframe comes before
         public const float MAX_EXTRAPOLATION_SECONDS = 1.25f;
 
-        // Distance tiers (enemy tick is 20 Hz): near every tick, mid every 2nd tick (10 Hz), far every 4th (5 Hz).
+        // Distance tiers (enemy tick is 40 Hz): near every tick, mid every 4th tick (10 Hz), far every 8th (5 Hz).
         // With hysteresis, so an enemy on a boundary doesn't change rate every tick: near up to 27 m (back from 23 m),
         // far beyond 65 m (back from 55 m)
         private const float NEAR_ENTER_DISTANCE = 23f;
         private const float NEAR_LEAVE_DISTANCE = 27f;
         private const float FAR_ENTER_DISTANCE = 65f;
         private const float FAR_LEAVE_DISTANCE = 55f;
-        public const uint MID_PERIOD = 2;
-        public const uint FAR_PERIOD = 4;
+        public const uint MID_PERIOD = 4;
+        public const uint FAR_PERIOD = 8;
         // An hp change is still sent at 10 Hz or more
-        private const uint HP_PERIOD = 2;
+        private const uint HP_PERIOD = 4;
 
         // Prediction error allowed before a send (m): near, mid, far
         private const float NEAR_PREDICTION_ERROR = 0.5f;
@@ -109,8 +109,8 @@ namespace MegabonkTogether.Common.Messages
         // Moved this far while paused: a teleport
         private const float TELEPORT_DISTANCE = 3f;
         private const float FOLLOW_UP_SECONDS = 0.12f;
-        // Keyframes are spread over the second by id (20 ticks), else enemies spawned together keyframe in the same tick
-        private const int KEYFRAME_PHASES = 20;
+        // Keyframes are spread over the second by id (40 ticks), else enemies spawned together keyframe in the same tick
+        private const int KEYFRAME_PHASES = 40;
         private const float YAW_TRESHOLD = 10f;
         private const float HP_TRESHOLD = 1f;
 
@@ -132,7 +132,7 @@ namespace MegabonkTogether.Common.Messages
         }
 
         /// <summary>
-        /// Staggered by id so the enemies sent every 2nd/4th tick are spread over the ticks
+        /// Staggered by id so the enemies sent every 4th/8th tick are spread over the ticks
         /// </summary>
         public static bool IsDue(long tick, uint id, uint period)
         {
@@ -218,8 +218,10 @@ namespace MegabonkTogether.Common.Messages
             int dx = x - state.X;
             int dy = y - state.Y;
             int dz = z - state.Z;
-            // Absolute on keyframes and forced sends (loss recovery), teleports, and when the move doesn't fit a byte per axis
-            var isDelta = !keyframe && !absolute && !teleported && state.HasSent
+            // Absolute on keyframes and forced sends (loss recovery), teleports, and when the move doesn't fit a byte per axis.
+            // Near enemies always absolute (as 1.0.0): a lost packet costs nothing, the next one 25 ms later is complete
+            // (a delta chain would leave the enemy held until the ack brings an absolute one)
+            var isDelta = !keyframe && !absolute && !teleported && state.HasSent && state.Period != 1
                 && dx >= sbyte.MinValue && dx <= sbyte.MaxValue
                 && dy >= sbyte.MinValue && dy <= sbyte.MaxValue
                 && dz >= sbyte.MinValue && dz <= sbyte.MaxValue;
