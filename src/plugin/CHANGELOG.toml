@@ -6,6 +6,13 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.1"]
+changes = [
+    "Enemies near you move smoothly and where they really are again: they are sent every update and shown 0.1 s behind like in 1.0.0, no more jumps when a correction arrives.",
+    "Strong knockback (Pinball, Shockwave) is no longer mistaken for a teleport.",
+    "Far enemies keep the low traffic of 2.0.0, and blend smoothly when they come closer or a packet is lost.",
+]
+
 [version."2.0.0"]
 changes = [
     "Much less network traffic with many enemies (several times less for 400 moving enemies): no more growing ping in big fights.",

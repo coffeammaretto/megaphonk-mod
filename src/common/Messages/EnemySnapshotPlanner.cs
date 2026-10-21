@@ -101,8 +101,10 @@ namespace MegabonkTogether.Common.Messages
         private const float VELOCITY_CHANGE = 1f;
         // Below this the enemy is still: no velocity sent
         private const float STILL_SPEED = 0.2f;
-        // Faster than this between two reads is a teleport, not a velocity
-        private const float TELEPORT_SPEED = 40f;
+        // Near enemies are sent every tick they move more than this
+        private const float NEAR_MIN_MOVE = 0.02f;
+        // Faster than this between two reads is a teleport, not a velocity (strong knockback, Pinball x2, stays below)
+        private const float TELEPORT_SPEED = 100f;
         private const float VELOCITY_SMOOTHING = 0.5f;
         // Moved this far while paused: a teleport
         private const float TELEPORT_DISTANCE = 3f;
@@ -195,7 +197,12 @@ namespace MegabonkTogether.Common.Messages
                 var yawSteps = (byte)(yaw - state.Yaw);
                 var yawDelta = Math.Min(yawSteps, 256 - yawSteps) * (360f / 256f);
 
-                send = (position - predicted).LengthSquared() > maxError * maxError
+                // Near enemies: every tick they move, clients interpolate them between the exact samples (as in 1.0.0)
+                var nearMoved = state.Period == 1
+                    && (position - frame.Dequantize(state.X, state.Y, state.Z)).LengthSquared() > NEAR_MIN_MOVE * NEAR_MIN_MOVE;
+
+                send = nearMoved
+                    || (position - predicted).LengthSquared() > maxError * maxError
                     || (sentVelocity - state.Velocity).LengthSquared() > VELOCITY_CHANGE * VELOCITY_CHANGE
                     || yawDelta > YAW_TRESHOLD;
             }
