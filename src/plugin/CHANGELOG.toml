@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.9"]
+changes = [
+    "Fixed a run that never ended after everyone died (a dead player kept running and shooting, no game over screen) when the previous run had been left to the menu.",
+]
+
 [version."2.0.8"]
 changes = [
     "Enemies spawn twice as far from the player (at most 80 m, the game teleports enemies further than 87.5 m back to the player), so a fast player no longer runs into them during their spawn animation. On a narrow map they spawn at the edge of the ground instead of beyond it.",

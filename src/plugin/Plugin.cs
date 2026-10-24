@@ -90,6 +90,8 @@ namespace MegabonkTogether
         private readonly ConcurrentDictionary<string, GameObject> prefabs = new();
 
         private Il2CppSystem.Action originalDiedAction = null;
+        private Il2CppSystem.Action preventedDiedAction = null;
+        private bool isDeathPrevented = false;
         private Il2CppSystem.Action<WeaponBase> originalWeaponAddedAction = null;
         private Il2CppSystem.Action<EStat> originalStatUpdateAction = null;
 
@@ -284,7 +286,7 @@ namespace MegabonkTogether
 
         public void PreventDeath()
         {
-            if (originalDiedAction != null)
+            if (isDeathPrevented)
             {
                 Log.LogWarning("Death already prevented");
                 return;
@@ -292,6 +294,8 @@ namespace MegabonkTogether
 
             originalDiedAction = PlayerHealth.A_Died;
             PlayerHealth.A_Died = new Action(OnPlayerDied);
+            preventedDiedAction = PlayerHealth.A_Died;
+            isDeathPrevented = true;
         }
 
         private void OnPlayerDied()
@@ -312,7 +316,7 @@ namespace MegabonkTogether
 
         public void RestoreDeath(bool invokeDeathEvent)
         {
-            if (originalDiedAction == null)
+            if (!isDeathPrevented)
             {
                 Log.LogWarning("Death not prevented");
                 return;
@@ -320,13 +324,48 @@ namespace MegabonkTogether
 
             CameraSwitcher.ResetToLocalPlayer();
 
-            PlayerHealth.A_Died = originalDiedAction;
+            // Keep the handlers the game subscribed while the death was prevented (they went into our action)
+            Il2CppSystem.Delegate addedDuringRun = PlayerHealth.A_Died != null && preventedDiedAction != null
+                ? Il2CppSystem.Delegate.Remove(PlayerHealth.A_Died, preventedDiedAction)
+                : PlayerHealth.A_Died;
+            var restored = Il2CppSystem.Delegate.Combine(originalDiedAction, addedDuringRun);
+            PlayerHealth.A_Died = restored?.Cast<Il2CppSystem.Action>();
             originalDiedAction = null;
+            preventedDiedAction = null;
+            isDeathPrevented = false;
 
             if (invokeDeathEvent)
             {
                 GameManager.Instance.player.playerRenderer.gameObject.SetActive(true);
-                PlayerHealth.A_Died.Invoke();
+                InvokeDiedHandlers();
+            }
+        }
+
+        /// <summary>
+        /// Invoke the death handlers one by one: a handler of an object destroyed since it subscribed (its unsubscription
+        /// missed the event while it was replaced, e.g. a run left to the menu) throws, and stopped every handler after it,
+        /// the game over screen too. Such a handler is dropped from the event, the game invokes it again on each death.
+        /// </summary>
+        private void InvokeDiedHandlers()
+        {
+            var died = PlayerHealth.A_Died;
+            if (died == null)
+            {
+                return;
+            }
+
+            foreach (var handler in died.GetInvocationList())
+            {
+                try
+                {
+                    handler.Cast<Il2CppSystem.Action>().Invoke();
+                }
+                catch (Exception ex)
+                {
+                    Log.LogWarning($"Dropped a failing player death handler: {ex.Message}");
+                    var remaining = Il2CppSystem.Delegate.Remove(PlayerHealth.A_Died, handler);
+                    PlayerHealth.A_Died = remaining?.Cast<Il2CppSystem.Action>();
+                }
             }
         }
 
