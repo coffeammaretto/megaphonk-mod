@@ -6,6 +6,13 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.15"]
+changes = [
+    "Rage, shield and haste powerups now work for the whole party: whoever picks one up, every player gets it, with its visual on every player.",
+    "Fixed powerups ending early or their visual disappearing: teammate copies no longer get your powerups, and their effects ending no longer affects yours.",
+    "Fixed the camera after being revived: it was stuck in a first person view shifted to the right, it now goes back behind the character.",
+]
+
 [version."2.0.14"]
 changes = [
     "Fixed your HP bar showing a teammate's HP and shield (for example a CL4NK's shield) after picking up a heart, landing hard, leveling up or a lifesteal hit: the game made each teammate copy react to your own events.",

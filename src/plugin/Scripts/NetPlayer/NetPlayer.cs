@@ -128,14 +128,14 @@ namespace MegabonkTogether.Scripts.NetPlayer
 
             if (!isHost)
             {
-                inventory.statusEffects.Tick();
+                CopyStatusEffects.Run(inventory, static copy => copy.statusEffects.Tick());
                 return;
             }
 
             try
             {
                 playerManagerService.AddGetNetplayerPositionRequest(connectionId);
-                inventory.PhysicsTick();
+                CopyStatusEffects.Run(inventory, static copy => copy.PhysicsTick());
                 playerManagerService.UnqueueNetplayerPositionRequest();
             }
             catch (System.Exception ex)
@@ -199,6 +199,9 @@ namespace MegabonkTogether.Scripts.NetPlayer
                 // lifesteal): it then healed or hurt itself and the local HP bar was redrawn with the copy's hp and shield.
                 // Its values come from the network, OnDestroy only unsubscribes these handlers.
                 inventory.playerHealth.OnDestroy();
+                // Same for its status effects: it got each powerup the local player picked up (party powerups are given
+                // explicitly, see SynchronizationService.SharePartyPowerup)
+                inventory.statusEffects.OnDestroy();
 
                 playerManagerService.AddPlayerInventory(connectionId, inventory);
             }

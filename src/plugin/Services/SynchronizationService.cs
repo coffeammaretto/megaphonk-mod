@@ -2152,6 +2152,11 @@ namespace MegabonkTogether.Services
 
         public void OnPickupApplied(Pickup instance)
         {
+            if (IsPartyPowerup(instance.ePickup))
+            {
+                SharePartyPowerup(instance, true);
+            }
+
             var pickupIds = pickupManagerService.RemovePickupByReference(instance, true);
             if (pickupIds.Count == 0)
             {
@@ -2215,58 +2220,29 @@ namespace MegabonkTogether.Services
             //}
             else
             {
-                var isServer = IsServerMode() ?? false;
                 var netPlayer = playerManagerService.GetNetPlayerByNetplayId(applied.OwnerId);
 
-                if (isServer && pickup.ePickup == EPickup.Rage) //Apply rage on server since projectiles are spawned server side
+                if (IsPartyPowerup(pickup.ePickup))
                 {
-                    playerManagerService.AddGetNetplayerPositionRequest(applied.OwnerId);
-                    netPlayer.Inventory.statusEffects.OnPickupTriggered(pickup);
-                    playerManagerService.UnqueueNetplayerPositionRequest();
+                    SharePartyPowerup(pickup, false);
                 }
-
-                try
+                else if (pickup.ePickup == EPickup.Nuke && netPlayer?.Model != null)
                 {
-                    playerManagerService.AddGetNetplayerPositionRequest(applied.OwnerId);
-                    switch (pickup.ePickup)
+                    try
                     {
-                        case EPickup.Rage:
-                            var rage = EffectManager.Instance.ragePickup;
-                            var copiedPickup = GameObject.Instantiate(rage).GetComponent<StatusEffectPickup>();
-                            copiedPickup.useFeetPosition = false;
-                            copiedPickup.Set();
-                            break;
-                        case EPickup.Shield:
-                            var shield = EffectManager.Instance.shieldPickup;
-                            var copiedShieldPickup = GameObject.Instantiate(shield).GetComponent<StatusEffectPickup>();
-                            copiedShieldPickup.useFeetPosition = false;
-                            copiedShieldPickup.Set();
-                            var y = copiedShieldPickup.transform.position.y;
-                            y += Plugin.PLAYER_FEET_OFFSET_Y;
-                            copiedShieldPickup.transform.position = new Vector3(copiedShieldPickup.transform.position.x, y, copiedShieldPickup.transform.position.z);
-                            break;
-                        case EPickup.Haste:
-                            var haste = EffectManager.Instance.hastePickup;
-                            var copiedHastePickup = GameObject.Instantiate(haste).GetComponent<StatusEffectPickup>();
-                            copiedHastePickup.useFeetPosition = false;
-                            copiedHastePickup.Set();
-                            break;
-                        case EPickup.Nuke:
-                            var nuke = EffectManager.Instance.nukePickup;
-                            var explosion = GameObject.Instantiate(nuke).GetComponent<Explosion>();
-                            explosion.transform.position = netPlayer.Model.transform.position;
-                            break;
-                        default:
-                            break;
+                        playerManagerService.AddGetNetplayerPositionRequest(applied.OwnerId);
+                        var nuke = EffectManager.Instance.nukePickup;
+                        var explosion = GameObject.Instantiate(nuke).GetComponent<Explosion>();
+                        explosion.transform.position = netPlayer.Model.transform.position;
                     }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError($"Error applying pickup {pickup.ePickup} for player {applied.OwnerId}: {ex}");
-                }
-                finally
-                {
-                    playerManagerService.UnqueueNetplayerPositionRequest();
+                    catch (Exception ex)
+                    {
+                        logger.LogError($"Error applying pickup {pickup.ePickup} for player {applied.OwnerId}: {ex}");
+                    }
+                    finally
+                    {
+                        playerManagerService.UnqueueNetplayerPositionRequest();
+                    }
                 }
             }
 
@@ -2279,6 +2255,87 @@ namespace MegabonkTogether.Services
                 PickupManager.Instance.DespawnPickup(pickup);
             }
             pickupManagerService.RemoveSpawnedPickupById(applied.PickupId);
+        }
+
+        private static bool IsPartyPowerup(EPickup ePickup)
+        {
+            return ePickup == EPickup.Rage || ePickup == EPickup.Shield || ePickup == EPickup.Haste;
+        }
+
+        /// <summary>
+        /// Rage, shield and haste work for the whole party: whoever picks one up, every player gets it.
+        /// Picked by a teammate: applied here as a local pickup (effect, visual, sound). Then shown on every teammate model,
+        /// and on the host given to the teammate copies too (their projectiles are spawned here).
+        /// </summary>
+        private void SharePartyPowerup(Pickup pickup, bool pickedLocally)
+        {
+            if (!pickedLocally)
+            {
+                Plugin.CAN_SEND_MESSAGES = false;
+                try
+                {
+                    Pickup.A_PickupTriggered?.Invoke(pickup);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError($"Error applying party powerup {pickup.ePickup} locally: {ex}");
+                }
+                finally
+                {
+                    Plugin.CAN_SEND_MESSAGES = true;
+                }
+            }
+
+            var isServer = IsServerMode() ?? false;
+            foreach (var netPlayer in playerManagerService.GetAllSpawnedNetPlayers().ToList())
+            {
+                if (netPlayer == null || netPlayer.Model == null || netPlayer.Inventory == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    playerManagerService.AddGetNetplayerPositionRequest(netPlayer.ConnectionId);
+                    if (isServer && pickup.ePickup == EPickup.Rage)
+                    {
+                        CopyStatusEffects.Run(netPlayer.Inventory, copy => copy.statusEffects.OnPickupTriggered(pickup));
+                    }
+
+                    SpawnPowerupVisual(pickup.ePickup);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError($"Error sharing powerup {pickup.ePickup} with player {netPlayer.ConnectionId}: {ex}");
+                }
+                finally
+                {
+                    playerManagerService.UnqueueNetplayerPositionRequest();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Powerup visual on the net player of the pending position request
+        /// </summary>
+        private static void SpawnPowerupVisual(EPickup ePickup)
+        {
+            var prefab = ePickup switch
+            {
+                EPickup.Rage => EffectManager.Instance.ragePickup,
+                EPickup.Shield => EffectManager.Instance.shieldPickup,
+                _ => EffectManager.Instance.hastePickup,
+            };
+
+            var visual = GameObject.Instantiate(prefab).GetComponent<StatusEffectPickup>();
+            visual.useFeetPosition = false;
+            visual.Set();
+
+            if (ePickup == EPickup.Shield)
+            {
+                var position = visual.transform.position;
+                visual.transform.position = new Vector3(position.x, position.y + Plugin.PLAYER_FEET_OFFSET_Y, position.z);
+            }
         }
 
         private void OnReceivedPickupFollowingPlayer(PickupFollowingPlayer player)

@@ -417,10 +417,12 @@ namespace MegabonkTogether.Scripts
             var cam = GameManager.Instance?.playerCamera;
             if (cam == null || cam.camera == null) return;
 
+            // Local: the camera's pose relative to its rig. The world pose of the death is wrong after a revive elsewhere
+            // (first person view shifted to the right)
             originalCameraState = new CameraState
             {
-                position = cam.camera.transform.position,
-                rotation = cam.camera.transform.rotation,
+                position = cam.camera.transform.localPosition,
+                rotation = cam.camera.transform.localRotation,
             };
         }
 
@@ -433,8 +435,8 @@ namespace MegabonkTogether.Scripts
 
             var state = originalCameraState;
 
-            cam.camera.transform.position = state.position;
-            cam.camera.transform.rotation = state.rotation;
+            cam.camera.transform.localPosition = state.position;
+            cam.camera.transform.localRotation = state.rotation;
 
             cam.UpdateZoom();
 
