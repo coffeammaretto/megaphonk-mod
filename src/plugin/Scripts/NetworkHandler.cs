@@ -2,6 +2,7 @@
 using Assets.Scripts.Managers;
 using Il2CppInterop.Runtime;
 using MegabonkTogether.Configuration;
+using MegabonkTogether.Helpers;
 using MegabonkTogether.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
@@ -112,6 +113,7 @@ namespace MegabonkTogether.Scripts
             FrameTimeAsDouble = Time.timeAsDouble;
             FrameDeltaTime = Time.deltaTime;
             FrameUnscaledDeltaTime = Time.unscaledDeltaTime;
+            PerfProbe.OnFrame(FrameUnscaledDeltaTime);
             IsGamePaused = Assets.Scripts.Utility.MyTime.paused || FrameDeltaTime <= 0f;
             if (!IsGamePaused)
             {
@@ -126,7 +128,9 @@ namespace MegabonkTogether.Scripts
 
                 if (!hasFoundMatch.HasValue && !hasFoundMatch.Value || synchronizationService.IsLoadingNextLevel()) return;
 
+                var perfPoll = PerfProbe.Begin();
                 udpClientService.Poll();
+                PerfProbe.End("Net.Poll", perfPoll);
 
                 if (GameManager.Instance == null || GameManager.Instance.player == null || GameManager.Instance.player.inventory == null) return;
 
@@ -171,25 +175,33 @@ namespace MegabonkTogether.Scripts
                 if (lobbyUpdateAccumulator >= lobbyUpdatetickInterval)
                 {
                     lobbyUpdateAccumulator = Mathf.Min(lobbyUpdateAccumulator - lobbyUpdatetickInterval, lobbyUpdatetickInterval);
+                    var perfUpdate = PerfProbe.Begin();
                     udpClientService.Update();
+                    PerfProbe.End("Net.Update", perfUpdate);
                 }
 
                 if (isHost && enemyUpdateAccumulator >= enemyUpdatetickInterval)
                 {
                     enemyUpdateAccumulator = Mathf.Min(enemyUpdateAccumulator - enemyUpdatetickInterval, enemyUpdatetickInterval);
+                    var perfEnemies = PerfProbe.Begin();
                     udpClientService.UpdateEnemies();
+                    PerfProbe.End("Net.UpdateEnemies", perfEnemies);
                 }
 
                 if (isHost && projectileUpdateAccumulator >= projectileUpdatetickInterval)
                 {
                     projectileUpdateAccumulator = Mathf.Min(projectileUpdateAccumulator - projectileUpdatetickInterval, projectileUpdatetickInterval);
+                    var perfProjectiles = PerfProbe.Begin();
                     udpClientService.UpdateProjectiles();
+                    PerfProbe.End("Net.UpdateProjectiles", perfProjectiles);
                 }
 
                 if (isHost && tumbleWeedUpdateAccumulator >= tumbleWeedUpdatetickInterval)
                 {
                     tumbleWeedUpdateAccumulator = Mathf.Min(tumbleWeedUpdateAccumulator - tumbleWeedUpdatetickInterval, tumbleWeedUpdatetickInterval);
+                    var perfTumbleWeeds = PerfProbe.Begin();
                     udpClientService.UpdateTumbleWeeds();
+                    PerfProbe.End("Net.UpdateTumbleWeeds", perfTumbleWeeds);
                 }
             }
             catch (System.Exception ex)
@@ -213,7 +225,9 @@ namespace MegabonkTogether.Scripts
                     SafeTick(flushPendingNetworkUpdatesTick);
                 }
 
+                var perfFlush = PerfProbe.Begin();
                 udpClientService.FlushPendingMessages();
+                PerfProbe.End("Net.FlushPendingMessages", perfFlush);
 
                 if (downedService != null && GameManager.Instance != null && GameManager.Instance.player != null)
                 {
@@ -229,6 +243,7 @@ namespace MegabonkTogether.Scripts
 
         private static void SafeTick(System.Action tick)
         {
+            var perf = PerfProbe.Begin();
             try
             {
                 tick();
@@ -237,6 +252,7 @@ namespace MegabonkTogether.Scripts
             {
                 Plugin.Log.LogError($"{tick.Method.DeclaringType?.Name}.{tick.Method.Name} failed: {ex}");
             }
+            PerfProbe.End(tick.Method, perf);
         }
 
         public int GetLobbySize()

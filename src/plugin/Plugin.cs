@@ -98,6 +98,32 @@ namespace MegabonkTogether
         private static int distanceTargetFrame = -1;
         private static Vector3 distanceTarget;
 
+        /// <summary>
+        /// The BepInEx console is on by default and every line written to it blocks the main thread. Turned off in the BepInEx
+        /// config, it applies from the next launch (the console of this launch is already open).
+        /// </summary>
+        private static void DisableBepInExConsole()
+        {
+            if (ModConfig.KeepBepInExConsole.Value)
+            {
+                return;
+            }
+
+            try
+            {
+                if (BepInEx.Configuration.ConfigFile.CoreConfig.TryGetEntry<bool>("Logging.Console", "Enabled", out var consoleEnabled) && consoleEnabled.Value)
+                {
+                    consoleEnabled.Value = false;
+                    BepInEx.Configuration.ConfigFile.CoreConfig.Save();
+                    Log.LogInfo("BepInEx console turned off from the next launch (Diagnostics.KeepBepInExConsole to keep it)");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.LogWarning($"Could not turn off the BepInEx console: {ex.Message}");
+            }
+        }
+
         public override void Load()
         {
             Instance = this;
@@ -108,6 +134,7 @@ namespace MegabonkTogether
 
             ModConfig.Initialize(Config);
             Log.LogInfo($"Player name set to: {ModConfig.PlayerName.Value}");
+            DisableBepInExConsole();
 
             ClassInjector.RegisterTypeInIl2Cpp<NetPlayer>();
             ClassInjector.RegisterTypeInIl2Cpp<CoroutineRunner>();
@@ -216,6 +243,18 @@ namespace MegabonkTogether
                 catch (Exception ex)
                 {
                     Log.LogError($"Harmony patching failed for {type.FullName}: {ex}");
+                }
+            }
+
+            if (ModConfig.PerformanceLog.Value)
+            {
+                try
+                {
+                    PerfProbe.Initialize(harmony, Log, ModConfig.PerformanceSpikeMs.Value);
+                }
+                catch (Exception ex)
+                {
+                    Log.LogError($"Performance log setup failed: {ex}");
                 }
             }
 

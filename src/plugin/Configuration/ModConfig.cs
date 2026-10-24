@@ -43,6 +43,10 @@ namespace MegabonkTogether.Configuration
         public static ConfigEntry<RunModifier> RunModifiers { get; private set; }
         public static ConfigEntry<bool> ChallengesEnabled { get; private set; }
 
+        public static ConfigEntry<bool> PerformanceLog { get; private set; }
+        public static ConfigEntry<float> PerformanceSpikeMs { get; private set; }
+        public static ConfigEntry<bool> KeepBepInExConsole { get; private set; }
+
         public static void Initialize(ConfigFile config)
         {
             configFile = config;
@@ -153,6 +157,13 @@ namespace MegabonkTogether.Configuration
                 "Run modifiers, comma separated: GlassCannon (damage +50%, max HP -40%), Horde (enemies x1.5), ThickSkinned (enemy HP x2, luck +0.25), Frenzy (enemies 10% faster every 5 minutes, gold +20%), Lucky (luck +0.3, difficulty +0.3), Poverty (gold -50%, XP +15%), Colossus (enemy HP +50%, XP +25%), BrittleSwarm (enemy HP -40%, enemies x1.5, XP -20%), Bloodbath (enemy damage +50%, healing -50%, gold +25%), Pinball (knockback x2, move speed +15%), SilverRush (silver +50%, enemy damage +25%), Overdrive (move speed +20%, projectile speed +25%, enemies 20% faster), Shockwave (weapon area +25%, damage -20%), RisingTide (enemies grow stronger 50% faster, chests 25% cheaper). Combined bonuses are capped: XP gain (counting the extra enemies) +50%, luck +0.5, gold +50%, damage +50%, move speed +30%. None for a normal run.");
             ChallengesEnabled = config.Bind(party, "ChallengesEnabled", true,
                 "Coop challenges rewarded with chests on the next stage: one for each player with no death on the stage, one for each player who survived the stage boss fight.");
+
+            PerformanceLog = config.Bind("Diagnostics", "PerformanceLog", true,
+                "Log the time the mod spends each frame (report every 10 s, slow frames) to find what causes lag. Small overhead, leave off when not needed. Restart the game after changing.");
+            PerformanceSpikeMs = config.Bind("Diagnostics", "PerformanceSpikeMs", 50f,
+                "Performance log: frames longer than this (milliseconds) are logged with the mod's share.");
+            KeepBepInExConsole = config.Bind("Diagnostics", "KeepBepInExConsole", false,
+                "Keep the BepInEx console window. Off: the mod turns it off (from the next launch), writing to it stalls the game when a lot is logged. The log file is still written.");
         }
 
         public static PartySettings ToPartySettings()

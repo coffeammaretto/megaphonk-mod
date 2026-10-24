@@ -6,6 +6,13 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.12"]
+changes = [
+    "Performance log to find what causes the late game freezes: every 10 s the log file gets the time the mod spends per frame, .NET garbage collections and the slowest parts, plus a line for each frame over 50 ms (Diagnostics.PerformanceLog, on in this version).",
+    "The BepInEx console window is turned off from the next launch: writing to it stalls the game. Diagnostics.KeepBepInExConsole keeps it.",
+    "Removed a knockback diagnostic that ran on every host hit.",
+]
+
 [version."2.0.11"]
 changes = [
     "Clients' kills are counted for whoever the host says landed the killing blow (they often went to the wrong player).",

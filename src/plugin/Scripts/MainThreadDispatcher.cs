@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MegabonkTogether.Helpers;
+using System;
 using System.Collections.Concurrent;
 using UnityEngine;
 
@@ -10,6 +11,7 @@ namespace MegabonkTogether.Scripts
 
         public void Update()
         {
+            var perf = PerfProbe.Begin();
             while (_executionQueue.TryDequeue(out var action))
             {
                 try
@@ -21,6 +23,7 @@ namespace MegabonkTogether.Scripts
                     Plugin.Log.LogWarning(ex);
                 }
             }
+            PerfProbe.End("MainThreadDispatcher", perf);
         }
 
         public static void Enqueue(Action action)
