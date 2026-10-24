@@ -8,7 +8,11 @@ using UnityEngine;
 
 namespace MegabonkTogether.Patches.Unity
 {
-    [HarmonyPatch(typeof(Component))]
+    /// <summary>
+    /// Not attribute patched: these getters are called hundreds of thousands of times a second in the late game. They are
+    /// hooked natively by TransformDetours, which only builds wrappers and calls these prefixes when a net player position
+    /// request is pending or the object is destroyed. The Harmony prefixes are the fallback if the native hooks can't be set.
+    /// </summary>
     internal static class UnityComponentPatches
     {
         private static readonly ISynchronizationService synchronizationService = Plugin.Services.GetService<ISynchronizationService>();
@@ -59,19 +63,19 @@ namespace MegabonkTogether.Patches.Unity
         /// Intercept Component.transform getter to return the correct transform
         /// Needed for DragonBreath or for special attacks that target other players (Special attack always target the local player, if only they used the enemy.target rigidbody instead ¯\_(ツ)_/¯)
         /// </summary>
-        [HarmonyPrefix]
-        [HarmonyPatch("get_transform")]
         public static bool get_transform_Prefix(Component __instance, ref Transform __result)
         {
+            if (IsNullOrDestroyed(__instance)) //TODO: i'm pretty sure its a netplayer dangling reference but how do i even debug this...
+            {
+                // Hack ¯\_(ツ)_/¯. Never call the original on it: it throws, and out of netplay (left over objects after a
+                // session) that flooded the log with errors
+                __result = synchronizationService.HasNetplaySessionStarted() ? GameManager.Instance?.player?.transform : null;
+                return false;
+            }
+
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return true;
-            }
-
-            if (IsNullOrDestroyed(__instance)) //TODO: i'm pretty sure its a netplayer dangling reference but how do i even debug this...
-            {
-                __result = GameManager.Instance.player.transform; //Hack ¯\_(ツ)_/¯
-                return false;
             }
 
             var pendingRequest = playerManagerService.PeakNetplayerPositionRequest();
@@ -100,7 +104,6 @@ namespace MegabonkTogether.Patches.Unity
         }
     }
 
-    [HarmonyPatch(typeof(Transform))]
     internal static class TransformPatches
     {
         private static readonly ISynchronizationService synchronizationService = Plugin.Services.GetService<ISynchronizationService>();
@@ -119,19 +122,18 @@ namespace MegabonkTogether.Patches.Unity
         /// Intercept Component.transform getter to return the correct transform (Work like above but for Transform component)
         /// Used by LaserBeamGun
         /// </summary>
-        [HarmonyPrefix]
-        [HarmonyPatch("get_position")]
         public static bool get_position_Prefix(Transform __instance, ref Vector3 __result)
         {
+            if (UnityComponentPatches.IsNullOrDestroyed(__instance))
+            {
+                var player = synchronizationService.HasNetplaySessionStarted() ? GameManager.Instance?.player : null;
+                __result = player != null ? player.transform.position : Vector3.zero;
+                return false;
+            }
+
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return true;
-            }
-
-            if (UnityComponentPatches.IsNullOrDestroyed(__instance))
-            {
-                __result = GameManager.Instance.player.transform.position;
-                return false;
             }
 
 
@@ -164,19 +166,18 @@ namespace MegabonkTogether.Patches.Unity
         /// Intercept Component.transform getter to return the correct transform (Work like above)
         /// Used by ProjectileMelee (Sword)
         /// </summary>
-        [HarmonyPrefix]
-        [HarmonyPatch("get_rotation")]
         public static bool get_rotation_Prefix(Transform __instance, ref Quaternion __result)
         {
+            if (UnityComponentPatches.IsNullOrDestroyed(__instance))
+            {
+                var player = synchronizationService.HasNetplaySessionStarted() ? GameManager.Instance?.player : null;
+                __result = player != null ? player.transform.rotation : Quaternion.identity;
+                return false;
+            }
+
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return true;
-            }
-
-            if (UnityComponentPatches.IsNullOrDestroyed(__instance))
-            {
-                __result = GameManager.Instance.player.transform.rotation;
-                return false;
             }
 
             var pendingRequest = playerManagerService.PeakNetplayerPositionRequest();

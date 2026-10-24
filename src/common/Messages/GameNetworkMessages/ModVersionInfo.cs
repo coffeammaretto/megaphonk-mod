@@ -1,4 +1,4 @@
-using MemoryPack;
+﻿using MemoryPack;
 
 namespace MegabonkTogether.Common.Messages.GameNetworkMessages
 {
@@ -11,7 +11,7 @@ namespace MegabonkTogether.Common.Messages.GameNetworkMessages
         /// <summary>
         /// Change it whenever the network messages change
         /// </summary>
-        public const string CurrentVersion = "2.0.12";
+        public const string CurrentVersion = "2.0.13";
 
         public uint OwnerId { get; set; }
         public string Version { get; set; }

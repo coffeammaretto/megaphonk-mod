@@ -1,4 +1,4 @@
-using BepInEx.Configuration;
+﻿using BepInEx.Configuration;
 using MegabonkTogether.Common.Messages.GameNetworkMessages;
 
 namespace MegabonkTogether.Configuration
@@ -46,6 +46,7 @@ namespace MegabonkTogether.Configuration
         public static ConfigEntry<bool> PerformanceLog { get; private set; }
         public static ConfigEntry<float> PerformanceSpikeMs { get; private set; }
         public static ConfigEntry<bool> KeepBepInExConsole { get; private set; }
+        public static ConfigEntry<bool> NativeTransformHooks { get; private set; }
 
         public static void Initialize(ConfigFile config)
         {
@@ -164,6 +165,8 @@ namespace MegabonkTogether.Configuration
                 "Performance log: frames longer than this (milliseconds) are logged with the mod's share.");
             KeepBepInExConsole = config.Bind("Diagnostics", "KeepBepInExConsole", false,
                 "Keep the BepInEx console window. Off: the mod turns it off (from the next launch), writing to it stalls the game when a lot is logged. The log file is still written.");
+            NativeTransformHooks = config.Bind("Diagnostics", "NativeTransformHooks", true,
+                "Hook Component.transform, Transform.position and Transform.rotation natively (much faster in the late game). Set to false if the game crashes on startup since 2.0.13: the slower Harmony patches are used instead.");
         }
 
         public static PartySettings ToPartySettings()

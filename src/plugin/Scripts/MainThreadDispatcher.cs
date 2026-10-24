@@ -14,6 +14,7 @@ namespace MegabonkTogether.Scripts
             var perf = PerfProbe.Begin();
             while (_executionQueue.TryDequeue(out var action))
             {
+                var actionPerf = PerfProbe.Begin(); //Per queued action (lambda named after its enclosing method, e.g. the received message's event)
                 try
                 {
                     action();
@@ -22,6 +23,7 @@ namespace MegabonkTogether.Scripts
                 {
                     Plugin.Log.LogWarning(ex);
                 }
+                PerfProbe.End(action.Method, actionPerf);
             }
             PerfProbe.End("MainThreadDispatcher", perf);
         }

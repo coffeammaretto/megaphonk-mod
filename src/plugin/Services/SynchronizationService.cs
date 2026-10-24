@@ -1182,6 +1182,15 @@ namespace MegabonkTogether.Services
             Patches.Enemies.EnemyPatch.MarkSpawnApplied(enemy);
         }
 
+        /// <summary>
+        /// Muzzle of the attack, the projectile itself if the attack or its muzzle is gone (seen right after a revive)
+        /// </summary>
+        private static Transform MuzzleTransform(WeaponAttack attack, ProjectileBase projectile)
+        {
+            var muzzle = attack != null ? attack.muzzle : null;
+            return muzzle != null ? muzzle.transform : projectile.transform;
+        }
+
         public void OnSpawnedProjectile(Il2CppObjectBase proj, uint? owner = null)
         {
             var instance = IL2CPP.PointerToValueGeneric<ProjectileBase>(proj.Pointer, false, false);
@@ -1195,7 +1204,7 @@ namespace MegabonkTogether.Services
             {
                 case EWeapon.Shotgun:
                     var shotgun = IL2CPP.PointerToValueGeneric<ProjectileShotgun>(proj.Pointer, false, false);
-                    var muzzle = shotgun.weaponAttack.muzzle;
+                    var muzzle = MuzzleTransform(shotgun.weaponAttack, instance);
                     message = new SpawnedShotgunProjectile
                     {
                         Id = netplayId,
@@ -1203,12 +1212,13 @@ namespace MegabonkTogether.Services
                         Rotation = Quantizer.Quantize(instance.transform.eulerAngles),
                         Position = Quantizer.Quantize(instance.transform.position),
                         Weapon = (int)instance.weaponBase.weaponData.eWeapon,
-                        MuzzlePosition = Quantizer.Quantize(muzzle.transform.position),
-                        MuzzleRotation = Quantizer.Quantize(muzzle.transform.eulerAngles)
+                        MuzzlePosition = Quantizer.Quantize(muzzle.position),
+                        MuzzleRotation = Quantizer.Quantize(muzzle.eulerAngles)
                     };
                     break;
                 case EWeapon.Revolver:
                     var revolver = IL2CPP.PointerToValueGeneric<ProjectileBasic>(proj.Pointer, false, false);
+                    var revolverMuzzle = MuzzleTransform(revolver.weaponAttack, instance);
                     message = new SpawnedRevolverProjectile
                     {
                         Id = netplayId,
@@ -1216,8 +1226,8 @@ namespace MegabonkTogether.Services
                         Rotation = Quantizer.Quantize(instance.transform.eulerAngles),
                         Position = Quantizer.Quantize(instance.transform.position),
                         Weapon = (int)instance.weaponBase.weaponData.eWeapon,
-                        MuzzlePosition = Quantizer.Quantize(revolver.weaponAttack.muzzle.transform.position),
-                        MuzzleRotation = Quantizer.Quantize(revolver.weaponAttack.muzzle.transform.eulerAngles)
+                        MuzzlePosition = Quantizer.Quantize(revolverMuzzle.position),
+                        MuzzleRotation = Quantizer.Quantize(revolverMuzzle.eulerAngles)
                     };
                     break;
                 case EWeapon.Axe:
@@ -2278,7 +2288,7 @@ namespace MegabonkTogether.Services
             {
                 if (!playerManagerService.IsLocalConnectionId(player.PlayerId)) //Expected when we already collected it locally
                 {
-                    logger.LogWarning($"Pickup {player.PickupId} not found in PickupManagerService when processing OnReceivedPickupFollowingPlayer by player {player.PlayerId}.");
+                    logger.LogDebug($"Pickup {player.PickupId} not found in PickupManagerService when processing OnReceivedPickupFollowingPlayer by player {player.PlayerId}."); //Bursts of hundreds when a magnet pulls collected pickups: debug only
                 }
                 return;
             }

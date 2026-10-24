@@ -6,6 +6,14 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.13"]
+changes = [
+    "Late game performance: the mod's hooks on object positions (called hundreds of thousands of times a second when pickups fly to you) now run natively, without the slow round trip and the garbage it created (up to 700 MB every 10 s). If the game crashes on startup, set Diagnostics.NativeTransformHooks to false.",
+    "Fixed a flood of errors in the log after leaving a session.",
+    "Fixed a rare error when a revolver or shotgun fired right after a revive.",
+    "Performance log: received messages are timed one by one; the pickup 'not found' warnings (bursts of hundreds) are no longer logged.",
+]
+
 [version."2.0.12"]
 changes = [
     "Performance log to find what causes the late game freezes: every 10 s the log file gets the time the mod spends per frame, .NET garbage collections and the slowest parts, plus a line for each frame over 50 ms (Diagnostics.PerformanceLog, on in this version).",

@@ -69,6 +69,27 @@ namespace MegabonkTogether.Helpers
         }
 
         /// <summary>
+        /// m_CachedPtr read from a raw il2cpp object pointer (native detours get no wrapper). False if the field offset is
+        /// unknown. Never throws.
+        /// </summary>
+        public static unsafe bool TryGetCachedPtr(IntPtr objectPointer, out IntPtr cachedPtr)
+        {
+            if (cachedPtrOffset == OFFSET_UNRESOLVED)
+            {
+                ResolveCachedPtrOffset();
+            }
+
+            if (cachedPtrOffset == OFFSET_UNAVAILABLE || objectPointer == IntPtr.Zero)
+            {
+                cachedPtr = IntPtr.Zero;
+                return cachedPtrOffset != OFFSET_UNAVAILABLE;
+            }
+
+            cachedPtr = *(IntPtr*)(objectPointer + cachedPtrOffset);
+            return true;
+        }
+
+        /// <summary>
         /// Same result as Unity's <c>obj != null</c> for objects created by the engine, without the native call
         /// </summary>
         public static bool IsAlive(this UnityEngine.Object obj)

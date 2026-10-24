@@ -246,6 +246,11 @@ namespace MegabonkTogether
                 }
             }
 
+            if (!ModConfig.NativeTransformHooks.Value || !Patches.Unity.TransformDetours.TryApply())
+            {
+                Patches.Unity.TransformDetours.ApplyHarmonyFallback(harmony);
+            }
+
             if (ModConfig.PerformanceLog.Value)
             {
                 try
