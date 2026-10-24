@@ -10,7 +10,7 @@ using UnityEngine;
 namespace MegabonkTogether.Patches.Enemies
 {
     /// <summary>
-    /// Diagnostic (2.0.6): host log of the enemy knockbacks, to compare the direction with the attacker's and the host's
+    /// Diagnostic (2.0.6, kept in 2.0.7 to check the direction fix): host log of the enemy knockbacks, to compare the direction with the attacker's and the host's
     /// position. At most 4 lines a second for the host's own hits and 4 for the other players' hits.
     /// </summary>
     [HarmonyPatch]

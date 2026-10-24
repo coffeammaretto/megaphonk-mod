@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.7"]
+changes = [
+    "Enemies hit by another player's weapon (Dicehead's dice and all others) are knocked back away from that player, not away from the host.",
+    "The host still logs enemy knockbacks ([Knockback] lines) to check the fix.",
+]
+
 [version."2.0.6"]
 changes = [
     "Diagnostic: the host writes enemy knockbacks to its log (direction, strength, who hit), to find why some weapons push enemies the wrong way.",
