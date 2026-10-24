@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.16"]
+changes = [
+    "Projectiles now push enemies along their flight direction.",
+    "Every other knockback (explosions, items, auras, melee) now pushes enemies straight away from the player who hit them: they were sometimes pushed into the player.",
+]
+
 [version."2.0.15"]
 changes = [
     "Rage, shield and haste powerups now work for the whole party: whoever picks one up, every player gets it, with its visual on every player.",
