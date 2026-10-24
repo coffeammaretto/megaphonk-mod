@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.6"]
+changes = [
+    "Diagnostic: the host writes enemy knockbacks to its log (direction, strength, who hit), to find why some weapons push enemies the wrong way.",
+]
+
 [version."2.0.5"]
 changes = [
     "Enemies at medium distance no longer freeze and then jump forward on clients: they keep moving between updates.",
