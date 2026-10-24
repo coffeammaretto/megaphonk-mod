@@ -29,23 +29,29 @@ namespace MegabonkTogether.Patches
                 return true;
             }
 
+            if (!IsLocalHealth(__instance)) //A copy's death would end the local run
+            {
+                return false;
+            }
+
             return !downedService.TryGoDown(__instance);
         }
 
         /// <summary>
-        /// Downed players are invulnerable: bleeding out is the threat
+        /// Downed players are invulnerable: bleeding out is the threat.
+        /// Copies of remote players never take damage here: their hp comes from the network, and a lethal hit on a copy
+        /// used the local player's Za Warudo or killed the local run.
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(nameof(PlayerHealth.Damage))]
         public static bool Damage_Prefix(PlayerHealth __instance)
         {
-            if (!synchronizationService.HasNetplaySessionStarted() || !downedService.IsLocalDowned)
+            if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return true;
             }
 
-            var localHealth = GameManager.Instance?.player?.inventory?.playerHealth;
-            return localHealth == null || __instance.Pointer != localHealth.Pointer;
+            return IsLocalHealth(__instance) && !downedService.IsLocalDowned;
         }
 
         /// <summary>
@@ -61,7 +67,7 @@ namespace MegabonkTogether.Patches
                 return;
             }
 
-            if (downedService.IsLocalDowned) //Got downed instead (the prefix skipped the death)
+            if (downedService.IsLocalDowned || !IsLocalHealth(__instance)) //Got downed instead, or a copy (the prefix skipped the death)
             {
                 return;
             }
@@ -88,6 +94,15 @@ namespace MegabonkTogether.Patches
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// True for the local player's health (and when it can't be found: the game's own behaviour)
+        /// </summary>
+        private static bool IsLocalHealth(PlayerHealth instance)
+        {
+            var localHealth = GameManager.Instance?.player?.inventory?.playerHealth;
+            return localHealth == null || instance.Pointer == localHealth.Pointer;
         }
     }
 }

@@ -6,6 +6,13 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.14"]
+changes = [
+    "Fixed your HP bar showing a teammate's HP and shield (for example a CL4NK's shield) after picking up a heart, landing hard, leveling up or a lifesteal hit: the game made each teammate copy react to your own events.",
+    "Teammate copies no longer take fall damage when you land, so your items no longer trigger on it (Golden Shield money, Cactus, Speed Boi, Toxic Barrel), nor heal on your hearts (Holy Book). Damage taken stats count only your own damage.",
+    "A teammate copy can no longer use up your Za Warudo or end your run.",
+]
+
 [version."2.0.13"]
 changes = [
     "Late game performance: the mod's hooks on object positions (called hundreds of thousands of times a second when pickups fly to you) now run natively, without the slow round trip and the garbage it created (up to 700 MB every 10 s). If the game crashes on startup, set Diagnostics.NativeTransformHooks to false.",

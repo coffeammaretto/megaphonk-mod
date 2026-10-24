@@ -195,6 +195,11 @@ namespace MegabonkTogether.Scripts.NetPlayer
                 inventory = new PlayerInventory(characterData);
                 Plugin.Instance.RestorePlayerInventoryActions();
 
+                // The constructor subscribes the copy's health to the local player's events (pickups, level up, landing,
+                // lifesteal): it then healed or hurt itself and the local HP bar was redrawn with the copy's hp and shield.
+                // Its values come from the network, OnDestroy only unsubscribes these handlers.
+                inventory.playerHealth.OnDestroy();
+
                 playerManagerService.AddPlayerInventory(connectionId, inventory);
             }
 

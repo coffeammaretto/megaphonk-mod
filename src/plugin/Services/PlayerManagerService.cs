@@ -153,7 +153,7 @@ namespace MegabonkTogether.Services
                 logger.LogWarning("Local player or inventory is null when checking remote PlayerHealth.");
                 return false;
             }
-            return instance != player.inventory.playerHealth;
+            return instance.Pointer != player.inventory.playerHealth.Pointer;
         }
 
         public bool IsRemoteTomeInventory(TomeInventory instance)
