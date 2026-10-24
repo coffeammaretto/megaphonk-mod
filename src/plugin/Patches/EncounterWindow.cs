@@ -105,6 +105,11 @@ namespace MegabonkTogether.Patches
                 return;
             }
 
+            if (!synchronizationService.ShouldPreventPause())
+            {
+                return;
+            }
+
             MyTime.Unpause();
         }
 

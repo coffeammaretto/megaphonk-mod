@@ -15,7 +15,8 @@ namespace MegabonkTogether.Common.Messages
     public sealed class EnemyMotionModel
     {
         public const double RENDER_DELAY = 0.1; // 4 enemy ticks at 40 Hz
-        // A sample arriving this soon after the previous one is a near enemy sample (one per 25 ms tick, a few lost still count)
+        // A sample arriving this soon after the previous one is a near enemy sample (one per 25 ms tick, a few lost still count).
+        // Near samples are always absolute: a delta this soon is a mid enemy sent every 4th tick, extrapolated like the host predicts
         private const double LINEAR_GAP = 0.16;
         // Further than this from where the enemy was going: a teleport, snap
         private const float TELEPORT_DISTANCE = 6f;
@@ -88,7 +89,7 @@ namespace MegabonkTogether.Common.Messages
 
             var renderTime = now - RENDER_DELAY;
             // samples[^1] is always a received sample here (shown position samples go before the new one)
-            var near = samples.Count > 0 && now - samples[^1].Time <= LINEAR_GAP;
+            var near = !entry.IsDelta && samples.Count > 0 && now - samples[^1].Time <= LINEAR_GAP;
 
             Vector3 position;
             if (hasPosition)

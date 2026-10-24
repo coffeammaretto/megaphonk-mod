@@ -11,24 +11,14 @@ namespace MegabonkTogether.Patches
         private static readonly ISynchronizationService synchronizationService = Plugin.Services.GetService<ISynchronizationService>();
 
         /// <summary>
-        /// No pause during netplay when no shared experience
+        /// No pause during netplay with other players when no party pause
         /// </summary>
         /// <returns></returns>
         [HarmonyPrefix]
         [HarmonyPatch(nameof(MyTime.Pause))]
         public static bool Pause_Postfix()
         {
-            if (!synchronizationService.HasNetplaySessionStarted())
-            {
-                return true;
-            }
-
-            if (synchronizationService.IsPartyPauseEnabled())
-            {
-                return true;
-            }
-
-            return false;
+            return !synchronizationService.ShouldPreventPause();
         }
 
     }

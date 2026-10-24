@@ -24,12 +24,7 @@ namespace MegabonkTogether.Patches
         [HarmonyPatch(nameof(LevelupScreen.ShowLevelupScreen))]
         public static void ShowLevelupScreen_Postfix(LevelupScreen __instance)
         {
-            if (!synchronizationService.HasNetplaySessionStarted())
-            {
-                return;
-            }
-
-            if (synchronizationService.IsPartyPauseEnabled())
+            if (!synchronizationService.ShouldPreventPause())
             {
                 return;
             }

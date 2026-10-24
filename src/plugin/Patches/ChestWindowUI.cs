@@ -19,12 +19,7 @@ namespace MegabonkTogether.Patches
         [HarmonyPatch(nameof(ChestOpening.OpenChest))]
         public static void OpenChest_Postfix(ChestOpening __instance)
         {
-            if (!synchronizationService.HasNetplaySessionStarted())
-            {
-                return;
-            }
-
-            if (synchronizationService.IsPartyPauseEnabled())
+            if (!synchronizationService.ShouldPreventPause())
             {
                 return;
             }
@@ -70,12 +65,7 @@ namespace MegabonkTogether.Patches
         [HarmonyPatch(nameof(ChestWindowUi.Open))]
         public static void Open_Postfix(ChestWindowUi __instance)
         {
-            if (!synchronizationService.HasNetplaySessionStarted())
-            {
-                return;
-            }
-
-            if (synchronizationService.IsPartyPauseEnabled())
+            if (!synchronizationService.ShouldPreventPause())
             {
                 return;
             }
@@ -97,12 +87,7 @@ namespace MegabonkTogether.Patches
         [HarmonyPatch(nameof(ChestWindowUi.OpeningFinished))]
         public static void OpeningFinished_Postfix(ChestWindowUi __instance)
         {
-            if (!synchronizationService.HasNetplaySessionStarted())
-            {
-                return;
-            }
-
-            if (synchronizationService.IsPartyPauseEnabled())
+            if (!synchronizationService.ShouldPreventPause())
             {
                 return;
             }

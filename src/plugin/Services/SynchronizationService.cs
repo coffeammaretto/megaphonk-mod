@@ -131,6 +131,12 @@ namespace MegabonkTogether.Services
         /// Shared experience with the party pause: everyone pauses while someone picks a reward
         /// </summary>
         public bool IsPartyPauseEnabled();
+
+        /// <summary>
+        /// Netplay with other players and no party pause: rewards, chests and the pause menu must not pause the game.
+        /// Alone in a room, the game pauses as usual
+        /// </summary>
+        public bool ShouldPreventPause();
         public void PlayerXpAddXp(int xp, int amount, float leftOverXp);
         public void RewardFinished();
         public void UpdateEncounterSync();
@@ -4886,6 +4892,11 @@ namespace MegabonkTogether.Services
             partySettingsService ??= (IPartySettingsService)Plugin.Services.GetService(typeof(IPartySettingsService));
             // Alone, nobody to wait for: the game's own reward pause is enough
             return IsSharedExperienceEnabled() && partySettingsService?.Current.RewardPauseMode != RewardPauseMode.Own && !udpClientService.IsSoloSession();
+        }
+
+        public bool ShouldPreventPause()
+        {
+            return HasNetplaySessionStarted() && !IsPartyPauseEnabled() && !udpClientService.IsSoloSession();
         }
 
         public bool IsSharedExperienceEnabled()
