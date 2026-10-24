@@ -1895,6 +1895,13 @@ namespace MegabonkTogether.Services
             };
             damageContainer.direction = GetKnockbackDirection(enemy, damaged.AttackerId);
 
+            // Client: the host's EnemyDied decides who killed it. Dying here instead credited whichever merged hit came first
+            // (and the snapshot hp already includes the hits being replayed), so kills went to the wrong player
+            if (!(IsServerMode() ?? false) && enemy.hp <= damageContainer.damage)
+            {
+                enemy.hp = damageContainer.damage + 1f;
+            }
+
             Plugin.Instance.DAMAGE_BEING_REPLAYED = damageContainer.Pointer;
             playerManagerService.AddGetNetplayerPositionRequest(damaged.AttackerId);
             trackerService.SetCurrentPlayerId(damaged.AttackerId);
@@ -1994,7 +2001,8 @@ namespace MegabonkTogether.Services
 
             if (!isHost)
             {
-                if (playerManagerService.IsLocalConnectionId(died.DiedByOwnerId))
+                // On kill procs of its own damage. A kill by its weapons already procced its items on the host
+                if (playerManagerService.IsLocalConnectionId(died.DiedByOwnerId) && Patches.Enemies.EnemyPatch.IsClientSentDamageSource(died.DamageSource))
                 {
                     foreach (var item in GameManager.Instance.player.inventory.itemInventory.items)
                     {

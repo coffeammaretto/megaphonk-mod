@@ -24,10 +24,19 @@ namespace MegabonkTogether.Patches.Enemies
         public static readonly HashSet<string> AllowedDamageSource = new(Enum.GetNames(typeof(EItem)));
 
         /// <summary>
-        /// Client damage triggered by its own player getting hit, which only the client sees (the host never hits a net
-        /// player): Thorns retaliation, and the shockwave of an Aegis block (its copy on the host doesn't run)
+        /// Client damage only the client deals: what its own player getting hit triggers (the host never hits a net player):
+        /// Thorns retaliation, the shockwave of an Aegis block, a Flex, a Shadowstep execute on evading. And its passives
+        /// growing on its own: the Bullseye marks and the Zap charge
         /// </summary>
-        private static readonly HashSet<string> ClientHitDamageSource = ["Thorns", "Aegis"];
+        private static readonly HashSet<string> ClientHitDamageSource = ["Thorns", "Aegis", "Flex", "Shadowstep", "Bullseye", "Zap"];
+
+        /// <summary>
+        /// Damage a client deals itself and sends to the host (never through the host's on-hit item procs)
+        /// </summary>
+        public static bool IsClientSentDamageSource(string damageSource)
+        {
+            return damageSource != null && (AllowedDamageSource.Contains(damageSource) || ClientHitDamageSource.Contains(damageSource));
+        }
 
         public static readonly DistanceThrottler EnemiesDistanceThrottler = new();
 
@@ -135,10 +144,22 @@ namespace MegabonkTogether.Patches.Enemies
                 return;
             }
 
-            var killerId = GetKillerId(dc);
-            if (killerId.HasValue && killerId.Value != playerManagerService.GetLocalPlayer().ConnectionId) { return; }
+            if (!IsLocalKill(GetKillerId(dc))) { return; }
 
             trackerService.RegisterTrack();
+        }
+
+        /// <summary>
+        /// No known killer: the host's own kill. A client only gets the kills the host credits it (OnReceivedEnemyDied)
+        /// </summary>
+        private static bool IsLocalKill(uint? killerId)
+        {
+            if (!killerId.HasValue)
+            {
+                return synchronizationService.IsServerMode() ?? false;
+            }
+
+            return killerId.Value == playerManagerService.GetLocalPlayer().ConnectionId;
         }
 
         /// <summary>
@@ -189,8 +210,7 @@ namespace MegabonkTogether.Patches.Enemies
                 return;
             }
 
-            var currentTracker = trackerService.GetCurrentPlayerId();
-            if (currentTracker.HasValue && currentTracker.Value != playerManagerService.GetLocalPlayer().ConnectionId) { return; }
+            if (!IsLocalKill(trackerService.GetCurrentPlayerId())) { return; }
 
             trackerService.RegisterTrack();
         }
@@ -270,7 +290,7 @@ namespace MegabonkTogether.Patches.Enemies
             }
 
             var damageSource = damageContainer.damageSource; //Native string read: once, passed along
-            if (AllowedDamageSource.Contains(damageSource) || ClientHitDamageSource.Contains(damageSource))
+            if (IsClientSentDamageSource(damageSource))
             {
                 synchronizationService.OnEnemyDamaged(__instance, damageContainer, damageSource);
             }

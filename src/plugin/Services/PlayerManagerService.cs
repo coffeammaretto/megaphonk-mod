@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups;
+using Assets.Scripts.Inventory__Items__Pickups.AbilitiesPassive;
 using Assets.Scripts.Inventory__Items__Pickups.AbilitiesPassive.Implementations;
 using Assets.Scripts.Inventory__Items__Pickups.Items.ItemImplementations;
 using Assets.Scripts.Inventory__Items__Pickups.Weapons;
@@ -89,6 +90,16 @@ namespace MegabonkTogether.Services
         public bool IsRemotePlayerHealth(PlayerHealth instance);
         public bool IsRemoteTomeInventory(TomeInventory instance);
         public bool IsANetPlayerAbility(PassiveAbilityBullseye instance);
+
+        /// <summary>
+        /// The passive belongs to the copy of another player's inventory
+        /// </summary>
+        public bool IsNetPlayerPassive(PassiveAbility passive);
+
+        /// <summary>
+        /// Same as GetPlayerInventory, without the warning (asked on every hit)
+        /// </summary>
+        public bool TryGetPlayerInventory(uint connectionId, out PlayerInventory inventory);
         public bool IsRemoteItem(ItemGhost instance);
         public void RemovePlayer(uint clientConnectionId);
     }
@@ -767,6 +778,31 @@ namespace MegabonkTogether.Services
         public bool IsANetPlayerAbility(PassiveAbilityBullseye instance)
         {
             return GetAllSpawnedNetPlayers().Any(netPlayer => netPlayer.Inventory.passiveAbility == instance);
+        }
+
+        public bool IsNetPlayerPassive(PassiveAbility passive)
+        {
+            if (passive == null)
+            {
+                return false;
+            }
+
+            var pointer = passive.Pointer;
+            foreach (var inventory in playerInventories.Values)
+            {
+                var copy = inventory?.passiveAbility;
+                if (copy != null && copy.Pointer == pointer)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool TryGetPlayerInventory(uint connectionId, out PlayerInventory inventory)
+        {
+            return playerInventories.TryGetValue(connectionId, out inventory) && inventory != null;
         }
 
         public bool IsRemoteItem(ItemGhost instance)

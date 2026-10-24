@@ -1,6 +1,8 @@
+using Assets.Scripts.Actors;
 using Assets.Scripts.Inventory__Items__Pickups;
 using Assets.Scripts.Inventory__Items__Pickups.Items;
 using Assets.Scripts.Inventory__Items__Pickups.Items.ItemImplementations;
+using Assets.Scripts.Inventory__Items__Pickups.Stats;
 using HarmonyLib;
 using MegabonkTogether.Helpers;
 using MegabonkTogether.Services;
@@ -73,6 +75,26 @@ namespace MegabonkTogether.Patches.Items
 
             var simulatedPlayerId = playerManagerService.PeakNetplayerPositionRequest();
             return simulatedPlayerId.HasValue && playerManagerService.IsRemoteConnectionId(simulatedPlayerId.Value);
+        }
+
+        /// <summary>
+        /// The other player whose actions are being processed, if any
+        /// </summary>
+        public static uint? GetRemoteContextPlayerId()
+        {
+            var attackerId = trackerService.GetCurrentPlayerId();
+            if (attackerId.HasValue && playerManagerService.IsRemoteConnectionId(attackerId.Value))
+            {
+                return attackerId;
+            }
+
+            var simulatedPlayerId = playerManagerService.PeakNetplayerPositionRequest();
+            if (simulatedPlayerId.HasValue && playerManagerService.IsRemoteConnectionId(simulatedPlayerId.Value))
+            {
+                return simulatedPlayerId;
+            }
+
+            return null;
         }
 
         private static bool OwnsItem(ItemInventory inventory, ItemBase item)
@@ -194,6 +216,108 @@ namespace MegabonkTogether.Patches.Items
 
             var ownerId = ItemOwnership.GetOwnerId(__instance);
             return ownerId.HasValue && ownerId == ItemOwnership.GetCurrentAttackerId();
+        }
+    }
+
+    /// <summary>
+    /// Items acting on their own around their owner (timers, distance moved): the owner's copy runs them and sends its damage.
+    /// The host's copy of a client's inventory, ticked to fire its weapons, ran them a second time
+    /// </summary>
+    [HarmonyPatch]
+    internal static class OwnerOnlyTickItemPatches
+    {
+        public static IEnumerable<MethodBase> TargetMethods()
+        {
+            return ItemOwnership.Safe(
+            [
+                AccessTools.Method(typeof(ItemBobLantern), nameof(ItemBobLantern.Tick)),
+                AccessTools.Method(typeof(ItemBobDead), nameof(ItemBobDead.Tick)),
+                AccessTools.Method(typeof(ItemEnergyCore), nameof(ItemEnergyCore.Tick)),
+                AccessTools.Method(typeof(ItemCursedDoll), nameof(ItemCursedDoll.Tick)),
+                AccessTools.Method(typeof(ItemCampfire), nameof(ItemCampfire.Tick)),
+            ]);
+        }
+
+        public static bool Prefix(ItemBase __instance)
+        {
+            return !ItemOwnership.IsNetplay || ItemOwnership.IsLocalItem(__instance);
+        }
+    }
+
+    /// <summary>
+    /// The game procs the local player's items on every player hit (PreAttack damage bonuses, PostDamage on-hit effects): on
+    /// the host, a client's weapon hits procced the host's items and never the client's. Use the attacker's copy instead
+    /// </summary>
+    internal static class AttackerItemInventory
+    {
+        private static readonly ISynchronizationService synchronizationService = Plugin.Services.GetService<ISynchronizationService>();
+        private static readonly IPlayerManagerService playerManagerService = Plugin.Services.GetService<IPlayerManagerService>();
+
+        /// <summary>
+        /// Items of the client being processed when the host's own items are asked, else null
+        /// </summary>
+        public static ItemInventory GetRemoteAttackerItems(ItemInventory asked)
+        {
+            if (!ItemOwnership.IsNetplay || !(synchronizationService.IsServerMode() ?? false))
+            {
+                return null;
+            }
+
+            var localInventory = GameManager.Instance?.player?.inventory?.itemInventory;
+            if (localInventory == null || asked.Pointer != localInventory.Pointer)
+            {
+                return null;
+            }
+
+            var attackerId = ItemOwnership.GetRemoteContextPlayerId();
+            if (!attackerId.HasValue || !playerManagerService.TryGetPlayerInventory(attackerId.Value, out var attackerInventory))
+            {
+                return null;
+            }
+
+            return attackerInventory.itemInventory;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class AttackerPreAttackPatches
+    {
+        public static IEnumerable<MethodBase> TargetMethods()
+        {
+            return ItemOwnership.Safe([AccessTools.Method(typeof(ItemInventory), nameof(ItemInventory.PreAttack))]);
+        }
+
+        public static bool Prefix(ItemInventory __instance, DamageContainer __0, StatComponents __1, ref StatComponents __result)
+        {
+            var attackerItems = AttackerItemInventory.GetRemoteAttackerItems(__instance);
+            if (attackerItems == null)
+            {
+                return true;
+            }
+
+            __result = attackerItems.PreAttack(__0, __1);
+            return false;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class AttackerPostDamagePatches
+    {
+        public static IEnumerable<MethodBase> TargetMethods()
+        {
+            return ItemOwnership.Safe([AccessTools.Method(typeof(ItemInventory), nameof(ItemInventory.PostDamage))]);
+        }
+
+        public static bool Prefix(ItemInventory __instance, DamageContainer __0)
+        {
+            var attackerItems = AttackerItemInventory.GetRemoteAttackerItems(__instance);
+            if (attackerItems == null)
+            {
+                return true;
+            }
+
+            attackerItems.PostDamage(__0);
+            return false;
         }
     }
 

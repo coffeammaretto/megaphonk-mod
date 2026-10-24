@@ -6,6 +6,16 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.11"]
+changes = [
+    "Clients' kills are counted for whoever the host says landed the killing blow (they often went to the wrong player).",
+    "Clients' on-hit items (Ice Cube, Dragonfire, gloves, Lightning Orb, Big Bonk, Spicy Meatball, Snek, Giant Fork, Boss Buster...) now proc on their weapon hits; the host's items no longer proc on clients' hits.",
+    "Clients' crit chance, crit damage and knockback are their own on weapon hits (the host's were used).",
+    "Clients' Flex (Megachad), Shadowstep (Ninja), Bullseye (Bush) and Zap (Tony McZoom) now damage enemies.",
+    "Another player's passive no longer reacts to yours: Flex blocking your hits, Shadowstep executing on your evades, Gamba rolling on your level up.",
+    "Bob's Light, Bob (Dead), Energy Core, Cursed Doll and Campfire of a client no longer trigger twice.",
+]
+
 [version."2.0.10"]
 changes = [
     "Clients' Thorns and Aegis block shockwaves (Athena) now damage enemies: they did nothing for clients before.",

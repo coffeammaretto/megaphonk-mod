@@ -72,8 +72,9 @@ namespace MegabonkTogether.Patches.Projectiles
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(nameof(ProjectileBase.HitEnemy))]
-        public static bool HitEnemy_Prefix(ProjectileBase __instance)
+        public static bool HitEnemy_Prefix(ProjectileBase __instance, out bool __state)
         {
+            __state = false;
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return true;
@@ -87,6 +88,9 @@ namespace MegabonkTogether.Patches.Projectiles
                 if (owner != null)
                 {
                     trackerService.SetCurrentPlayerId(owner.ConnectionId);
+                    // The hit reads the attacker's stats (crit chance and damage, knockback): the owner's, not the host's
+                    playerManagerService.AddGetNetplayerPositionRequest(owner.ConnectionId);
+                    __state = true;
                 }
             }
 
@@ -99,11 +103,16 @@ namespace MegabonkTogether.Patches.Projectiles
         /// </summary>
         [HarmonyPostfix]
         [HarmonyPatch(nameof(ProjectileBase.HitEnemy))]
-        public static void HitEnemy_Postfix(ProjectileBase __instance)
+        public static void HitEnemy_Postfix(ProjectileBase __instance, bool __state)
         {
             if (!synchronizationService.HasNetplaySessionStarted())
             {
                 return;
+            }
+
+            if (__state)
+            {
+                playerManagerService.UnqueueNetplayerPositionRequest();
             }
 
             trackerService.UnsetCurrentPlayerId();
