@@ -261,7 +261,7 @@ namespace MegabonkTogether.Patches
             var text = textObj.AddComponent<TextMeshProUGUI>();
             // Steam rooms are joined through the friends list, only the server mode still has a code
             var usesCode = !ModConfig.UseSteamNetworking.Value;
-            text.text = usesCode ? Loc.F("Role: {0}", Loc.T(roleText)) + "\nCode: ******" : Loc.F("Role: {0}", Loc.T(roleText));
+            text.text = usesCode ? Loc.F("Role: {0}", Loc.T(roleText)) + "\n" + Loc.T("Code: ******") : Loc.F("Role: {0}", Loc.T(roleText));
             var sharedExpValue = Plugin.Instance.Mode.Role == Role.Host ? ModConfig.EnabledSharedExperience.Value : Plugin.Instance.Mode.EnabledSharedExperience;
             if (sharedExpValue.HasValue)
             {

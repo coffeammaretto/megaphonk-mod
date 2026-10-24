@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.0.10"]
+changes = [
+    "Clients' Thorns and Aegis block shockwaves (Athena) now damage enemies: they did nothing for clients before.",
+    "Russian translation reworked to match the game's terms (Shady Guy, Shrine of Balance, Knockback, Size...) and its informal style; a few texts that were always shown in English are now translated.",
+]
+
 [version."2.0.9"]
 changes = [
     "Fixed a run that never ended after everyone died (a dead player kept running and shooting, no game over screen) when the previous run had been left to the menu.",

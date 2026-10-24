@@ -675,7 +675,7 @@ namespace MegabonkTogether.Services
             var item = (EItem)gift.Item;
             inventory.itemInventory.AddItem(item); //Synced to the others as usual
 
-            var giverName = playerManagerService.GetPlayer(gift.FromId)?.Name ?? "A teammate";
+            var giverName = playerManagerService.GetPlayer(gift.FromId)?.Name ?? Loc.T("A teammate");
             var itemName = DataManager.Instance?.itemData != null && DataManager.Instance.itemData.TryGetValue(item, out var data) ? data.GetName() : item.ToString();
             logger.LogInfo($"{giverName} gave {item}");
             Plugin.StartNotification(
@@ -2942,7 +2942,7 @@ namespace MegabonkTogether.Services
                             microwave.Interact();
                             MyTime.Pause();
                             RewardFinished();
-                            ScreenTextHelper.Show("Waiting for other player(s) choices in Microwave...", new Vector2(0, -350));
+                            ScreenTextHelper.Show("Waiting for other player(s) choices at the Microwave...", new Vector2(0, -350));
                             break;
                         }
 
@@ -2952,7 +2952,7 @@ namespace MegabonkTogether.Services
                         {
                             MyTime.Pause();
                             RewardFinished();
-                            ScreenTextHelper.Show("Waiting for other player(s) choices in Microwave...", new Vector2(0, -350));
+                            ScreenTextHelper.Show("Waiting for other player(s) choices at the Microwave...", new Vector2(0, -350));
                         }
                         else
                         {
@@ -2968,7 +2968,7 @@ namespace MegabonkTogether.Services
                         {
                             MyTime.Pause();
                             RewardFinished();
-                            ScreenTextHelper.Show("Waiting for other player(s) choices in Balance Shrine...", new Vector2(0, -350));
+                            ScreenTextHelper.Show("Waiting for other player(s) choices at the Shrine of Balance...", new Vector2(0, -350));
                         }
                         else
                         {
@@ -2984,7 +2984,7 @@ namespace MegabonkTogether.Services
                         {
                             MyTime.Pause();
                             RewardFinished();
-                            ScreenTextHelper.Show("Waiting for other player(s) choices in Moai Shrine...", new Vector2(0, -350));
+                            ScreenTextHelper.Show("Waiting for other player(s) choices at the Moai...", new Vector2(0, -350));
                         }
                         else
                         {
@@ -3000,7 +3000,7 @@ namespace MegabonkTogether.Services
                         {
                             MyTime.Pause();
                             RewardFinished();
-                            ScreenTextHelper.Show("Waiting for other player(s) choices in Chest...", new Vector2(0, -350));
+                            ScreenTextHelper.Show("Waiting for other player(s) choices in a chest...", new Vector2(0, -350));
                         }
                         else
                         {
@@ -3018,7 +3018,7 @@ namespace MegabonkTogether.Services
                         {
                             MyTime.Pause();
                             RewardFinished();
-                            ScreenTextHelper.Show("Waiting for other player(s) choices with Shady Guy...", new Vector2(0, -350));
+                            ScreenTextHelper.Show("Waiting for other player(s) choices with the Shady Guy...", new Vector2(0, -350));
                         }
                         else
                         {

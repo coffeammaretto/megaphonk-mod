@@ -57,7 +57,7 @@ namespace MegabonkTogether.Configuration
                 "Updates",
                 "CheckForUpdates",
                 true,
-                "Check for updates on startup . Recommend leaving this enabled"
+                "Check for updates on startup. Recommended to leave enabled"
             );
             ServerUrl = config.Bind(
                 "Network",

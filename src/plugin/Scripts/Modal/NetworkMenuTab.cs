@@ -632,7 +632,7 @@ namespace MegabonkTogether.Scripts
             if (!Plugin.Instance.NetworkHandler.IsConnectedToMatchMaker.Value)
             {
                 HideLoader();
-                SetStatusText(Loc.F("Failed to connect to server : {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
+                SetStatusText(Loc.F("Failed to connect to server: {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                 Plugin.Instance.NetworkHandler.ResetNetworking();
 
                 stopButton.gameObject.SetActive(false);
@@ -654,7 +654,7 @@ namespace MegabonkTogether.Scripts
                 if (Plugin.Instance.NetworkHandler.IsNetworkInterruptedStatus)
                 {
                     HideLoader();
-                    SetStatusText(Loc.F("Network interrupted. Please try again : {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
+                    SetStatusText(Loc.F("Network interrupted, please try again: {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                     Plugin.Instance.NetworkHandler.ResetNetworking();
 
                     stopButton.gameObject.SetActive(false);
@@ -719,7 +719,7 @@ namespace MegabonkTogether.Scripts
             if (!Plugin.Instance.NetworkHandler.IsConnectedToMatchMaker.Value)
             {
                 HideLoader();
-                SetStatusText(Loc.F("Failed to connect to server : {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
+                SetStatusText(Loc.F("Failed to connect to server: {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                 Plugin.Instance.NetworkHandler.ResetNetworking();
 
                 stopButton.gameObject.SetActive(false);
@@ -739,7 +739,7 @@ namespace MegabonkTogether.Scripts
                 if (Plugin.Instance.NetworkHandler.IsNetworkInterruptedStatus)
                 {
                     HideLoader();
-                    SetStatusText(Loc.F("Network interrupted. Please try again : {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
+                    SetStatusText(Loc.F("Network interrupted, please try again: {0}", Loc.T(Plugin.Instance.NetworkHandler.MatchMakerFailureMessage)));
                     Plugin.Instance.NetworkHandler.ResetNetworking();
 
                     stopButton.gameObject.SetActive(false);

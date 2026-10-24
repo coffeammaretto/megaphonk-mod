@@ -16,7 +16,7 @@ namespace MegabonkTogether.Services
         public readonly Dictionary<(string, string), string> LocalizationOverrides = new()
         {
             { ("MegabonkTogether", "MatchSuccess"), "Match" },
-            { ("MegabonkTogether", "MatchSuccessDesc"), "Joined as {0} a lobby of {1} players successfully!" },
+            { ("MegabonkTogether", "MatchSuccessDesc"), "Joined a lobby of {1} players as {0}!" },
             { ("MegabonkTogether", "PlayerDisconnected"), "Disconnected" },
             { ("MegabonkTogether", "PlayerDisconnected_Description"), "Player {0} disconnected" },
             { ("MegabonkTogether", "AllPlayerDisconnected"), "Disconnected" },
@@ -28,9 +28,9 @@ namespace MegabonkTogether.Services
             { ("MegabonkTogether", "FriendliesHostSuccess"), "Friendlies" },
             { ("MegabonkTogether", "FriendliesHostSuccessDesc"), "Hosting a friendly lobby" },
             { ("MegabonkTogether", "FriendliesClientSuccess"), "Friendlies" },
-            { ("MegabonkTogether", "FriendliesClientSuccessDesc"), "Joined {0} lobby" },
+            { ("MegabonkTogether", "FriendliesClientSuccessDesc"), "Joined the lobby" },
             { ("MegabonkTogether", "FriendliesClientJoinSuccess"), "Friendlies" },
-            { ("MegabonkTogether", "FriendliesClientJoinSuccessDesc"), "{0} joined " },
+            { ("MegabonkTogether", "FriendliesClientJoinSuccessDesc"), "{0} joined" },
             { ("MegabonkTogether", "VersionMismatch"), "Mod version mismatch" },
             { ("MegabonkTogether", "VersionMismatch_Description"), "{0} has {1}, you have {2}. Install the same build on every PC." },
             { ("MegabonkTogether", "VersionMissing_Description"), "{0} has an older build of the mod. Install the same build on every PC." },

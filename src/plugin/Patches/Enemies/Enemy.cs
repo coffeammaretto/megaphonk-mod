@@ -23,6 +23,12 @@ namespace MegabonkTogether.Patches.Enemies
 
         public static readonly HashSet<string> AllowedDamageSource = new(Enum.GetNames(typeof(EItem)));
 
+        /// <summary>
+        /// Client damage triggered by its own player getting hit, which only the client sees (the host never hits a net
+        /// player): Thorns retaliation, and the shockwave of an Aegis block (its copy on the host doesn't run)
+        /// </summary>
+        private static readonly HashSet<string> ClientHitDamageSource = ["Thorns", "Aegis"];
+
         public static readonly DistanceThrottler EnemiesDistanceThrottler = new();
 
         /// <summary>
@@ -256,15 +262,15 @@ namespace MegabonkTogether.Patches.Enemies
                 return;
             }
 
-            // Client: forward its own item damage, never the host's damage being replayed: sending that back made the host
-            // apply it again and echo it again, until the enemy died.
+            // Client: forward its own item damage and the damage of being hit, never the host's damage being replayed: sending
+            // that back made the host apply it again and echo it again, until the enemy died.
             if (IsReplayedDamage(damageContainer))
             {
                 return;
             }
 
             var damageSource = damageContainer.damageSource; //Native string read: once, passed along
-            if (AllowedDamageSource.Contains(damageSource))
+            if (AllowedDamageSource.Contains(damageSource) || ClientHitDamageSource.Contains(damageSource))
             {
                 synchronizationService.OnEnemyDamaged(__instance, damageContainer, damageSource);
             }

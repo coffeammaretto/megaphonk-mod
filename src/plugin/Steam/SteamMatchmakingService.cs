@@ -4,6 +4,7 @@ using MegabonkTogether.Common.Messages.GameNetworkMessages;
 using MegabonkTogether.Common.Messages.WsMessages;
 using MegabonkTogether.Common.Models;
 using MegabonkTogether.Configuration;
+using MegabonkTogether.Helpers;
 using MegabonkTogether.Scripts;
 using MegabonkTogether.Services;
 using MemoryPack;
@@ -125,7 +126,7 @@ namespace MegabonkTogether.Steam
                 if (!SteamApi.TryCodeToSteamId(code, out hostSteamId) || hostSteamId == selfSteamId)
                 {
                     transport.Stop();
-                    networkHandler.OnFailedToConnectToMatchMaker($"Invalid room code {code}");
+                    networkHandler.OnFailedToConnectToMatchMaker(Loc.F("Invalid room code {0}", code));
                     return;
                 }
 
@@ -372,7 +373,7 @@ namespace MegabonkTogether.Steam
                     {
                         Plugin.Log.LogWarning($"Steam room refused: {rejected.Reason}");
                         hasLostHost = true;
-                        networkHandler?.OnNetworkInterrupted(rejected.Reason);
+                        networkHandler?.OnNetworkInterrupted(LocalizeRejection(rejected.Reason));
                     }
                     break;
                 case ClientDisconnected clientDisconnected:
@@ -553,6 +554,18 @@ namespace MegabonkTogether.Steam
             usesServer = false;
 
             await serverMatchmaking.Reset();
+        }
+
+        /// <summary>
+        /// The host sends its refusal in English: the version one carries both versions, shown in this player's language
+        /// (the fixed ones are translated where they are shown)
+        /// </summary>
+        private static string LocalizeRejection(string reason)
+        {
+            var mismatch = System.Text.RegularExpressions.Regex.Match(reason ?? string.Empty, @"^The host runs mod version (.+), you have (.+)$");
+            return mismatch.Success
+                ? Loc.F("The host runs mod version {0}, you have {1}", mismatch.Groups[1].Value, mismatch.Groups[2].Value)
+                : reason;
         }
     }
 }

@@ -30,8 +30,8 @@ namespace MegabonkTogether.Scripts.Modal
             (RunModifier.Bloodbath, "Bloodbath", "Enemy damage +50%, healing -50%, gold +25%"),
             (RunModifier.Pinball, "Pinball", "Knockback x2, move speed +15%"),
             (RunModifier.SilverRush, "Silver Rush", "Silver +50%, enemy damage +25%"),
-            (RunModifier.Overdrive, "Overdrive", "Speed +20%, projectiles +25%, enemies +20% speed"),
-            (RunModifier.Shockwave, "Shockwave", "Weapon area +25%, damage -20%"),
+            (RunModifier.Overdrive, "Overdrive", "Move speed +20%, projectile speed +25%, enemy speed +20%"),
+            (RunModifier.Shockwave, "Shockwave", "Size +25%, damage -20%"),
             (RunModifier.RisingTide, "Rising Tide", "Enemies scale 50% faster, chests -25% price"),
         ];
 

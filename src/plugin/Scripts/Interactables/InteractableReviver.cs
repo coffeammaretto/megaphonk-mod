@@ -78,7 +78,7 @@ namespace MegabonkTogether.Scripts.Interactables
 
         public override string GetInteractString()
         {
-            return "REVIVE!";
+            return Loc.T("REVIVE!");
         }
 
         private void OnEnemyDied(Enemy enemy, DamageContainer dc)

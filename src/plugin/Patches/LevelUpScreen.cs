@@ -54,7 +54,7 @@ namespace MegabonkTogether.Patches
                 infoText.fontSize = 36;
                 infoText.color = Color.red;
 
-                infoText.text = Loc.T("You are vulnerable during shady guy interaction!");
+                infoText.text = Loc.T("No invulnerability while talking to the Shady Guy!");
                 return;
             }
 
