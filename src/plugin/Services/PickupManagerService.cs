@@ -20,6 +20,7 @@ namespace Megaphonk.Services
         public List<uint> RemovePickupByReference(Pickup pickup, bool cleanupXpList);
         public Pickup GetSpawnedPickupById(uint id);
         public void RemoveSpawnedPickupById(uint id);
+        public void MovePickupIds(Pickup from, Pickup into);
         public void ResetForNextLevel();
     }
     internal class PickupManagerService : IPickupManagerService
@@ -182,6 +183,31 @@ namespace Megaphonk.Services
             }
 
             RemovePickupByReference(pickup, true);
+        }
+
+        /// <summary>
+        /// The game merged a pickup into another (over its object limit): the ids it carried now point to the other one
+        /// </summary>
+        public void MovePickupIds(Pickup from, Pickup into)
+        {
+            if (IsNullOrDestroyed(from) || IsNullOrDestroyed(into))
+            {
+                return;
+            }
+
+            lock (pickupIdsLock)
+            {
+                if (!pickupIdsByInstanceId.Remove(from.Ptr(), out var ids))
+                {
+                    return;
+                }
+
+                foreach (var id in ids)
+                {
+                    spawnedPickups[id] = into;
+                    TrackInstanceId(id, into);
+                }
+            }
         }
 
         public IEnumerable<(uint, Pickup)> GetAllPickupXp()

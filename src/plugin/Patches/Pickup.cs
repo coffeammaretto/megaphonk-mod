@@ -42,8 +42,7 @@ namespace Megaphonk.Patches
                 if (isRemote)
                 {
                     __state = false;
-
-
+                    synchronizationService.OnRemoteXpPickupConsumed(__instance);
                     return false;
                 }
             }

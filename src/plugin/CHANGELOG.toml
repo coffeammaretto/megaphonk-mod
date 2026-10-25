@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.6.0"]
+changes = [
+    "Shared experience reworked: every XP orb picked up by anyone gives its XP to every player once, each with their own XP gain, so levels may differ. The XP bar no longer jumps back and no XP is lost when several players pick up orbs at the same time.",
+    "Less lag in long runs: over MaxPickupObjects (new setting, 200 by default) XP orbs or gold coins on the map, the oldest ones merge into one worth as much (the mod used to allow up to 10000 of each).",
+]
+
 [version."2.5.1"]
 changes = [
     "Fixed: co-op clients heard the game's stage music instead of the host's track after the main menu track.",

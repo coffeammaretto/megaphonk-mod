@@ -44,6 +44,7 @@ namespace Megaphonk.Configuration
         public static ConfigEntry<bool> ChallengesEnabled { get; private set; }
 
         public static ConfigEntry<bool> CustomMusic { get; private set; }
+        public static ConfigEntry<int> MaxPickupObjects { get; private set; }
         public static ConfigEntry<bool> SubmitCoopRuns { get; private set; }
         public static ConfigEntry<string> LeaderboardUrl { get; private set; }
 
@@ -165,6 +166,10 @@ namespace Megaphonk.Configuration
 
             CustomMusic = config.Bind("Music", "CustomMusic", true,
                 "The mod's music: its tracks play in a random order instead of the stage music, the host's track for everybody in co-op, and the main menu has its own track. Boss music stays the game's.");
+
+            MaxPickupObjects = config.Bind("Performance", "MaxPickupObjects", 200,
+                new ConfigDescription("Co-op runs: most xp orbs (and as many gold coins) lying on the map. Over it the oldest ones merge into one worth as much (fewer objects, less lag), as the game does in solo with a lower limit.",
+                    new AcceptableValueRange<int>(50, 10000)));
 
             SubmitCoopRuns = config.Bind("Leaderboard", "SubmitCoopRuns", true,
                 "Host: submit each finished co-op run to the Megaphonk co-op leaderboard (map, tier, players' names, Steam IDs, characters and kills). The game's own leaderboards do not count co-op runs.");

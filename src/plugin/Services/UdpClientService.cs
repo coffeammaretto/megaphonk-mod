@@ -836,9 +836,6 @@ namespace Megaphonk.Services
                     case PlayerDied playerDied:
                         EventManager.OnPlayerDied(playerDied);
                         break;
-                    case AddXp addXp:
-                        EventManager.OnAddXp(addXp);
-                        break;
                     case CloseEncounter closeEncounter:
                         EventManager.OnCloseEncounter(closeEncounter);
                         break;
@@ -1147,10 +1144,6 @@ namespace Megaphonk.Services
                         EventManager.OnPlayerDisconnected(playerDisconnected);
                         SendToAllClients(playerDisconnected, DeliveryMethod.ReliableOrdered);
 
-                        break;
-                    case AddXp addXp:
-                        EventManager.OnAddXp(addXp);
-                        SendToAllClientsExcept(netPeerId, addXp.OwnerId, addXp);
                         break;
                     case PlayerStatsChanged playerStatsChanged:
                         EventManager.OnPlayerStatsChanged(playerStatsChanged);

@@ -12,7 +12,7 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
   - **Host**: MEGAPHONK! → Host. The character selection opens right away, friends can join until the run starts. Nobody joined? The host can start the run alone, with the mod's features (run modifiers, challenges, team stats).
   - **Join**: MEGAPHONK! → Join → pick a friend from the list. The list shows Steam friends who have the game running and a room open, and refreshes every 2 seconds.
 - The host runs the game: enemies, damage and the clients' weapons, computed with each client's real stats.
-- Shared experience (on by default): one level for the whole party, and a reward window pauses the game for everyone.
+- Shared experience (on by default): every XP orb picked up by anyone gives its XP to every player, each with their own XP gain (so levels may differ), and a reward window pauses the game for everyone.
 - Saving progression works during netplay (on by default).
 - Mod version check: a player with another build cannot join and is told why.
 - Fixes for Megabonk 1.0.69: startup crashes, stuck pauses, enemies wandering off, instant coin and XP pickup, the teleport to the final boss leaving everyone stuck on "Waiting for other players".
@@ -20,7 +20,7 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
 ### Network and performance
 - The network messages of a frame are sent as one packet instead of hundreds of separate ones, so the late game no longer stutters when lots of XP, gold and enemies spawn and die. Big snapshots are split.
 - The host merges damage per enemy and per player each frame before sending it: clients see fewer, bigger damage numbers.
-- XP is synchronized once per frame, not on every orb.
+- Over `MaxPickupObjects` (200 by default) XP orbs or gold coins on the map, the oldest ones merge into one worth as much: fewer objects, less lag.
 - Far enemies stay visible (they are only updated less often on clients), and the host resends every enemy's position at least once a second, so a lost packet never leaves an enemy stuck on a client's screen.
 
 ### Rewards
@@ -88,7 +88,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 With a mod manager: install [MegaphonkMod on Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) with r2modman or Gale, the mod manager installs BepInEx and updates the mod. Manual installation:
 
 1. Close the game.
-2. Download `MegaphonkMod-2.5.1-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Download `MegaphonkMod-2.6.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 4. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -127,7 +127,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
   - **Хост**: MEGAPHONK! → Host. Сразу открывается выбор персонажа, друзья могут войти до старта забега. Никто не зашёл? Хост может начать забег один, с возможностями мода (модификаторы забега, испытания, статистика).
   - **Вход**: MEGAPHONK! → Join → выбрать друга в списке. В списке друзья из Steam, у которых запущена игра и открыта комната, список обновляется раз в 2 секунды.
 - Хост ведёт игру: врагов, урон и оружие клиентов, которое считается с их настоящими статами.
-- Общий опыт (включён по умолчанию): один уровень на всю пати, а окно награды ставит игру на паузу у всех.
+- Общий опыт (включён по умолчанию): сфера опыта, подобранная кем угодно, даёт опыт каждому игроку с его собственным множителем опыта (уровни могут различаться), а окно награды ставит игру на паузу у всех.
 - Сохранение прогресса работает во время коопа (включено по умолчанию).
 - Проверка версии: игрока с другой версией мода не пустят в комнату и объяснят почему.
 - Исправления под Megabonk 1.0.69: вылеты при запуске, зависшие паузы, уходящие враги, мгновенный подбор монет и опыта, зависание всех на «Ждём других игроков» при телепорте к финальному боссу.
@@ -135,7 +135,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 #### Сеть и производительность
 - Сетевые сообщения за кадр уходят одним пакетом, а не сотнями отдельных: поздняя игра больше не фризит, когда появляется и умирает много опыта, золота и врагов. Большие снимки состояния режутся на части.
 - Хост сливает урон по каждому врагу от каждого игрока за кадр перед отправкой: у клиентов меньше цифр урона, но они крупнее.
-- Опыт синхронизируется раз в кадр, а не на каждую сферу.
+- Если на карте больше `MaxPickupObjects` (по умолчанию 200) сфер опыта или монет, самые старые сливаются в одну с той же суммой: меньше объектов, меньше лагов.
 - Дальние враги остаются видимыми (у клиентов они просто реже обновляются), а хост раз в секунду заново шлёт позиции всех врагов, поэтому потерянный пакет не оставляет врага застрявшим у клиента.
 
 #### Награды
@@ -202,7 +202,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 Через менеджер модов: установи [MegaphonkMod из Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) через r2modman или Gale, менеджер сам поставит BepInEx и будет обновлять мод. Ручная установка:
 
 1. Закрой игру.
-2. Скачай `MegaphonkMod-2.5.1-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Скачай `MegaphonkMod-2.6.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 4. Запусти игру через Steam. Первый запуск дольше обычного.
 

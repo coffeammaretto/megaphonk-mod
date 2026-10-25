@@ -65,7 +65,6 @@ namespace Megaphonk.Services
         private static event Action<HatChanged> HatChangedEvents;
         private static event Action<SpawnedReviver> SpawnedReviverEvents;
         private static event Action<PlayerRespawned> PlayerRespawnedEvents;
-        private static event Action<AddXp> AddXpEvents;
         private static event Action<CloseEncounter> CloseEncounterEvents;
         private static event Action<EncounterPaused> EncounterPausedEvents;
         private static event Action<PlayerStatsChanged> PlayerStatsChangedEvents;
@@ -795,19 +794,6 @@ namespace Megaphonk.Services
             MainThreadDispatcher.Enqueue(() =>
             {
                 PlayerRespawnedEvents?.Invoke(playerRespawned);
-            });
-        }
-
-        public static void SubscribeAddXpEvents(Action<AddXp> action)
-        {
-            AddXpEvents += action;
-        }
-
-        public static void OnAddXp(AddXp addXp)
-        {
-            MainThreadDispatcher.Enqueue(() =>
-            {
-                AddXpEvents?.Invoke(addXp);
             });
         }
 

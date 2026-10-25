@@ -138,7 +138,7 @@ namespace Megaphonk.Services
         /// Alone in a room, the game pauses as usual
         /// </summary>
         public bool ShouldPreventPause();
-        public void PlayerXpAddXp(int xp, int amount, float leftOverXp);
+        public void OnRemoteXpPickupConsumed(Pickup pickup);
         public void RewardFinished();
         public void UpdateEncounterSync();
         public void RetryPendingInventoryReplays();
@@ -202,8 +202,6 @@ namespace Megaphonk.Services
             public float LargestHit { get; set; }
         }
         private readonly Dictionary<uint, List<PendingEnemyDamage>> pendingEnemyDamages = [];
-        // Receivers only use the absolute xp: only the latest gain of the frame is sent
-        private AddXp pendingAddXp = null;
 
         private CancellationTokenSource cancellationTokenSource = new();
         private CancellationToken cancellationToken = default;
@@ -290,7 +288,6 @@ namespace Megaphonk.Services
             EventManager.SubscribeHatChangedEvents(OnReceivedHatChanged);
             EventManager.SubscribeSpawnedReviverEvents(OnReceivedSpawnedReviver);
             EventManager.SubscribePlayerRespawnedEvents(OnReceivedPlayerRespawned);
-            EventManager.SubscribeAddXpEvents(OnReceivedAddXp);
             EventManager.SubscribeCloseEncounterEvents(OnReceivedCloseEncounter);
             EventManager.SubscribeEncounterPausedEvents(OnReceivedEncounterPaused);
             EventManager.SubscribeModVersionInfoEvents(OnReceivedModVersionInfo);
@@ -610,8 +607,9 @@ namespace Megaphonk.Services
                 }
             }
 
-            PickupManager.Instance.xpList.maxObjects = 10000; //Increase max Xp pickup since on netplay, there are more enemies
-            PickupManager.Instance.goldList.maxObjects = 10000; //Increase max Gold pickup since on netplay, there are more enemies
+            // More enemies in co-op: a higher limit than solo, over it the oldest pickups merge (PickupStackingPatches)
+            PickupManager.Instance.xpList.maxObjects = Configuration.ModConfig.MaxPickupObjects.Value;
+            PickupManager.Instance.goldList.maxObjects = Configuration.ModConfig.MaxPickupObjects.Value;
 
             var allNetPlayers = playerManagerService.GetAllPlayersExceptLocal();
             var minimapCamera = GameManager.Instance.player.minimapCamera.GetComponent<MinimapCamera>();
@@ -778,8 +776,8 @@ namespace Megaphonk.Services
             switch (gameEvent)
             {
                 case GameEvent.Loading:
-                    PickupManager.maxXpObjects = 10000;
-                    PickupManager.maxGoldObjects = 10000;
+                    PickupManager.maxXpObjects = Configuration.ModConfig.MaxPickupObjects.Value;
+                    PickupManager.maxGoldObjects = Configuration.ModConfig.MaxPickupObjects.Value;
                     PickupManager.maxPowerupsOnMap = 1000;
 
                     currentState = State.Loading;
@@ -894,7 +892,6 @@ namespace Megaphonk.Services
             pendingEnemySpawns.Clear();
             enemiesDiedBeforeSpawn.Clear();
             pendingEnemyDamages.Clear();
-            pendingAddXp = null;
             Plugin.ResetPointerCaches();
 
             Plugin.Instance.NetPlayersDisplayer.ResetCards();
@@ -1813,21 +1810,6 @@ namespace Megaphonk.Services
 
                 pendingEnemyDamages.Clear();
             }
-
-            if (pendingAddXp != null)
-            {
-                var addXp = pendingAddXp;
-                pendingAddXp = null;
-
-                if (IsServerMode() ?? false)
-                {
-                    udpClientService.SendToAllClients(addXp, LiteNetLib.DeliveryMethod.ReliableOrdered);
-                }
-                else
-                {
-                    udpClientService.SendToHost(addXp, LiteNetLib.DeliveryMethod.ReliableOrdered);
-                }
-            }
         }
 
         /// <summary>
@@ -2223,6 +2205,11 @@ namespace Megaphonk.Services
             else
             {
                 var netPlayer = playerManagerService.GetNetPlayerByNetplayId(applied.OwnerId);
+
+                if (pickup.gameObject.activeSelf) //Not already applied as another id of the same stack
+                {
+                    OnRemoteXpPickupConsumed(pickup);
+                }
 
                 if (IsPartyPowerup(pickup.ePickup))
                 {
@@ -5015,28 +5002,20 @@ namespace Megaphonk.Services
         }
 
         /// <summary>
-        /// Receivers only apply the absolute xp: keep the latest gain, sent once at the end of the frame (FlushPendingNetworkUpdates)
+        /// Shared experience: every xp orb gives its xp to every player once, each with its own xp gain (stats, items), so
+        /// levels may differ. The collector gets it from the game; the others here, when their copy of the orb goes away
+        /// for the collector: it flew into the collector (ApplyPickup prefix) or the collector's PickupApplied came first.
+        /// Whichever comes first removes the copy, so the other one finds nothing (each orb counted once per player).
+        /// Replaces sending the absolute xp, which made simultaneous gains overwrite each other (lost xp, jumping bar).
         /// </summary>
-        public void PlayerXpAddXp(int xp, int amount, float leftOverXp)
+        public void OnRemoteXpPickupConsumed(Pickup pickup)
         {
-            pendingAddXp = new AddXp
+            if (pickup == null || pickup.ePickup != EPickup.Xp || !IsSharedExperienceEnabled())
             {
-                Xp = xp,
-                Amount = amount + (pendingAddXp?.Amount ?? 0),
-                LeftOverXp = leftOverXp,
-                OwnerId = playerManagerService.GetLocalPlayer().ConnectionId,
-            };
-        }
+                return;
+            }
 
-        private void OnReceivedAddXp(AddXp xp)
-        {
-            pendingAddXp = null; //Computed before this xp replaced ours: sending it would overwrite the newer value on the others
-            Plugin.CAN_SEND_MESSAGES = false;
-            var playerXp = GameManager.Instance.player.inventory.playerXp;
-            playerXp.xp = xp.Xp;
-            playerXp.leftOverXp = xp.LeftOverXp;
-            playerXp.AddXp(0);
-            Plugin.CAN_SEND_MESSAGES = true;
+            GameManager.Instance?.player?.inventory?.AddXp(pickup.value);
         }
 
         /// <summary>
