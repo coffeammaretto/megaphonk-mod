@@ -58,6 +58,7 @@ Once the final boss is dead, a second portal stands next to the final one. The f
 - Each ascension makes enemies stronger, never more numerous: enemy HP x1.5 (`AscensionEnemyHpGrowth`) and damage x1.25 (`AscensionEnemyDamageGrowth`) per level, compounding, and at most 300 enemies on the map at once (`AscensionMaxEnemies`). Turned off with `AscensionEnabled`.
 - **Curses**: after each ascension, every player picks one of three random curses for themselves (1/2/3 or a click), since each character has its own weaknesses. The party pauses meanwhile, as for a level up. Curses stack for the rest of the run.
 - 26 curses, from one stat (max HP, damage, attack speed, armor, evasion, shield, lifesteal, luck...) to two or more (crits, elemental damage, power-ups, gold and silver). Each card rolls its strength: lesser (x0.6, 45%), normal (40%) or greater (x1.6, 15%). A curse takes a percentage of what the player has, so a build without that stat doesn't care. One stat loses at most 75% to curses.
+- **Rifts**: from the first ascension, every stage but the final boss's opens a rift 60 seconds in, then 3 minutes after the previous one ends. For now one kind: zones to hold (one per player, at most two; a purple ring and beam, an arrow on the minimap). Each fills in 20 seconds while a player, alive and not downed, stands in it; all of them within 90 seconds. A rift adds no enemy. Cleared: every player picks a **pact**, a boon (+15 to 40% to a stat) paid with a lesser or normal curse. Failed: every player picks a curse.
 - Co-op only, the host decides: a client using the portal asks the host.
 
 ### Run modifiers
@@ -89,14 +90,14 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 - Player name, key bindings and every party rule in `BepInEx\config\MegaphonkMod.cfg`.
 - Notice when a new version is out on GitHub (`CheckForUpdates`) and a changelog window. The mod never downloads or installs anything itself.
 - The mod's texts follow the game's language: English and Russian (other languages show English).
-- Testing shortcuts (`DebugTools`, off; set by the host for the whole party): the first stage's portal leads to the final boss, F10 on the host kills every enemy.
+- Testing shortcuts (`DebugTools`, off; set by the host for the whole party): the first stage's portal leads to the final boss, F10 on the host kills every enemy, F9 on the host opens a rift.
 
 ## Installation
 
 With a mod manager: install [MegaphonkMod on Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) with r2modman or Gale, the mod manager installs BepInEx and updates the mod. Manual installation:
 
 1. Close the game.
-2. Download `MegaphonkMod-2.7.3-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Download `MegaphonkMod-2.8.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 4. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -181,6 +182,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Каждое восхождение делает врагов сильнее, но не многочисленнее: здоровье врагов x1,5 (`AscensionEnemyHpGrowth`) и урон x1,25 (`AscensionEnemyDamageGrowth`) за уровень, с накоплением, и не больше 300 врагов на карте одновременно (`AscensionMaxEnemies`). Отключается параметром `AscensionEnabled`.
 - **Проклятия**: после каждого восхождения каждый игрок сам выбирает одно из трёх случайных проклятий (1/2/3 или клик): у каждого персонажа свои слабости. Пати на это время стоит на паузе, как при повышении уровня. Проклятия копятся до конца забега.
 - 26 проклятий: на один стат (здоровье, урон, скорость атаки, броня, уклонение, щит, вампиризм, удача...) и на несколько (криты, урон стихиями, усиления, золото и серебро). Сила каждой карточки случайна: слабое (x0,6, 45%), обычное (40%) или тяжёлое (x1,6, 15%). Проклятие снимает процент от того, что есть у игрока, поэтому билду без этого стата оно не мешает. Один стат теряет от проклятий не больше 75%.
+- **Разломы**: с первого восхождения на каждом этапе, кроме арены финального босса, через 60 секунд открывается разлом, следующий через 3 минуты после конца предыдущего. Пока один вид: зоны для удержания (по одной на игрока, не больше двух; фиолетовое кольцо и луч, стрелка на миникарте). Зона заполняется за 20 секунд, пока в ней стоит живой игрок не в нокдауне; все зоны нужно заполнить за 90 секунд. Разлом не добавляет врагов. Закрыт: каждый выбирает **пакт**, дар (+15–40% к стату) ценой слабого или обычного проклятия. Провален: каждый выбирает проклятие.
 - Только в коопе, решает хост: портал клиента отправляет запрос хосту.
 
 #### Модификаторы забега
@@ -212,13 +214,13 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Имя игрока, клавиши и все правила пати в `BepInEx\config\MegaphonkMod.cfg`.
 - Уведомление о новой версии на GitHub (`CheckForUpdates`) и окно со списком изменений. Сам мод ничего не скачивает и не устанавливает.
 - Тексты мода следуют языку игры: английский и русский (в остальных языках английский).
-- Отладка (`DebugTools`, выключена; включает хост для всей пати): портал первого этапа ведёт к финальному боссу, F10 у хоста убивает всех врагов.
+- Отладка (`DebugTools`, выключена; включает хост для всей пати): портал первого этапа ведёт к финальному боссу, F10 у хоста убивает всех врагов, F9 у хоста открывает разлом.
 
 ### Установка
 Через менеджер модов: установи [MegaphonkMod из Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) через r2modman или Gale, менеджер сам поставит BepInEx и будет обновлять мод. Ручная установка:
 
 1. Закрой игру.
-2. Скачай `MegaphonkMod-2.7.3-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Скачай `MegaphonkMod-2.8.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 4. Запусти игру через Steam. Первый запуск дольше обычного.
 

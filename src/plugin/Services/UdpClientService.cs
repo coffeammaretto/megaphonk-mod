@@ -875,6 +875,15 @@ namespace Megaphonk.Services
                     case AscensionStarted ascensionStarted:
                         EventManager.OnAscensionStarted(ascensionStarted);
                         break;
+                    case RiftStarted riftStarted:
+                        EventManager.OnRiftStarted(riftStarted);
+                        break;
+                    case RiftProgress riftProgress:
+                        EventManager.OnRiftProgress(riftProgress);
+                        break;
+                    case RiftEnded riftEnded:
+                        EventManager.OnRiftEnded(riftEnded);
+                        break;
                     default:
                         Plugin.Log.LogWarning($"Unknown message type received. message={message}");
                         break;

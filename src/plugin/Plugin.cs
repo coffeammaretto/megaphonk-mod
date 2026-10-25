@@ -198,6 +198,7 @@ namespace Megaphonk
                 services.AddSingleton<IChallengeService, ChallengeService>();
                 services.AddSingleton<IAscensionService, AscensionService>();
                 services.AddSingleton<ICurseService, CurseService>();
+                services.AddSingleton<IRiftService, RiftService>();
                 services.AddSingleton<IRunStatsService, RunStatsService>();
                 services.AddSingleton<ICoopLeaderboardService, CoopLeaderboardService>();
                 services.AddSingleton<ITrackerService, TrackerService>();

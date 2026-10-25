@@ -6,6 +6,13 @@
 #     "Change 2 description",
 # ]
 
+[version."2.8.0"]
+changes = [
+    "Rifts: from the first ascension, every stage but the final boss's opens rifts. Hold the zones (one per player, at most two) for 20 seconds within 90 seconds. A rift adds no enemy.",
+    "Pacts: a cleared rift lets every player pick a pact, a boon paid with a lesser or normal curse. A failed rift gives a curse.",
+    "DebugTools: F9 on the host opens a rift.",
+]
+
 [version."2.7.3"]
 changes = [
     "Fixed the ascension curse choice window failing to open: an empty square stayed on screen and the party was not paused.",

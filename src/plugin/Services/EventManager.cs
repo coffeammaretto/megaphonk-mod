@@ -57,6 +57,9 @@ namespace Megaphonk.Services
         private static event Action<WeaponToggled> WeaponToggledEvents;
         private static event Action<MusicTrackChanged> MusicTrackChangedEvents;
         private static event Action<AscensionStarted> AscensionStartedEvents;
+        private static event Action<RiftStarted> RiftStartedEvents;
+        private static event Action<RiftProgress> RiftProgressEvents;
+        private static event Action<RiftEnded> RiftEndedEvents;
         private static event Action GameStartedEvents;
         private static event Action PortalOpenedEvents;
         private static event Action<SpawnedObjectInCrypt> SpawnedObjectInCryptEvents;
@@ -692,6 +695,45 @@ namespace Megaphonk.Services
             MainThreadDispatcher.Enqueue(() =>
             {
                 AscensionStartedEvents?.Invoke(ascensionStarted);
+            });
+        }
+
+        public static void SubscribeRiftStartedEvents(Action<RiftStarted> action)
+        {
+            RiftStartedEvents += action;
+        }
+
+        public static void OnRiftStarted(RiftStarted riftStarted)
+        {
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                RiftStartedEvents?.Invoke(riftStarted);
+            });
+        }
+
+        public static void SubscribeRiftProgressEvents(Action<RiftProgress> action)
+        {
+            RiftProgressEvents += action;
+        }
+
+        public static void OnRiftProgress(RiftProgress riftProgress)
+        {
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                RiftProgressEvents?.Invoke(riftProgress);
+            });
+        }
+
+        public static void SubscribeRiftEndedEvents(Action<RiftEnded> action)
+        {
+            RiftEndedEvents += action;
+        }
+
+        public static void OnRiftEnded(RiftEnded riftEnded)
+        {
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                RiftEndedEvents?.Invoke(riftEnded);
             });
         }
 

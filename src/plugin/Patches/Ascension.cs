@@ -129,6 +129,7 @@ namespace Megaphonk.Patches
             if (__runOriginal) //Not cancelled by the netplay patches (a restart is blocked during a session)
             {
                 ascensionService.Reset();
+                Plugin.Services.GetService<IRiftService>()?.Reset();
             }
         }
 

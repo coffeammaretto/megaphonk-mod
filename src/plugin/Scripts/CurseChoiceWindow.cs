@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace Megaphonk.Scripts
 {
     /// <summary>
-    /// Ascension curse choice (CurseService): three cards over the game, picked with 1/2/3 or a click.
+    /// Curse or pact choice (CurseService): three cards over the game, picked with 1/2/3 or a click.
     /// Plain objects driven by CurseService.Tick, nothing injected in Il2Cpp.
     /// </summary>
     internal class CurseChoiceWindow
@@ -19,7 +19,8 @@ namespace Megaphonk.Scripts
         private static readonly Color CARD_COLOR = new(0.1f, 0.06f, 0.12f, 0.97f);
         private static readonly Color CARD_HOVER_COLOR = new(0.2f, 0.1f, 0.22f, 0.97f);
         private static readonly Color TEXT_COLOR = new(0.95f, 0.92f, 0.98f, 1f);
-        private static readonly Vector2 CARD_SIZE = new(380f, 300f);
+        private static readonly Vector2 CARD_SIZE = new(380f, 340f);
+        private static readonly Color BOON_COLOR = new(0.4f, 0.95f, 0.55f);
         private const float CARD_SPACING = 420f;
         private const float BORDER = 4f;
 
@@ -41,7 +42,7 @@ namespace Megaphonk.Scripts
         private Material fontMaterial;
         private bool isClosed;
 
-        public static CurseChoiceWindow Open(int level, IReadOnlyList<CurseOffer> offers, IReadOnlyList<CurseOffer> taken, Action<int> onChosen)
+        public static CurseChoiceWindow Open(string title, string subtitle, IReadOnlyList<ChoiceOffer> offers, IReadOnlyList<ChoiceOffer> taken, Action<int> onChosen)
         {
             var parent = UiManager.Instance?.transform;
             if (parent == null)
@@ -51,7 +52,7 @@ namespace Megaphonk.Scripts
 
             try
             {
-                return new CurseChoiceWindow(parent, level, offers, taken, onChosen);
+                return new CurseChoiceWindow(parent, title, subtitle, offers, taken, onChosen);
             }
             catch (Exception ex)
             {
@@ -60,7 +61,7 @@ namespace Megaphonk.Scripts
             }
         }
 
-        private CurseChoiceWindow(Transform parent, int level, IReadOnlyList<CurseOffer> offers, IReadOnlyList<CurseOffer> taken, Action<int> onChosen)
+        private CurseChoiceWindow(Transform parent, string title, string subtitle, IReadOnlyList<ChoiceOffer> offers, IReadOnlyList<ChoiceOffer> taken, Action<int> onChosen)
         {
             this.onChosen = onChosen;
 
@@ -72,7 +73,7 @@ namespace Megaphonk.Scripts
             root = AddRect("Megaphonk_CurseChoice", parent, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject;
             try
             {
-                Build(level, offers, taken);
+                Build(title, subtitle, offers, taken);
             }
             catch
             {
@@ -93,7 +94,7 @@ namespace Megaphonk.Scripts
             }
         }
 
-        private void Build(int level, IReadOnlyList<CurseOffer> offers, IReadOnlyList<CurseOffer> taken)
+        private void Build(string titleText, string subtitle, IReadOnlyList<ChoiceOffer> offers, IReadOnlyList<ChoiceOffer> taken)
         {
             root.transform.SetAsLastSibling();
             var dim = root.AddComponent<Image>();
@@ -101,7 +102,7 @@ namespace Megaphonk.Scripts
             dim.raycastTarget = true; //The game's UI below can't be clicked
 
             var title = AddText("Title", root.transform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 230f), new Vector2(0f, 330f), 54f, TextAlignmentOptions.Center);
-            title.text = $"{Loc.F("Ascension {0}", level)}\n<size=60%>{Loc.T("Choose a curse: it stays for the rest of the run")}</size>";
+            title.text = $"{titleText}\n<size=60%>{subtitle}</size>";
 
             for (var i = 0; i < offers.Count; i++)
             {
@@ -110,7 +111,7 @@ namespace Megaphonk.Scripts
 
             var footer = AddText("Footer", root.transform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(40f, -360f), new Vector2(-40f, -200f), 26f, TextAlignmentOptions.Top);
             footer.enableWordWrapping = true;
-            footer.text = $"{Loc.T("Press 1, 2 or 3, or click a curse")}\n\n<color=#B9A5C8>{Loc.T("Your curses")}: {(taken.Count == 0 ? Loc.T("none") : string.Join(", ", taken.Select(o => Loc.T(o.Curse.Name))))}</color>";
+            footer.text = $"{Loc.T("Press 1, 2 or 3, or click a card")}\n\n<color=#B9A5C8>{Loc.T("Your curses")}: {(taken.Count == 0 ? Loc.T("none") : string.Join(", ", taken.Select(o => o.Boon == null ? Loc.T(o.Curse.Curse.Name) : $"{Loc.T(o.Boon.Name)} + {Loc.T(o.Curse.Curse.Name)}")))}</color>";
         }
 
         /// <summary>
@@ -122,8 +123,9 @@ namespace Megaphonk.Scripts
             return $"{Channel(color.r):X2}{Channel(color.g):X2}{Channel(color.b):X2}";
         }
 
-        private void AddCard(Transform parent, int index, CurseOffer offer, float x)
+        private void AddCard(Transform parent, int index, ChoiceOffer choice, float x)
         {
+            var offer = choice.Curse;
             var tierColor = offer.Tier switch
             {
                 CurseTier.Lesser => new Color(0.95f, 0.85f, 0.4f),
@@ -134,7 +136,7 @@ namespace Megaphonk.Scripts
             var border = AddRect($"Card{index}", parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             border.sizeDelta = CARD_SIZE;
             border.anchoredPosition = new Vector2(x, 20f);
-            border.gameObject.AddComponent<Image>().color = tierColor;
+            border.gameObject.AddComponent<Image>().color = choice.Boon == null ? tierColor : BOON_COLOR;
 
             var card = AddRect("Background", border, Vector2.zero, Vector2.one, new Vector2(BORDER, BORDER), new Vector2(-BORDER, -BORDER));
             var background = card.gameObject.AddComponent<Image>();
@@ -149,17 +151,25 @@ namespace Megaphonk.Scripts
 
             var header = AddText("Name", card, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(16f, -100f), new Vector2(-16f, -14f), 34f, TextAlignmentOptions.Top);
             header.enableWordWrapping = true;
-            header.text = $"<color=#{ToHex(tierColor)}>[{index + 1}]</color> {Loc.T(offer.Curse.Name)}\n<size=65%><color=#{ToHex(tierColor)}>{Loc.T(tierName)}</color></size>";
+            header.text = choice.Boon == null
+                ? $"<color=#{ToHex(tierColor)}>[{index + 1}]</color> {Loc.T(offer.Curse.Name)}\n<size=65%><color=#{ToHex(tierColor)}>{Loc.T(tierName)}</color></size>"
+                : $"<color=#{ToHex(BOON_COLOR)}>[{index + 1}]</color> {Loc.T(choice.Boon.Name)}\n<size=65%><color=#{ToHex(tierColor)}>+ {Loc.T(offer.Curse.Name)} ({Loc.T(tierName)})</color></size>";
 
-            var effects = AddText("Effects", card, Vector2.zero, new Vector2(1f, 1f), new Vector2(20f, 16f), new Vector2(-20f, -120f), 28f, TextAlignmentOptions.Top);
+            // A boon in green, then the curse in red (an increase on a curse, like chest price, is still a cost)
+            var lines = (choice.Boon?.Effects ?? []).Select(effect => FormatEffect(effect, 1f, "77FF99"))
+                .Concat(offer.Curse.Effects.Select(effect => FormatEffect(effect, offer.Scale, "FF7777")))
+                .ToList();
+            var effects = AddText("Effects", card, Vector2.zero, new Vector2(1f, 1f), new Vector2(20f, 16f), new Vector2(-20f, -120f), lines.Count > 5 ? 22f : 28f, TextAlignmentOptions.Top);
             effects.enableWordWrapping = true;
-            effects.text = string.Join("\n", offer.Curse.Effects.Select(effect =>
-            {
-                var percent = Mathf.RoundToInt(effect.Value * offer.Scale * 100f);
-                return $"{Loc.T(effect.Label)} <color=#FF7777>{(percent > 0 ? "+" : "-")}{Math.Abs(percent)}%</color>";
-            }));
+            effects.text = string.Join("\n", lines);
 
             cards.Add((border, background));
+        }
+
+        private static string FormatEffect(CurseEffect effect, float scale, string color)
+        {
+            var percent = Mathf.RoundToInt(effect.Value * scale * 100f);
+            return $"{Loc.T(effect.Label)} <color=#{color}>{(percent > 0 ? "+" : "-")}{Math.Abs(percent)}%</color>";
         }
 
         /// <summary>

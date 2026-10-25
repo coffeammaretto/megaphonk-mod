@@ -19,8 +19,8 @@ namespace Megaphonk.Services
     }
 
     /// <summary>
-    /// One stat a curse lowers (or raises, for a price): an addition to the stat's multiplier, so a percentage of what
-    /// the player has. A build without that stat doesn't care, which is the point of choosing.
+    /// One stat a curse lowers (or raises, for a price) or a pact raises: an addition to the stat's multiplier, so a
+    /// percentage of what the player has. A build without that stat doesn't care, which is the point of choosing.
     /// </summary>
     public record CurseEffect(EStat Stat, float Value, string Label);
 
@@ -32,18 +32,47 @@ namespace Megaphonk.Services
     }
 
     /// <summary>
-    /// Ascension curses: after each ascension, every player picks one of three random curses for themselves (each
-    /// character has its own weaknesses). They stack for the rest of the run, on the local player's stats only, so
-    /// nothing goes over the network. While choosing, the party waits as for a level up (shared reward pause).
+    /// A card of the choice window: a curse, or a pact (a boon paid with a curse) when Boon is set
+    /// </summary>
+    public record ChoiceOffer(CurseOffer Curse, CurseDefinition Boon = null);
+
+    public enum ChoiceKind
+    {
+        /// <summary>
+        /// After an ascension, on the first stage
+        /// </summary>
+        AscensionCurse,
+
+        /// <summary>
+        /// A rift was failed
+        /// </summary>
+        RiftCurse,
+
+        /// <summary>
+        /// A rift was cleared
+        /// </summary>
+        RiftPact
+    }
+
+    /// <summary>
+    /// Ascension curses and rift pacts: after each ascension or failed rift, every player picks one of three random
+    /// curses for themselves (each character has its own weaknesses); after a cleared rift, one of three pacts (a boon
+    /// paid with a lesser curse). They stack for the rest of the run, on the local player's stats only, so nothing goes
+    /// over the network. While choosing, the party waits as for a level up (shared reward pause).
     /// </summary>
     public interface ICurseService
     {
-        public IReadOnlyList<CurseOffer> Taken { get; }
+        public IReadOnlyList<ChoiceOffer> Taken { get; }
 
         /// <summary>
         /// An ascension started: a choice once the next stage is loaded
         /// </summary>
         public void QueueChoice(int ascensionLevel);
+
+        /// <summary>
+        /// A rift ended: a pact when cleared, a curse when failed, as soon as possible on this stage
+        /// </summary>
+        public void QueueRiftChoice(bool cleared);
 
         /// <summary>
         /// The taken curses as stat modifiers (PartyModifiersService)
@@ -92,18 +121,38 @@ namespace Megaphonk.Services
             new("Exhaustion", [new(EStat.AttackSpeed, -0.06f, "Attack speed"), new(EStat.MoveSpeedMultiplier, -0.06f, "Movement speed")]),
         ];
 
+        // Pact boons: worth more than the lesser or normal curse that comes with them
+        private static readonly CurseDefinition[] Boons =
+        [
+            new("Might", [new(EStat.DamageMultiplier, 0.15f, "Damage")]),
+            new("Haste", [new(EStat.AttackSpeed, 0.15f, "Attack speed")]),
+            new("Vigor", [new(EStat.MaxHealth, 0.2f, "Max HP")]),
+            new("Swiftness", [new(EStat.MoveSpeedMultiplier, 0.12f, "Movement speed")]),
+            new("Precision", [new(EStat.CritChance, 0.25f, "Crit chance"), new(EStat.CritDamage, 0.15f, "Crit damage")]),
+            new("Reach", [new(EStat.SizeMultiplier, 0.15f, "Size"), new(EStat.PickupRange, 0.3f, "Pickup range")]),
+            new("Endurance", [new(EStat.DurationMultiplier, 0.2f, "Duration"), new(EStat.EffectDurationMultiplier, 0.2f, "Effect duration")]),
+            new("Bulwark", [new(EStat.Armor, 0.3f, "Armor"), new(EStat.Shield, 0.3f, "Shield")]),
+            new("Fortune", [new(EStat.Luck, 0.25f, "Luck"), new(EStat.GoldIncreaseMultiplier, 0.2f, "Gold")]),
+            new("Leech", [new(EStat.Lifesteal, 0.4f, "Lifesteal"), new(EStat.HealingMultiplier, 0.3f, "Healing")]),
+            new("Velocity", [new(EStat.ProjectileSpeedMultiplier, 0.25f, "Projectile speed"), new(EStat.KnockbackMultiplier, 0.3f, "Knockback")]),
+            new("Elemental Fury", [new(EStat.FireDamage, 0.25f, "Fire damage"), new(EStat.IceDamage, 0.25f, "Ice damage"), new(EStat.LightningDamage, 0.25f, "Lightning damage"), new(EStat.PoisonDamageMultiplier, 0.25f, "Poison damage")]),
+            new("Wisdom", [new(EStat.XpIncreaseMultiplier, 0.2f, "XP gain")]),
+            new("Agility", [new(EStat.Evasion, 0.4f, "Evasion"), new(EStat.JumpHeight, 0.25f, "Jump height")]),
+            new("Slayer", [new(EStat.EliteDamageMultiplier, 0.3f, "Elite damage")]),
+        ];
+
         private readonly IEncounterService encounterService;
         // Resolved when used: the synchronization service depends on services that depend on this one
         private readonly Lazy<ISynchronizationService> synchronization = new(() => Plugin.Services.GetService<ISynchronizationService>());
         private readonly System.Random random = new();
-        private readonly List<CurseOffer> taken = [];
-        private readonly Queue<int> pendingLevels = new();
+        private readonly List<ChoiceOffer> taken = [];
+        private readonly Queue<(ChoiceKind Kind, int Level)> pending = new();
         private CurseChoiceWindow window;
-        private List<CurseOffer> offers;
+        private List<ChoiceOffer> offers;
         private bool isStageReady;
         private float openAt;
 
-        public IReadOnlyList<CurseOffer> Taken => taken;
+        public IReadOnlyList<ChoiceOffer> Taken => taken;
 
         public CurseService(IEncounterService encounterService)
         {
@@ -133,8 +182,14 @@ namespace Megaphonk.Services
 
         public void QueueChoice(int ascensionLevel)
         {
-            pendingLevels.Enqueue(ascensionLevel);
+            pending.Enqueue((ChoiceKind.AscensionCurse, ascensionLevel));
             isStageReady = false; //Not on the stage being left: once the next one started
+        }
+
+        public void QueueRiftChoice(bool cleared)
+        {
+            pending.Enqueue((cleared ? ChoiceKind.RiftPact : ChoiceKind.RiftCurse, 0));
+            openAt = Mathf.Min(openAt, Time.realtimeSinceStartup + 0.5f);
         }
 
         public void AddModifiers(Dictionary<string, (EStat Stat, EStatModifyType Type, float Value)> wanted)
@@ -142,9 +197,14 @@ namespace Megaphonk.Services
             var totals = new Dictionary<EStat, float>();
             foreach (var offer in taken)
             {
-                foreach (var effect in offer.Curse.Effects)
+                foreach (var effect in offer.Curse.Curse.Effects)
                 {
-                    totals[effect.Stat] = totals.GetValueOrDefault(effect.Stat) + effect.Value * offer.Scale;
+                    totals[effect.Stat] = totals.GetValueOrDefault(effect.Stat) + effect.Value * offer.Curse.Scale;
+                }
+
+                foreach (var effect in offer.Boon?.Effects ?? [])
+                {
+                    totals[effect.Stat] = totals.GetValueOrDefault(effect.Stat) + effect.Value;
                 }
             }
 
@@ -168,7 +228,7 @@ namespace Megaphonk.Services
                 return;
             }
 
-            if (pendingLevels.Count == 0 || !isStageReady || Time.realtimeSinceStartup < openAt)
+            if (pending.Count == 0 || !isStageReady || Time.realtimeSinceStartup < openAt)
             {
                 return;
             }
@@ -181,13 +241,23 @@ namespace Megaphonk.Services
                 return; //After the stage intro, and never over a reward window
             }
 
-            Open(pendingLevels.Peek());
+            Open(pending.Peek());
         }
 
-        private void Open(int level)
+        private void Open((ChoiceKind Kind, int Level) choice)
         {
-            offers = Curses.OrderBy(_ => random.Next()).Take(OFFER_COUNT).Select(curse => new CurseOffer(curse, RollTier())).ToList();
-            window = CurseChoiceWindow.Open(level, offers, taken, OnChosen);
+            var curses = Curses.OrderBy(_ => random.Next()).Take(OFFER_COUNT);
+            offers = choice.Kind == ChoiceKind.RiftPact
+                ? curses.Zip(Boons.OrderBy(_ => random.Next()), (curse, boon) => new ChoiceOffer(new CurseOffer(curse, RollPactTier()), boon)).ToList()
+                : curses.Select(curse => new ChoiceOffer(new CurseOffer(curse, RollTier()))).ToList();
+
+            var (title, subtitle) = choice.Kind switch
+            {
+                ChoiceKind.RiftPact => (Loc.T("Rift cleared"), Loc.T("Choose a pact: its boon and its curse stay for the rest of the run")),
+                ChoiceKind.RiftCurse => (Loc.T("Rift failed"), Loc.T("Choose a curse: it stays for the rest of the run")),
+                _ => (Loc.F("Ascension {0}", choice.Level), Loc.T("Choose a curse: it stays for the rest of the run"))
+            };
+            window = CurseChoiceWindow.Open(title, subtitle, offers, taken, OnChosen);
             if (window == null)
             {
                 openAt = Time.realtimeSinceStartup + OPEN_DELAY; //No UI yet: try again
@@ -199,7 +269,17 @@ namespace Megaphonk.Services
             {
                 MyTime.Pause(); //The host pauses the others when it sees this player choosing
             }
-            Plugin.Log.LogInfo($"Ascension {level} curse choice: {string.Join(", ", offers.Select(o => $"{o.Curse.Name} ({o.Tier})"))}");
+            Plugin.Log.LogInfo($"{choice.Kind} choice: {string.Join(", ", offers.Select(Describe))}");
+        }
+
+        private static string Describe(ChoiceOffer offer)
+        {
+            return $"{(offer.Boon == null ? string.Empty : offer.Boon.Name + " + ")}{offer.Curse.Curse.Name} ({offer.Curse.Tier})";
+        }
+
+        private CurseTier RollPactTier()
+        {
+            return random.NextDouble() < 0.6 ? CurseTier.Lesser : CurseTier.Normal;
         }
 
         private CurseTier RollTier()
@@ -212,13 +292,13 @@ namespace Megaphonk.Services
         {
             var offer = offers[index];
             taken.Add(offer);
-            pendingLevels.Dequeue();
-            Plugin.Log.LogInfo($"Curse taken: {offer.Curse.Name} ({offer.Tier}), {taken.Count} in total");
+            pending.Dequeue();
+            Plugin.Log.LogInfo($"Taken: {Describe(offer)}, {taken.Count} in total");
 
             window.Destroy();
             window = null;
             encounterService.IsCurseChoiceOpen = false;
-            openAt = Time.realtimeSinceStartup + 0.5f; //Another ascension's choice, if any
+            openAt = Time.realtimeSinceStartup + 0.5f; //Another choice, if any
 
             if (synchronization.Value.IsPartyPauseEnabled())
             {
@@ -253,7 +333,7 @@ namespace Megaphonk.Services
         {
             CloseWindow();
             taken.Clear();
-            pendingLevels.Clear();
+            pending.Clear();
             isStageReady = false;
         }
     }
