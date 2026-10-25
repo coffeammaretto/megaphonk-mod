@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.5.0"]
+changes = [
+    "The main menu has its own music track (turned off with CustomMusic, like the run music).",
+]
+
 [version."2.4.0"]
 changes = [
     "The mod no longer updates itself: it only tells you a new version is out (download it from GitHub or update it in your mod manager). Leftover files of the old updater are deleted. The changelog window still shows what changed after an update.",

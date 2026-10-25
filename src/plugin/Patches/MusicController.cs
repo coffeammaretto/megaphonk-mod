@@ -4,7 +4,7 @@ using Megaphonk.Helpers;
 namespace Megaphonk.Patches
 {
     /// <summary>
-    /// The player's own music in runs (see CustomMusic)
+    /// The mod's music in runs and in the main menu (see CustomMusic)
     /// </summary>
     [HarmonyPatch(typeof(MusicController))]
     internal static class MusicControllerPatches
@@ -37,6 +37,20 @@ namespace Megaphonk.Patches
         public static void PlayMusicTrack_Prefix()
         {
             CustomMusic.OnGameMusicChanged();
+        }
+
+        /// <summary>
+        /// The main menu starts its music (straight through PlayMusicTrack, PlayMenuTrack is not called)
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(nameof(MusicController.PlayMusicTrack))]
+        public static void PlayMusicTrack_Postfix(MusicController __instance, Assets.Scripts.Audio.Music.MusicTrack __0)
+        {
+            var menuTrack = __instance.menuMusicTrack;
+            if (__0 != null && menuTrack != null && __0.Ptr() == menuTrack.Ptr())
+            {
+                CustomMusic.OnMenuMusic(__instance);
+            }
         }
 
         [HarmonyPrefix]

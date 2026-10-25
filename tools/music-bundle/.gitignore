@@ -6,5 +6,7 @@ Packages/
 ProjectSettings/
 Assets/Music/
 Assets/Music.meta
+Assets/MenuMusic/
+Assets/MenuMusic.meta
 *.csproj
 *.sln

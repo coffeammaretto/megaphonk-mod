@@ -78,7 +78,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 ### Convenience
 - Netplay Options (the host's button on the character selection): reward pause, downed state, team meter, co-op challenges, party luck/difficulty mode and the run modifiers. The host's values apply to everyone and are resent when changed. Numeric values (timers, multipliers) are in the config file.
 - Team table at the end of a run: damage, kills and gold of each player (defeat screen).
-- Run music: the mod's tracks play in a random order instead of the stage music; boss and menu music stay the game's. In co-op everybody hears the host's track. Turned off with `CustomMusic` in the config.
+- Music: the mod's tracks play in a random order instead of the stage music, and the main menu has its own track; boss music stays the game's. In co-op everybody hears the host's track. Turned off with `CustomMusic` in the config.
 - Player name, key bindings and every party rule in `BepInEx\config\MegaphonkMod.cfg`.
 - Notice when a new version is out on GitHub (`CheckForUpdates`) and a changelog window. The mod never downloads or installs anything itself.
 - The mod's texts follow the game's language: English and Russian (other languages show English).
@@ -88,7 +88,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 With a mod manager: install [MegaphonkMod on Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) with r2modman or Gale, the mod manager installs BepInEx and updates the mod. Manual installation:
 
 1. Close the game.
-2. Download `MegaphonkMod-2.4.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Download `MegaphonkMod-2.5.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 4. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -193,7 +193,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 #### Удобство
 - Netplay Options (кнопка хоста на экране выбора персонажа): пауза при выборе награды, нокдаун, командная шкала, кооп-испытания, режим общей удачи и сложности и модификаторы забега. Значения хоста действуют на всех и рассылаются заново при изменении. Числовые параметры (таймеры, множители) только в конфиге.
 - Таблица команды в конце забега: урон, убийства и золото каждого игрока (экран поражения).
-- Музыка забега: треки мода играют в случайном порядке вместо музыки уровня; музыка босса и меню остаётся игровой. В коопе у всех играет трек хоста. Отключается параметром `CustomMusic` в конфиге.
+- Музыка: треки мода играют в случайном порядке вместо музыки уровня, в главном меню свой трек; музыка босса остаётся игровой. В коопе у всех играет трек хоста. Отключается параметром `CustomMusic` в конфиге.
 - Имя игрока, клавиши и все правила пати в `BepInEx\config\MegaphonkMod.cfg`.
 - Уведомление о новой версии на GitHub (`CheckForUpdates`) и окно со списком изменений. Сам мод ничего не скачивает и не устанавливает.
 - Тексты мода следуют языку игры: английский и русский (в остальных языках английский).
@@ -202,7 +202,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 Через менеджер модов: установи [MegaphonkMod из Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) через r2modman или Gale, менеджер сам поставит BepInEx и будет обновлять мод. Ручная установка:
 
 1. Закрой игру.
-2. Скачай `MegaphonkMod-2.4.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Скачай `MegaphonkMod-2.5.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 4. Запусти игру через Steam. Первый запуск дольше обычного.
 

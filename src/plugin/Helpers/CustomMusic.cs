@@ -15,8 +15,9 @@ namespace Megaphonk.Helpers
     /// <summary>
     /// The mod's music in runs: the tracks of the music bundle play in a random order (each once before any repeats)
     /// instead of the stage music. Played on the game's music source, so the music volume setting and the game's
-    /// effects (muffled in chests and pause, danger pitch) still apply. Boss and menu music stay the game's. In co-op the
-    /// host picks the tracks and the clients play the same one from the same position.
+    /// effects (muffled in chests and pause, danger pitch) still apply. The main menu loops the bundle's menu track
+    /// (MENU_TRACK), boss music stays the game's. In co-op the host picks the run tracks and the clients play the same
+    /// one from the same position.
     /// The game has no audio file loader (DownloadHandlerAudioClip and AudioClip.Create are stripped): the tracks are
     /// AudioClips of an AssetBundle built with the game's Unity version (tools/music-bundle), loaded by Unity itself
     /// like the game's own music.
@@ -24,6 +25,8 @@ namespace Megaphonk.Helpers
     internal static class CustomMusic
     {
         public const string BUNDLE_FILE = "megaphonk-music.bundle";
+        // The main menu's track (tools/music-bundle: src/plugin/MenuMusic), not part of the run playlist
+        public const string MENU_TRACK = "Megaphonk Menu";
 
         public static string BundlePath => Path.Combine(Path.GetDirectoryName(typeof(CustomMusic).Assembly.Location), BUNDLE_FILE);
 
@@ -35,8 +38,11 @@ namespace Megaphonk.Helpers
 
         // Playing our music on the game's source (cleared when the game plays something else or stops the music)
         private static bool active;
+        // Playing the menu track instead of the run playlist
+        private static bool menu;
         private static AudioClip currentClip;
         private static AudioClip[] clips;
+        private static AudioClip menuClip;
         private static AssetBundleCreateRequest bundleRequest;
         private static AssetBundleRequest clipsRequest;
         private static bool failed;
@@ -67,10 +73,34 @@ namespace Megaphonk.Helpers
             }
 
             active = true;
+            menu = false;
             // A new stage starts on the next track
             if (clips != null)
             {
                 StartTrack(controller);
+            }
+        }
+
+        /// <summary>
+        /// The game started the main menu music: loop ours instead, once the bundle is loaded
+        /// </summary>
+        public static void OnMenuMusic(MusicController controller)
+        {
+            if (!ModConfig.CustomMusic.Value || failed || controller?.musicSource == null)
+            {
+                return;
+            }
+
+            if (clips == null && bundleRequest == null && clipsRequest == null && !StartLoading())
+            {
+                return;
+            }
+
+            active = true;
+            menu = true;
+            if (clips != null)
+            {
+                PlayMenu(controller);
             }
         }
 
@@ -110,10 +140,17 @@ namespace Megaphonk.Helpers
 
             if (clips == null)
             {
-                // Still loading: the game's stage music plays meanwhile
+                // Still loading: the game's music plays meanwhile
                 if (ContinueLoading())
                 {
-                    StartTrack(controller);
+                    if (menu)
+                    {
+                        PlayMenu(controller);
+                    }
+                    else
+                    {
+                        StartTrack(controller);
+                    }
                 }
                 return;
             }
@@ -123,6 +160,16 @@ namespace Megaphonk.Helpers
             if (currentClip != null && source.clip != null && source.clip.Ptr() != currentClip.Ptr())
             {
                 active = false;
+                return;
+            }
+
+            if (menu)
+            {
+                // Looping: only restarts if the game stopped the source
+                if (currentClip == null || (!source.isPlaying && source.time <= 0f))
+                {
+                    PlayMenu(controller);
+                }
                 return;
             }
 
@@ -174,7 +221,18 @@ namespace Megaphonk.Helpers
             }
         }
 
-        private static void Play(MusicController controller, AudioClip clip, float position)
+        private static void PlayMenu(MusicController controller)
+        {
+            if (menuClip == null)
+            {
+                active = false; // No menu track in the bundle: the game's menu music
+                return;
+            }
+
+            Play(controller, menuClip, 0f, true);
+        }
+
+        private static void Play(MusicController controller, AudioClip clip, float position, bool loop = false)
         {
             if (clip == null)
             {
@@ -185,12 +243,12 @@ namespace Megaphonk.Helpers
             var source = controller.musicSource;
             controller.isPlayingIntro = false; // else the game switches to its track's loop when "the intro" ends
             source.Stop();
-            source.loop = false;
+            source.loop = loop;
             source.clip = clip;
             source.time = position;
             source.Play();
             Plugin.Log.LogInfo($"Custom music: playing {clip.name}");
-            if (!IsClient)
+            if (!menu && !IsClient)
             {
                 synchronization.Value?.OnMusicTrackChanged(clip.name, position);
             }
@@ -271,17 +329,20 @@ namespace Megaphonk.Helpers
 
                 var loaded = clipsRequest.allAssets.Select(asset => (AudioClip)TryCastClip.Invoke(asset, null)).Where(clip => clip != null).ToArray();
                 clipsRequest = null;
-                if (loaded.Length == 0)
-                {
-                    throw new InvalidOperationException("no tracks in the bundle");
-                }
-
                 foreach (var clip in loaded)
                 {
                     clip.hideFlags = HideFlags.DontUnloadUnusedAsset; // survives the stage changes
                 }
-                clips = loaded;
-                Plugin.Log.LogInfo($"Custom music: {clips.Length} track(s) in {BundlePath}");
+
+                var runClips = loaded.Where(clip => clip.name != MENU_TRACK).ToArray();
+                if (runClips.Length == 0)
+                {
+                    throw new InvalidOperationException("no tracks in the bundle");
+                }
+
+                menuClip = loaded.FirstOrDefault(clip => clip.name == MENU_TRACK);
+                clips = runClips;
+                Plugin.Log.LogInfo($"Custom music: {clips.Length} track(s){(menuClip != null ? " and the menu track" : "")} in {BundlePath}");
                 return true;
             }
             catch (Exception ex)
