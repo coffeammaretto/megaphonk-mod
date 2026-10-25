@@ -10,7 +10,7 @@ using UnityEngine;
 namespace Megaphonk.Helpers
 {
     /// <summary>
-    /// Testing shortcuts, off unless Diagnostics.DebugTools is set (on every PC of the party):
+    /// Testing shortcuts, off unless the host sets Diagnostics.DebugTools (sent to the party with its settings):
     /// the first stage's portal leads to the final boss stage, and F10 on the host kills every enemy (final boss included)
     /// </summary>
     [HarmonyPatch]
@@ -18,7 +18,7 @@ namespace Megaphonk.Helpers
     {
         private static bool wasKillKeyDown;
 
-        public static bool Enabled => ModConfig.DebugTools.Value;
+        public static bool Enabled => Plugin.Services.GetService<IPartySettingsService>()?.Current.DebugTools ?? ModConfig.DebugTools.Value;
 
         /// <summary>
         /// Leaving the first stage: the final boss stage instead of the second one. Every machine takes the stage

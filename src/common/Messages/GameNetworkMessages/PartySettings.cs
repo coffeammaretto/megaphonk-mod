@@ -52,6 +52,9 @@ namespace Megaphonk.Common.Messages.GameNetworkMessages
         public float AscensionEnemyHpGrowth { get; set; } = 1.5f;
         public float AscensionEnemyDamageGrowth { get; set; } = 1.25f;
         public int AscensionMaxEnemies { get; set; } = 300;
+
+        // Testing shortcuts (DebugTools): the host's choice, so the whole party takes the same stage
+        public bool DebugTools { get; set; } = false;
     }
 
     [System.Flags]

@@ -199,7 +199,7 @@ namespace Megaphonk.Configuration
             KeepBepInExConsole = config.Bind("Diagnostics", "KeepBepInExConsole", false,
                 "Keep the BepInEx console window. Off: the mod turns it off (from the next launch), writing to it stalls the game when a lot is logged. The log file is still written.");
             DebugTools = config.Bind("Diagnostics", "DebugTools", false,
-                "Testing shortcuts, set it on every PC of the party: the first stage's portal leads to the final boss stage, F10 on the host kills every enemy. Leave off to play.");
+                "Testing shortcuts, set by the host for the whole party: the first stage's portal leads to the final boss stage, F10 on the host kills every enemy. Leave off to play.");
             NativeTransformHooks = config.Bind("Diagnostics", "NativeTransformHooks", true,
                 "Hook Component.transform, Transform.position and Transform.rotation natively (much faster in the late game). Set to false if the game crashes on startup since 2.0.13: the slower Harmony patches are used instead.");
         }
@@ -232,6 +232,7 @@ namespace Megaphonk.Configuration
                 AscensionEnemyHpGrowth = AscensionEnemyHpGrowth.Value,
                 AscensionEnemyDamageGrowth = AscensionEnemyDamageGrowth.Value,
                 AscensionMaxEnemies = AscensionMaxEnemies.Value,
+                DebugTools = DebugTools.Value,
             };
         }
 

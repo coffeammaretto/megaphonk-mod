@@ -60,7 +60,7 @@ namespace Megaphonk.Services
             EventManager.SubscribePartySettingsEvents(settings =>
             {
                 receivedSettings = Sanitize(settings);
-                Plugin.Log.LogInfo($"Party settings from host: pause {settings.RewardPauseMode}, stats {settings.PartyStatMode}, chest price +{settings.ChestPricePerExtraPlayer:P0}/player, enemy HP +{settings.EnemyHpPerExtraPlayer:P0}/player, enemies x{settings.EnemyAmountMultiplier}");
+                Plugin.Log.LogInfo($"Party settings from host: pause {settings.RewardPauseMode}, stats {settings.PartyStatMode}, chest price +{settings.ChestPricePerExtraPlayer:P0}/player, enemy HP +{settings.EnemyHpPerExtraPlayer:P0}/player, enemies x{settings.EnemyAmountMultiplier}{(settings.DebugTools ? ", debug tools" : string.Empty)}");
             });
 
             ModConfig.RewardPauseMode.ConfigFile.SettingChanged += OnConfigChanged;

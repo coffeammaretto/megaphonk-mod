@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.7.1"]
+changes = [
+    "Fixed the Ascend portal staying invisible next to the final portal: it now appears once the final portal is set up.",
+    "DebugTools is now the host's setting, sent to the whole party: clients no longer go to a different stage than the host.",
+]
+
 [version."2.7.0"]
 changes = [
     "Ascension, a co-op endgame: once the final boss is dead, an Ascend portal next to the final portal takes the party back to the first stage with their builds. Each ascension makes enemies stronger (HP x1.5, damage x1.25 per level) but never more numerous (at most 300 at once). The final portal still ends the run and unlocks characters.",

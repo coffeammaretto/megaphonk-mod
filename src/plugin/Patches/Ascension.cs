@@ -4,6 +4,7 @@ using HarmonyLib;
 using Megaphonk.Helpers;
 using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections;
 using UnityEngine;
 
 namespace Megaphonk.Patches
@@ -17,6 +18,8 @@ namespace Megaphonk.Patches
     {
         private const string PORTAL_NAME = "Megaphonk_AscensionPortal";
         private const float PORTAL_SPACING = 10f;
+        private const float PLACE_DELAY = 2f; //The game finishes setting the final portal up (visuals, rising) first
+        private const float FOLLOW_SECONDS = 10f;
 
         private static readonly IAscensionService ascensionService = Plugin.Services.GetService<IAscensionService>();
 
@@ -38,10 +41,58 @@ namespace Megaphonk.Patches
                 return;
             }
 
-            var original = finalPortal.transform;
-            var twin = Object.Instantiate(finalPortal.gameObject, original.position + original.right * PORTAL_SPACING, original.rotation, original.parent);
+            CoroutineRunner.Instance.Run(PlaceTwin(finalPortal.gameObject));
+        }
+
+        /// <summary>
+        /// A copy of the final portal once the game has set it up: a copy made in its Start kept the state from before
+        /// (it stayed invisible). It then follows the final portal for a while, in case it still moves (rising).
+        /// </summary>
+        private static IEnumerator PlaceTwin(GameObject original)
+        {
+            var placeAt = Time.realtimeSinceStartup + PLACE_DELAY;
+            while (Time.realtimeSinceStartup < placeAt)
+            {
+                yield return null;
+            }
+
+            if (original == null)
+            {
+                yield break;
+            }
+
+            var source = original.transform;
+            var offset = source.right * PORTAL_SPACING;
+            var twin = Object.Instantiate(original, source.position + offset, source.rotation, source.parent);
             twin.name = PORTAL_NAME;
-            Plugin.Log.LogInfo("Ascension portal placed next to the final portal");
+            twin.SetActive(true);
+            Plugin.Log.LogInfo($"Ascension portal placed next to the final portal (final portal active: {original.activeInHierarchy}, at {source.position})");
+
+            var followUntil = Time.realtimeSinceStartup + FOLLOW_SECONDS;
+            while (Time.realtimeSinceStartup < followUntil && original != null && twin != null)
+            {
+                twin.transform.SetPositionAndRotation(original.transform.position + offset, original.transform.rotation);
+                CopyActiveStates(original.transform, twin.transform);
+                yield return null;
+            }
+        }
+
+        /// <summary>
+        /// Same children shown as on the final portal (the game may turn its visuals on after the copy)
+        /// </summary>
+        private static void CopyActiveStates(Transform source, Transform copy)
+        {
+            var count = Mathf.Min(source.childCount, copy.childCount);
+            for (var i = 0; i < count; i++)
+            {
+                var sourceChild = source.GetChild(i);
+                var copyChild = copy.GetChild(i);
+                if (copyChild.gameObject.activeSelf != sourceChild.gameObject.activeSelf)
+                {
+                    copyChild.gameObject.SetActive(sourceChild.gameObject.activeSelf);
+                }
+                CopyActiveStates(sourceChild, copyChild);
+            }
         }
 
         [HarmonyPrefix]
