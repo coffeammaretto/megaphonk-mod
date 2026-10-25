@@ -27,7 +27,7 @@ namespace MegabonkTogether.Services
         private const string PREFIX = "MegabonkTogether_Party_";
 
         // Caps on the player's bonuses from all run modifiers together (additions to the multipliers)
-        private const float MAX_XP_GAIN = 0.5f; //Counting the XP of the extra enemies
+        private const float MAX_XP_GAIN = 0.5f;
         private const float MAX_GOLD_BONUS = 0.5f;
         private const float MAX_DAMAGE_BONUS = 0.5f;
         private const float MAX_MOVE_SPEED_BONUS = 0.3f;
@@ -123,9 +123,12 @@ namespace MegabonkTogether.Services
                 Add(player, EStat.MaxHealth, -0.4f);
             }
 
+            // No modifier changes the number of enemies: it stays the vanilla one (the late game is heavy enough)
             if (modifiers.HasFlag(RunModifier.Horde))
             {
-                Add(enemy, EStat.EnemyAmountMultiplier, 0.5f);
+                Add(enemy, EStat.EnemyHpMultiplier, 0.5f);
+                Add(player, EStat.XpIncreaseMultiplier, 0.25f);
+                Add(player, EStat.GoldIncreaseMultiplier, 0.15f);
             }
 
             if (modifiers.HasFlag(RunModifier.ThickSkinned))
@@ -165,8 +168,8 @@ namespace MegabonkTogether.Services
             if (modifiers.HasFlag(RunModifier.BrittleSwarm))
             {
                 Add(enemy, EStat.EnemyHpMultiplier, -0.4f);
-                Add(enemy, EStat.EnemyAmountMultiplier, 0.5f);
-                Add(player, EStat.XpIncreaseMultiplier, -0.2f);
+                Add(enemy, EStat.EnemyDamageMultiplier, 0.4f);
+                Add(player, EStat.XpIncreaseMultiplier, -0.1f);
             }
 
             if (modifiers.HasFlag(RunModifier.Bloodbath))
@@ -207,9 +210,7 @@ namespace MegabonkTogether.Services
                 Add(player, EStat.ChestPriceMultiplier, -0.25f);
             }
 
-            // Extra enemies already give extra XP: the XP bonus is lowered so that both together stay within +50%
-            var enemyAmount = enemy.GetValueOrDefault(EStat.EnemyAmountMultiplier);
-            Cap(player, EStat.XpIncreaseMultiplier, (1f + MAX_XP_GAIN) / (1f + enemyAmount) - 1f);
+            Cap(player, EStat.XpIncreaseMultiplier, MAX_XP_GAIN);
             Cap(player, EStat.GoldIncreaseMultiplier, MAX_GOLD_BONUS);
             Cap(player, EStat.DamageMultiplier, MAX_DAMAGE_BONUS);
             Cap(player, EStat.MoveSpeedMultiplier, MAX_MOVE_SPEED_BONUS);

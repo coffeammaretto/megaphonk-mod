@@ -20,13 +20,13 @@ namespace MegabonkTogether.Scripts.Modal
         internal static readonly (RunModifier Flag, string Name, string Effect)[] ModifierList =
         [
             (RunModifier.GlassCannon, "Glass Cannon", "Damage +50%, max HP -40%"),
-            (RunModifier.Horde, "Horde", "Enemies x1.5"),
+            (RunModifier.Horde, "Horde", "Enemy HP +50%, XP +25%, gold +15%"),
             (RunModifier.ThickSkinned, "Thick Skinned", "Enemy HP x2, luck +0.25"),
             (RunModifier.Frenzy, "Frenzy", "Enemies +10% speed every 5 min, gold +20%"),
             (RunModifier.Lucky, "Lucky", "Luck +0.3, difficulty +0.3"),
             (RunModifier.Poverty, "Poverty", "Gold -50%, XP +15%"),
             (RunModifier.Colossus, "Colossus", "Enemy HP +50%, XP +25%"),
-            (RunModifier.BrittleSwarm, "Brittle Swarm", "Enemy HP -40%, enemies x1.5, XP -20%"),
+            (RunModifier.BrittleSwarm, "Brittle Swarm", "Enemy HP -40%, enemy damage +40%, XP -10%"),
             (RunModifier.Bloodbath, "Bloodbath", "Enemy damage +50%, healing -50%, gold +25%"),
             (RunModifier.Pinball, "Pinball", "Knockback x2, move speed +15%"),
             (RunModifier.SilverRush, "Silver Rush", "Silver +50%, enemy damage +25%"),

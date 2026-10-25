@@ -59,7 +59,7 @@ namespace MegabonkTogether.Common.Messages.GameNetworkMessages
         GlassCannon = 1 << 0,
 
         /// <summary>
-        /// Enemies x1.5 (more XP and gold from kills)
+        /// Enemy HP +50%, XP +25%, gold +15%
         /// </summary>
         Horde = 1 << 1,
 
@@ -89,7 +89,7 @@ namespace MegabonkTogether.Common.Messages.GameNetworkMessages
         Colossus = 1 << 6,
 
         /// <summary>
-        /// Enemy HP -40%, enemies x1.5, XP -20%
+        /// Enemy HP -40%, enemy damage +40%, XP -10%
         /// </summary>
         BrittleSwarm = 1 << 7,
 

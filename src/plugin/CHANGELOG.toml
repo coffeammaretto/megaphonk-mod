@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.1.1"]
+changes = [
+    "Horde and Brittle Swarm no longer add enemies: the number of enemies stays the vanilla one (late game performance).",
+    "Horde: enemy HP +50%, XP +25%, gold +15%. Brittle Swarm: enemy HP -40%, enemy damage +40%, XP -10%.",
+]
+
 [version."2.1.0"]
 changes = [
     "Co-op leaderboard: co-op runs are not counted by the game's leaderboards, they now go to a co-op leaderboard shown above the game's one in the main menu.",

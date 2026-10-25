@@ -59,13 +59,13 @@ The host ticks any number of them in **Netplay Options** on the character select
 | Modifier | Effect |
 | --- | --- |
 | Glass Cannon | Damage +50%, max HP -40% |
-| Horde | Enemies x1.5 (more XP and gold from kills) |
+| Horde | Enemy HP +50%, XP +25%, gold +15% |
 | Thick Skinned | Enemy HP x2, luck +0.25 |
 | Frenzy | Enemies get 10% faster every 5 minutes, gold +20% |
 | Lucky | Luck +0.3, difficulty +0.3 |
 | Poverty | Gold -50%, XP +15% |
 | Colossus | Enemy HP +50%, XP +25% |
-| Brittle Swarm | Enemy HP -40%, enemies x1.5, XP -20% |
+| Brittle Swarm | Enemy HP -40%, enemy damage +40%, XP -10% |
 | Bloodbath | Enemy damage +50%, healing -50%, gold +25% |
 | Pinball | Knockback x2, move speed +15% |
 | Silver Rush | Silver +50%, enemy damage +25% |
@@ -73,7 +73,7 @@ The host ticks any number of them in **Netplay Options** on the character select
 | Shockwave | Weapon area +25%, damage -20% |
 | Rising Tide | Enemies grow stronger 50% faster, chests 25% cheaper |
 
-Bonuses of several modifiers add up, with caps so that stacking them makes a harder run rather than an overpowered character: XP gain at most +50% counting the XP of the extra enemies (with Horde or Brittle Swarm the XP bonus goes down, even below zero), luck +0.5, gold +50%, damage +50%, move speed +30%. Penalties are not capped.
+Bonuses of several modifiers add up, with caps so that stacking them makes a harder run rather than an overpowered character: XP gain at most +50%, luck +0.5, gold +50%, damage +50%, move speed +30%. Penalties are not capped.
 
 ### Convenience
 - Netplay Options (the host's button on the character selection): reward pause, downed state, team meter, co-op challenges, party luck/difficulty mode and the run modifiers. The host's values apply to everyone and are resent when changed. Numeric values (timers, multipliers) are in the config file.
@@ -86,7 +86,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 
 1. Close the game.
 2. If you used **Megabonk Together**, delete the `BepInEx\plugins\MegabonkTogether` folder from the game folder: both mods must not be installed together.
-3. Download `MegaphonkMod-2.1.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Download `MegaphonkMod-2.1.1-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 5. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -172,13 +172,13 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 | Модификатор | Эффект |
 | --- | --- |
 | Glass Cannon | Урон +50%, здоровье -40% |
-| Horde | Врагов x1,5 (больше опыта и золота с убийств) |
+| Horde | Здоровье врагов +50%, опыт +25%, золото +15% |
 | Thick Skinned | Здоровье врагов x2, удача +0,25 |
 | Frenzy | Каждые 5 минут враги на 10% быстрее, золото +20% |
 | Lucky | Удача +0,3, сложность +0,3 |
 | Poverty | Золото -50%, опыт +15% |
 | Colossus | Здоровье врагов +50%, опыт +25% |
-| Brittle Swarm | Здоровье врагов -40%, врагов x1,5, опыт -20% |
+| Brittle Swarm | Здоровье врагов -40%, урон врагов +40%, опыт -10% |
 | Bloodbath | Урон врагов +50%, лечение -50%, золото +25% |
 | Pinball | Отбрасывание x2, скорость +15% |
 | Silver Rush | Серебро +50%, урон врагов +25% |
@@ -186,7 +186,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 | Shockwave | Область оружия +25%, урон -20% |
 | Rising Tide | Враги усиливаются на 50% быстрее, сундуки на 25% дешевле |
 
-Бонусы нескольких модификаторов складываются, но с потолками, чтобы вместе они давали тяжёлый забег, а не имбу: прирост опыта не больше +50% с учётом опыта лишних врагов (с Ордой или Хрупким роем бонус к опыту снижается, вплоть до минуса), удача +0,5, золото +50%, урон +50%, скорость +30%. Штрафы не ограничены.
+Бонусы нескольких модификаторов складываются, но с потолками, чтобы вместе они давали тяжёлый забег, а не имбу: прирост опыта не больше +50%, удача +0,5, золото +50%, урон +50%, скорость +30%. Штрафы не ограничены.
 
 #### Удобство
 - Netplay Options (кнопка хоста на экране выбора персонажа): пауза при выборе награды, нокдаун, командная шкала, кооп-испытания, режим общей удачи и сложности и модификаторы забега. Значения хоста действуют на всех и рассылаются заново при изменении. Числовые параметры (таймеры, множители) только в конфиге.
@@ -198,7 +198,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 ### Установка
 1. Закрой игру.
 2. Если стоял **Megabonk Together**, удали папку `BepInEx\plugins\MegabonkTogether` в папке игры: оба мода вместе стоять не должны.
-3. Скачай `MegaphonkMod-2.1.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Скачай `MegaphonkMod-2.1.1-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 4. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 5. Запусти игру через Steam. Первый запуск дольше обычного.
 
