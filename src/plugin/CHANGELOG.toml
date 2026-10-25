@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.7.3"]
+changes = [
+    "Fixed the ascension curse choice window failing to open: an empty square stayed on screen and the party was not paused.",
+]
+
 [version."2.7.2"]
 changes = [
     "Fixed the party freezing after using the Ascend portal: the first stage now loads after the teleport, as with the game's portal.",

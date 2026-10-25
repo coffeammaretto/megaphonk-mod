@@ -70,6 +70,31 @@ namespace Megaphonk.Scripts
             fontMaterial = gameText?.fontSharedMaterial;
 
             root = AddRect("Megaphonk_CurseChoice", parent, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject;
+            try
+            {
+                Build(level, offers, taken);
+            }
+            catch
+            {
+                UnityEngine.Object.Destroy(root); //Nothing half built left on screen
+                throw;
+            }
+
+            var canvas = GetRootCanvas(root.transform);
+            camera = canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+
+            previousCursorVisible = Cursor.visible;
+            previousCursorLock = Cursor.lockState;
+
+            // Keys already held when the window opens don't pick
+            for (var i = 0; i < wasKeyDown.Length; i++)
+            {
+                wasKeyDown[i] = CardKeys[i].Any(key => BepInEx.Unity.IL2CPP.UnityEngine.Input.GetKeyInt(key));
+            }
+        }
+
+        private void Build(int level, IReadOnlyList<CurseOffer> offers, IReadOnlyList<CurseOffer> taken)
+        {
             root.transform.SetAsLastSibling();
             var dim = root.AddComponent<Image>();
             dim.color = DIM_COLOR;
@@ -86,18 +111,15 @@ namespace Megaphonk.Scripts
             var footer = AddText("Footer", root.transform, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(40f, -360f), new Vector2(-40f, -200f), 26f, TextAlignmentOptions.Top);
             footer.enableWordWrapping = true;
             footer.text = $"{Loc.T("Press 1, 2 or 3, or click a curse")}\n\n<color=#B9A5C8>{Loc.T("Your curses")}: {(taken.Count == 0 ? Loc.T("none") : string.Join(", ", taken.Select(o => Loc.T(o.Curse.Name))))}</color>";
+        }
 
-            var canvas = GetRootCanvas(root.transform);
-            camera = canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
-
-            previousCursorVisible = Cursor.visible;
-            previousCursorLock = Cursor.lockState;
-
-            // Keys already held when the window opens don't pick
-            for (var i = 0; i < wasKeyDown.Length; i++)
-            {
-                wasKeyDown[i] = CardKeys[i].Any(key => BepInEx.Unity.IL2CPP.UnityEngine.Input.GetKeyInt(key));
-            }
+        /// <summary>
+        /// "RRGGBB" for rich text (ColorUtility.ToHtmlStringRGB is stripped from the game)
+        /// </summary>
+        private static string ToHex(Color color)
+        {
+            static int Channel(float value) => Mathf.Clamp(Mathf.RoundToInt(value * 255f), 0, 255);
+            return $"{Channel(color.r):X2}{Channel(color.g):X2}{Channel(color.b):X2}";
         }
 
         private void AddCard(Transform parent, int index, CurseOffer offer, float x)
@@ -127,7 +149,7 @@ namespace Megaphonk.Scripts
 
             var header = AddText("Name", card, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(16f, -100f), new Vector2(-16f, -14f), 34f, TextAlignmentOptions.Top);
             header.enableWordWrapping = true;
-            header.text = $"<color=#{ColorUtility.ToHtmlStringRGB(tierColor)}>[{index + 1}]</color> {Loc.T(offer.Curse.Name)}\n<size=65%><color=#{ColorUtility.ToHtmlStringRGB(tierColor)}>{Loc.T(tierName)}</color></size>";
+            header.text = $"<color=#{ToHex(tierColor)}>[{index + 1}]</color> {Loc.T(offer.Curse.Name)}\n<size=65%><color=#{ToHex(tierColor)}>{Loc.T(tierName)}</color></size>";
 
             var effects = AddText("Effects", card, Vector2.zero, new Vector2(1f, 1f), new Vector2(20f, 16f), new Vector2(-20f, -120f), 28f, TextAlignmentOptions.Top);
             effects.enableWordWrapping = true;
