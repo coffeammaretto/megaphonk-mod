@@ -43,6 +43,7 @@ namespace MegabonkTogether.Configuration
         public static ConfigEntry<RunModifier> RunModifiers { get; private set; }
         public static ConfigEntry<bool> ChallengesEnabled { get; private set; }
 
+        public static ConfigEntry<bool> CustomMusic { get; private set; }
         public static ConfigEntry<bool> SubmitCoopRuns { get; private set; }
         public static ConfigEntry<string> LeaderboardUrl { get; private set; }
 
@@ -161,6 +162,9 @@ namespace MegabonkTogether.Configuration
                 "Run modifiers, comma separated: GlassCannon (damage +50%, max HP -40%), Horde (enemy HP +50%, XP +25%, gold +15%), ThickSkinned (enemy HP x2, luck +0.25), Frenzy (enemies 10% faster every 5 minutes, gold +20%), Lucky (luck +0.3, difficulty +0.3), Poverty (gold -50%, XP +15%), Colossus (enemy HP +50%, XP +25%), BrittleSwarm (enemy HP -40%, enemy damage +40%, XP -10%), Bloodbath (enemy damage +50%, healing -50%, gold +25%), Pinball (knockback x2, move speed +15%), SilverRush (silver +50%, enemy damage +25%), Overdrive (move speed +20%, projectile speed +25%, enemies 20% faster), Shockwave (weapon area +25%, damage -20%), RisingTide (enemies grow stronger 50% faster, chests 25% cheaper). Combined bonuses are capped: XP gain +50%, luck +0.5, gold +50%, damage +50%, move speed +30%. None for a normal run.");
             ChallengesEnabled = config.Bind(party, "ChallengesEnabled", true,
                 "Coop challenges rewarded with chests on the next stage: one for each player with no death on the stage, one for each player who survived the stage boss fight.");
+
+            CustomMusic = config.Bind("Music", "CustomMusic", true,
+                "Play your own music in runs: the mp3/ogg/wav files of the Music folder (next to the mod's dll) play in a random order instead of the stage music. Boss and menu music stay the game's. Nothing happens when the folder is empty.");
 
             SubmitCoopRuns = config.Bind("Leaderboard", "SubmitCoopRuns", true,
                 "Host: submit each finished co-op run to the Megaphonk co-op leaderboard (map, tier, players' names, Steam IDs, characters and kills). The game's own leaderboards do not count co-op runs.");

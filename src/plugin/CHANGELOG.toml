@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.2.0"]
+changes = [
+    "Run music: 19 Megabonk Megafonk tracks play in a random order instead of the stage music (each once before any repeats). Boss and menu music stay the game's.",
+    "Add your own mp3/ogg/wav tracks to the Music folder next to the mod (BepInEx/plugins/MegaphonkMod/Music). Turned off with CustomMusic in the config (Music section).",
+]
+
 [version."2.1.1"]
 changes = [
     "Horde and Brittle Swarm no longer add enemies: the number of enemies stays the vanilla one (late game performance).",
