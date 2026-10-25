@@ -41,6 +41,8 @@ namespace Megaphonk.Helpers
                 ["Rift"] = "Разлом",
                 ["Hold the zones before time runs out"] = "Удержите зоны, пока не вышло время",
                 ["hold the zones"] = "удержите зоны",
+                ["collect the shards"] = "соберите осколки",
+                ["Collect the shards scattered over the map"] = "Соберите осколки, разбросанные по карте",
                 ["Rift cleared!"] = "Разлом закрыт!",
                 ["Rift failed..."] = "Разлом провален...",
                 ["Rift cleared"] = "Разлом закрыт",

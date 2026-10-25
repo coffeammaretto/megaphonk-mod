@@ -15,9 +15,10 @@ namespace Megaphonk.Services
 {
     /// <summary>
     /// Rifts, the co-op endgame's objectives: from the first ascension, every stage but the final boss's opens one now
-    /// and then. For now one kind, zones to hold: each fills while a player (alive, not downed) stands in it, all of them
-    /// before the time runs out. Cleared, every player picks a pact; failed, a curse (CurseService). A rift adds no
-    /// enemy: the stage's own ones are the threat. The host runs it and sends its progress; every machine shows it.
+    /// and then, a random kind: zones to hold (each fills while players, alive and not downed, stand in it, faster with
+    /// more of them) or shards to collect (scattered over the map, picked up by walking to them), all before the time runs
+    /// out. Cleared, every player picks a pact; failed, a curse (CurseService). A rift adds no enemy: the stage's own ones
+    /// are the threat. The host runs it and sends its progress; every machine shows it.
     /// </summary>
     public interface IRiftService
     {
@@ -30,20 +31,31 @@ namespace Megaphonk.Services
     {
         private const float FIRST_RIFT_DELAY = 60f;
         private const float RIFT_INTERVAL = 180f;
-        private const float DURATION = 90f;
+        private const float DURATION = 120f; //Zones can be anywhere on the map
         private const float HOLD_SECONDS = 20f;
         private const float ZONE_RADIUS = 9f;
         private const float ZONE_HEIGHT_TOLERANCE = 8f;
         private const float MIN_ZONE_DISTANCE = 20f;
         private const float MAX_ZONE_DISTANCE = 35f;
+        private const int MAP_ATTEMPTS = 120;
+        private const int CIRCLE_CHECKS = 12;
+        private const float MAX_GROUND_STEP = 2.5f; //Height difference allowed under the circle
+        private const float SKY_HEIGHT = 300f;
         private const int MAX_ZONES = 2;
         private const float PROGRESS_SEND_INTERVAL = 0.25f;
         private const float RESULT_SHOWN_SECONDS = 4f;
         private const int RING_SEGMENTS = 48;
-        private const float BEAM_HEIGHT = 30f;
+        private const float BEAM_HEIGHT = 200f;
+        private const float SHARD_PICKUP_RADIUS = 3f;
+        private const float SHARD_CLEAR_RADIUS = 2f; //Open ground needed around a shard
+        private const float SHARD_SPACING = 25f;
+        private const int SHARDS_PER_PLAYER = 3;
+        private const int MIN_SHARDS = 4;
+        private const int MAX_SHARDS = 8;
 
         private static readonly Color ZONE_COLOR = new(0.75f, 0.35f, 1f, 1f);
         private static readonly Color ZONE_DONE_COLOR = new(0.4f, 1f, 0.55f, 1f);
+        private static readonly Color SHARD_COLOR = new(1f, 0.82f, 0.3f, 1f);
 
         private readonly IUdpClientService udpClientService;
         private readonly IPlayerManagerService playerManagerService;
@@ -72,7 +84,8 @@ namespace Megaphonk.Services
         private class Rift
         {
             public int Id;
-            public Vector3[] Zones;
+            public RiftType Type;
+            public Vector3[] Zones; //Zones to hold or shards to collect
             public float Radius;
             public float[] Progress;
             public float TimeLeft;
@@ -177,19 +190,25 @@ namespace Megaphonk.Services
                 return;
             }
 
+            var type = random.Next(2) == 0 ? RiftType.HoldZones : RiftType.Shards;
+            var playerCount = playerManagerService.GetAllPlayers().Count();
+            var (count, clearRadius, spacing, radius) = type == RiftType.Shards
+                ? (Math.Clamp(playerCount * SHARDS_PER_PLAYER, MIN_SHARDS, MAX_SHARDS), SHARD_CLEAR_RADIUS, SHARD_SPACING, SHARD_PICKUP_RADIUS)
+                : (Math.Clamp(playerCount, 1, MAX_ZONES), ZONE_RADIUS, ZONE_RADIUS * 3f, ZONE_RADIUS);
+
             var zones = new List<Vector3>();
-            var zoneCount = Math.Clamp(playerManagerService.GetAllPlayers().Count(), 1, MAX_ZONES);
-            for (var i = 0; i < zoneCount; i++)
+            var groundLayer = GetGroundLayer();
+            for (var i = 0; i < count; i++)
             {
-                zones.Add(PickZonePosition(anchors[i % anchors.Count], zones));
+                zones.Add(PickZonePosition(anchors[i % anchors.Count], zones, groundLayer, clearRadius, spacing));
             }
 
             var started = new RiftStarted
             {
                 Id = nextId++,
-                Type = RiftType.HoldZones,
+                Type = type,
                 Zones = [.. zones.Select(zone => zone.ToNumericsVector3())],
-                ZoneRadius = ZONE_RADIUS,
+                ZoneRadius = radius,
                 Duration = DURATION
             };
             udpClientService.SendToAllClients(started, LiteNetLib.DeliveryMethod.ReliableOrdered);
@@ -217,9 +236,118 @@ namespace Megaphonk.Services
         }
 
         /// <summary>
+        /// A random spot anywhere on the map where a circle of the given radius lies on even, open ground (no wall in it),
+        /// at least spacing away from the others. Near a player when the map gives none.
+        /// </summary>
+        private Vector3 PickZonePosition(Vector3 anchor, List<Vector3> others, int groundLayer, float radius, float spacing)
+        {
+            var size = Plugin.Instance.OriginalWorldSize;
+            var halfX = size.x * 0.45f;
+            var halfZ = size.z * 0.45f;
+            if (halfX > radius * 2f && halfZ > radius * 2f)
+            {
+                for (var attempt = 0; attempt < MAP_ATTEMPTS; attempt++)
+                {
+                    var x = (float)(random.NextDouble() * 2 - 1) * halfX;
+                    var z = (float)(random.NextDouble() * 2 - 1) * halfZ;
+                    if (!TryGetGround(new Vector3(x, anchor.y + SKY_HEIGHT, z), SKY_HEIGHT * 3f, out var center, out var layer)
+                        || (groundLayer >= 0 && layer != groundLayer)
+                        || others.Any(other => HorizontalDistance(other, center) < spacing))
+                    {
+                        continue;
+                    }
+
+                    if (IsCircleClear(center, layer, radius))
+                    {
+                        return center;
+                    }
+                }
+            }
+
+            Plugin.Log.LogInfo("Rift: no open spot found on the map, the zone goes near a player");
+            return PickZonePositionNear(anchor, others, spacing);
+        }
+
+        /// <summary>
+        /// The first ground below a point (null when only sky or a trigger)
+        /// </summary>
+        private static bool TryGetGround(Vector3 from, float length, out Vector3 point, out int layer)
+        {
+            point = from;
+            layer = -1;
+            if (!Physics.Raycast(new Ray(from, Vector3.up * -1f), out var hit, length, ~0, QueryTriggerInteraction.Ignore) || hit.collider == null)
+            {
+                return false;
+            }
+
+            point = hit.point;
+            layer = hit.collider.gameObject.layer;
+            return hit.normal.y > 0.8f; //Not a slope or a wall
+        }
+
+        /// <summary>
+        /// Even ground all around the circle, same surface, and no wall between its center and its edge
+        /// </summary>
+        private bool IsCircleClear(Vector3 center, int layer, float radius)
+        {
+            for (var i = 0; i < CIRCLE_CHECKS; i++)
+            {
+                var angle = i * Math.PI * 2 / CIRCLE_CHECKS;
+                var direction = new Vector3((float)Math.Cos(angle), 0f, (float)Math.Sin(angle));
+
+                if (!TryGetGround(center + direction * radius + Vector3.up * 10f, 20f, out var edge, out var edgeLayer)
+                    || edgeLayer != layer || Math.Abs(edge.y - center.y) > MAX_GROUND_STEP)
+                {
+                    return false;
+                }
+
+                if (Physics.Raycast(new Ray(center + Vector3.up * 1.5f, direction), out _, radius, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The layer of the ground under the host: zones go on the same kind of surface (not on a roof or a rock)
+        /// </summary>
+        private static int GetGroundLayer()
+        {
+            var player = GameManager.Instance?.player?.transform;
+            if (player == null)
+            {
+                return -1;
+            }
+
+            // The player's own colliders are skipped: the ground is the first other thing below
+            var origin = player.position + Vector3.up * 1f;
+            var remaining = 10f;
+            for (var i = 0; i < 6 && remaining > 0f; i++)
+            {
+                if (!Physics.Raycast(new Ray(origin, Vector3.up * -1f), out var hit, remaining, ~0, QueryTriggerInteraction.Ignore) || hit.collider == null)
+                {
+                    return -1;
+                }
+
+                if (!hit.collider.transform.IsChildOf(player))
+                {
+                    return hit.collider.gameObject.layer;
+                }
+
+                var skipped = hit.distance + 0.05f;
+                origin += Vector3.up * -skipped;
+                remaining -= skipped;
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// A spot on the ground some way from a player, away from the other zones
         /// </summary>
-        private Vector3 PickZonePosition(Vector3 anchor, List<Vector3> others)
+        private Vector3 PickZonePositionNear(Vector3 anchor, List<Vector3> others, float spacing)
         {
             var fallback = anchor;
             for (var attempt = 0; attempt < 12; attempt++)
@@ -238,7 +366,7 @@ namespace Megaphonk.Services
                 }
 
                 var point = hit.point;
-                if (Math.Abs(point.y - anchor.y) > 25f || others.Any(other => HorizontalDistance(other, point) < ZONE_RADIUS * 3f))
+                if (Math.Abs(point.y - anchor.y) > 25f || others.Any(other => HorizontalDistance(other, point) < spacing))
                 {
                     continue; //A cliff or a hole, or too close to another zone
                 }
@@ -264,12 +392,15 @@ namespace Megaphonk.Services
                 for (var i = 0; i < current.Zones.Length; i++)
                 {
                     var zone = current.Zones[i];
-                    var isHeld = players.Any(position =>
+                    var holders = players.Count(position =>
                         Math.Abs(position.y - zone.y) < ZONE_HEIGHT_TOLERANCE && HorizontalDistance(position, zone) <= current.Radius);
-                    if (isHeld)
+                    if (holders == 0)
                     {
-                        current.Progress[i] = Math.Min(1f, current.Progress[i] + dt / HOLD_SECONDS);
+                        continue;
                     }
+
+                    // A shard is picked up at once; each player in a zone adds to the speed (two hold it twice as fast)
+                    current.Progress[i] = current.Type == RiftType.Shards ? 1f : Math.Min(1f, current.Progress[i] + dt * holders / HOLD_SECONDS);
                 }
                 current.TimeLeft = Math.Max(0f, current.TimeLeft - dt);
             }
@@ -304,6 +435,7 @@ namespace Megaphonk.Services
             current = new Rift
             {
                 Id = started.Id,
+                Type = started.Type,
                 Zones = [.. started.Zones.Select(zone => zone.ToUnityVector3())],
                 Radius = started.ZoneRadius,
                 Progress = new float[started.Zones.Length],
@@ -314,7 +446,7 @@ namespace Megaphonk.Services
             {
                 foreach (var zone in current.Zones)
                 {
-                    current.Visuals.Add(CreateZoneVisual(zone, current.Radius));
+                    current.Visuals.Add(CreateZoneVisual(zone, current.Radius, current.Type == RiftType.Shards ? SHARD_COLOR : ZONE_COLOR));
                 }
             }
             catch (Exception ex)
@@ -322,8 +454,8 @@ namespace Megaphonk.Services
                 Plugin.Log.LogError($"Rift zone visuals failed: {ex}");
             }
 
-            Plugin.Log.LogInfo($"Rift {current.Id} opened: hold {current.Zones.Length} zone(s) for {HOLD_SECONDS}s within {started.Duration}s at {string.Join(", ", current.Zones)}");
-            Plugin.StartNotification(("Megaphonk", "Rift"), ("Megaphonk", "Rift_Description"), []);
+            Plugin.Log.LogInfo($"Rift {current.Id} opened: {current.Type}, {current.Zones.Length} within {started.Duration}s at {string.Join(", ", current.Zones)}");
+            Plugin.StartNotification(("Megaphonk", "Rift"), ("Megaphonk", current.Type == RiftType.Shards ? "Rift_Shards_Description" : "Rift_Description"), []);
         }
 
         private void Finish(bool cleared)
@@ -361,7 +493,7 @@ namespace Megaphonk.Services
             current = null;
         }
 
-        private (GameObject, LineRenderer, LineRenderer) CreateZoneVisual(Vector3 center, float radius)
+        private (GameObject, LineRenderer, LineRenderer) CreateZoneVisual(Vector3 center, float radius, Color color)
         {
             var marker = new GameObject("Megaphonk_RiftZone");
             marker.transform.position = center;
@@ -376,8 +508,8 @@ namespace Megaphonk.Services
                 var angle = i * Math.PI * 2 / RING_SEGMENTS;
                 ring.SetPosition(i, center + new Vector3((float)Math.Cos(angle) * radius, 0.4f, (float)Math.Sin(angle) * radius));
             }
-            ring.startWidth = 0.4f;
-            ring.endWidth = 0.4f;
+            ring.startWidth = 0.6f;
+            ring.endWidth = 0.6f;
 
             var beam = new GameObject("Beam").AddComponent<LineRenderer>();
             beam.transform.SetParent(marker.transform, false);
@@ -385,8 +517,8 @@ namespace Megaphonk.Services
             beam.positionCount = 2;
             beam.SetPosition(0, center);
             beam.SetPosition(1, center + Vector3.up * BEAM_HEIGHT);
-            beam.startWidth = 1.2f;
-            beam.endWidth = 0.2f;
+            beam.startWidth = 3f;
+            beam.endWidth = 1.5f;
 
             var material = GetLineMaterial();
             if (material != null)
@@ -394,9 +526,9 @@ namespace Megaphonk.Services
                 ring.material = material;
                 beam.material = material;
             }
-            SetColor(ring, beam, ZONE_COLOR);
+            SetColor(ring, beam, color);
 
-            GetMinimap()?.AddArrow(marker.transform, ZONE_COLOR);
+            GetMinimap()?.AddArrow(marker.transform, color);
             return (marker, ring, beam);
         }
 
@@ -405,11 +537,11 @@ namespace Megaphonk.Services
             ring.startColor = color;
             ring.endColor = color;
             beam.startColor = color;
-            beam.endColor = new Color(color.r, color.g, color.b, 0.1f);
+            beam.endColor = new Color(color.r, color.g, color.b, 0.4f);
         }
 
         /// <summary>
-        /// A zone turns green once held long enough
+        /// A zone turns green once held long enough, a picked up shard goes away
         /// </summary>
         private void RefreshVisuals()
         {
@@ -421,10 +553,22 @@ namespace Megaphonk.Services
             for (var i = 0; i < current.Visuals.Count && i < current.Progress.Length; i++)
             {
                 var (marker, ring, beam) = current.Visuals[i];
-                if (marker != null)
+                if (marker == null)
                 {
-                    SetColor(ring, beam, current.Progress[i] >= 1f ? ZONE_DONE_COLOR : ZONE_COLOR);
+                    continue;
                 }
+
+                if (current.Type == RiftType.Shards)
+                {
+                    if (current.Progress[i] >= 1f)
+                    {
+                        GetMinimap()?.RemoveArrow(marker.transform);
+                        UnityEngine.Object.Destroy(marker);
+                    }
+                    continue;
+                }
+
+                SetColor(ring, beam, current.Progress[i] >= 1f ? ZONE_DONE_COLOR : ZONE_COLOR);
             }
         }
 
@@ -441,8 +585,17 @@ namespace Megaphonk.Services
             current?.Visuals.Clear();
         }
 
+        /// <summary>
+        /// Seen through walls at any distance, else the ping's plain material
+        /// </summary>
         private Material GetLineMaterial()
         {
+            var onTop = XRayMaterials.OnTop();
+            if (onTop != null)
+            {
+                return onTop;
+            }
+
             if (lineMaterial == null)
             {
                 var shader = Shader.Find("Sprites/Default") ?? Shader.Find("UI/Default");
@@ -463,17 +616,18 @@ namespace Megaphonk.Services
         }
 
         /// <summary>
-        /// Under the team meter: the zones' progress and the time left, then the result for a few seconds
+        /// Under the team meter and the stage timer: the zones' progress and the time left, then the result for a few seconds
         /// </summary>
         private void UpdateHud()
         {
             string text = null;
             if (current != null)
             {
-                var zones = string.Join("  ", current.Progress.Select(progress =>
-                    progress >= 1f ? "<color=#66FF8C>100%</color>" : $"{(int)(progress * 100f)}%"));
+                var objective = current.Type == RiftType.Shards
+                    ? $"{Loc.T("collect the shards")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}"
+                    : $"{Loc.T("hold the zones")}  {string.Join("  ", current.Progress.Select(progress => progress >= 1f ? "<color=#66FF8C>100%</color>" : $"{(int)(progress * 100f)}%"))}";
                 var time = TimeSpan.FromSeconds(Math.Ceiling(current.TimeLeft));
-                text = $"<color=#C08CFF>{Loc.T("Rift")}</color>: {Loc.T("hold the zones")}  {zones}  <color=#FFD27F>{time.Minutes}:{time.Seconds:00}</color>";
+                text = $"<color=#C08CFF>{Loc.T("Rift")}</color>: {objective}  <color=#FFD27F>{time.Minutes}:{time.Seconds:00}</color>";
             }
             else if (resultText != null && Time.realtimeSinceStartup < resultShownUntil)
             {
@@ -503,7 +657,7 @@ namespace Megaphonk.Services
                 hudText.rectTransform.anchorMin = new Vector2(0.5f, 1f);
                 hudText.rectTransform.anchorMax = new Vector2(0.5f, 1f);
                 hudText.rectTransform.pivot = new Vector2(0.5f, 1f);
-                hudText.rectTransform.anchoredPosition = new Vector2(0f, -48f);
+                hudText.rectTransform.anchoredPosition = new Vector2(0f, -100f); //Under the stage timer
                 hudText.rectTransform.sizeDelta = new Vector2(900f, 40f);
                 hudText.alignment = TextAlignmentOptions.Center;
                 hudText.fontSize = 26;

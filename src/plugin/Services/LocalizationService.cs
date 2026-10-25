@@ -44,6 +44,7 @@ namespace Megaphonk.Services
             { ("Megaphonk", "Ascension_Description"), "Level {0}: enemies are stronger" },
             { ("Megaphonk", "Rift"), "Rift" },
             { ("Megaphonk", "Rift_Description"), "Hold the zones before time runs out" },
+            { ("Megaphonk", "Rift_Shards_Description"), "Collect the shards scattered over the map" },
         };
 
         private readonly Queue<IEnumerable<string>> NextLocalizedDescription = new();

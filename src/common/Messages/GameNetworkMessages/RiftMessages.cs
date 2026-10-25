@@ -6,9 +6,14 @@ namespace Megaphonk.Common.Messages.GameNetworkMessages
     public enum RiftType : byte
     {
         /// <summary>
-        /// Zones to hold: each fills while a player stands in it
+        /// Zones to hold: each fills while players stand in it
         /// </summary>
-        HoldZones = 0
+        HoldZones = 0,
+
+        /// <summary>
+        /// Shards scattered over the map: each is picked up by walking to it
+        /// </summary>
+        Shards = 1
     }
 
     /// <summary>

@@ -6,6 +6,15 @@
 #     "Change 2 description",
 # ]
 
+[version."2.9.0"]
+changes = [
+    "New rift: collect the shards (3 per player, 4 to 8) scattered over the map, by walking to them. Each rift is now a random kind.",
+    "Rift zones and shards go anywhere on the map, on open, even ground. Their ring and beam are seen through walls at any distance, the beam is wider and much taller. Rifts last 120 seconds.",
+    "A zone fills faster with more players in it (two hold it twice as fast).",
+    "Teammates are seen through walls: a silhouette in their color, and their name at any distance with the distance.",
+    "The rift line no longer overlaps the stage timer.",
+]
+
 [version."2.8.0"]
 changes = [
     "Rifts: from the first ascension, every stage but the final boss's opens rifts. Hold the zones (one per player, at most two) for 20 seconds within 90 seconds. A rift adds no enemy.",

@@ -54,8 +54,12 @@ namespace Megaphonk.Scripts.NetPlayer
         private TextMeshProUGUI nameplateText;
         private string lastNameplateText;
         private bool isDead;
-        private const float NAMEPLATE_MAX_DISTANCE = 100f;
+        private float nameplateDistance;
+        private Material xRayMaterial;
+        private float nextXRayCheckAt;
         private const float NAMEPLATE_Y_OFFSET = 5.0f;
+        private const float NAMEPLATE_DISTANCE_SHOWN_FROM = 25f;
+        private const float XRAY_CHECK_INTERVAL = 0.5f;
 
         protected void Awake()
         {
@@ -70,6 +74,7 @@ namespace Megaphonk.Scripts.NetPlayer
 
             UpdateNameplateText();
             UpdateNameplateRotation();
+            UpdateXRay();
 
             if (isDead)
             {
@@ -498,6 +503,10 @@ namespace Megaphonk.Scripts.NetPlayer
             }
             var isDowned = playerManagerService.IsDowned(connectionId);
             var text = isDowned ? Loc.F("{0} - DOWN", player.Name) : player.Name;
+            if (nameplateDistance >= NAMEPLATE_DISTANCE_SHOWN_FROM)
+            {
+                text += $" <size=75%>{(int)(nameplateDistance / 5f) * 5}m</size>";
+            }
             if (lastNameplateText != text) //Last text set, not read back from TMP (native call + string copy every frame)
             {
                 nameplateText.text = text;
@@ -517,13 +526,7 @@ namespace Megaphonk.Scripts.NetPlayer
 
                 var localPlayerPos = GameManager.Instance.player.transform.position;
                 var netPlayerPos = Model.transform.position;
-                var distance = Vector3.Distance(localPlayerPos, netPlayerPos);
-
-                if (distance > NAMEPLATE_MAX_DISTANCE)
-                {
-                    nameplate.SetActive(false);
-                    return;
-                }
+                nameplateDistance = Vector3.Distance(localPlayerPos, netPlayerPos); //Shown at any distance, over walls
 
                 var worldPos = Model.transform.position + new Vector3(0, NAMEPLATE_Y_OFFSET, 0);
                 var screenPos = camera.WorldToScreenPoint(worldPos);
@@ -541,6 +544,49 @@ namespace Megaphonk.Scripts.NetPlayer
             catch (System.Exception ex)
             {
                 Plugin.Log.LogError($"Error updating nameplate position: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Seen through walls at any distance: the body gets an extra material in the player's color, drawn only where
+        /// something hides it. Checked now and then, as the game may set the model's materials again (skin, effects).
+        /// </summary>
+        private void UpdateXRay()
+        {
+            if (Time.realtimeSinceStartup < nextXRayCheckAt)
+            {
+                return;
+            }
+            nextXRayCheckAt = Time.realtimeSinceStartup + XRAY_CHECK_INTERVAL;
+
+            try
+            {
+                if (xRayMaterial == null)
+                {
+                    var color = Plugin.Instance.NetPlayersDisplayer.GetPlayerColor(connectionId);
+                    xRayMaterial = XRayMaterials.Occluded(new Color(color.r, color.g, color.b, 0.6f));
+                    if (xRayMaterial == null)
+                    {
+                        nextXRayCheckAt = float.MaxValue; //No suitable shader: the nameplate still shows where the player is
+                        return;
+                    }
+                }
+
+                foreach (var renderer in Il2CppFindHelper.RuntimeGetComponentsInChildren<SkinnedMeshRenderer>(Model, true))
+                {
+                    var materials = renderer.RuntimeGetSharedMaterials();
+                    if (materials.Length > 0 && materials[^1] != null && materials[^1].Ptr() == xRayMaterial.Ptr())
+                    {
+                        continue;
+                    }
+
+                    renderer.RuntimeSetSharedMaterials([.. materials.Where(material => material == null || material.Ptr() != xRayMaterial.Ptr()), xRayMaterial]);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                nextXRayCheckAt = float.MaxValue;
+                Plugin.Log.LogError($"Through-walls silhouette of NetPlayer {connectionId} failed: {ex}");
             }
         }
 

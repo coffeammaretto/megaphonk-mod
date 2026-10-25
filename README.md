@@ -42,6 +42,7 @@ Co-op mod for **Megabonk 1.0.69** (up to 6 players), built on BepInEx 6 IL2CPP.
 
 ### Co-op mechanics
 - **Downed state**: lethal damage downs a player instead of killing them. They bleed out for 25 seconds, invulnerable but unable to attack, they barely crawl (sliding and jumping included), and enemies ignore them. A downed player sways, dazed. A teammate standing within 8 meters revives them in 3 seconds with 30% HP. The timers stop while a reward (chest, level up...) is being picked. Nobody came in time: a normal death and a grave. Screen hints show the timer and the distance to a downed teammate.
+- **Teammates through walls**: a teammate hidden by a wall, a tree or the ground shows as a silhouette in their color, and their name stays on screen at any distance (with the distance past 25 m).
 - **Ping**: the middle mouse button (`PingKey`) marks a spot for the whole team: a beam of the player's color and an arrow on the minimap, for 6 seconds.
 - **Team meter**: a kill fills the meter only when at least two different players killed within the last 5 seconds. A full meter gives everyone +25% damage and +15% move speed for 10 seconds, then the next threshold is 1.5 times higher.
 - **Co-op challenges** (`ChallengesEnabled`), announced at the start of a stage, rewarded with chests that drop from the sky at the start of the next stage (downs don't count as deaths):
@@ -58,7 +59,10 @@ Once the final boss is dead, a second portal stands next to the final one. The f
 - Each ascension makes enemies stronger, never more numerous: enemy HP x1.5 (`AscensionEnemyHpGrowth`) and damage x1.25 (`AscensionEnemyDamageGrowth`) per level, compounding, and at most 300 enemies on the map at once (`AscensionMaxEnemies`). Turned off with `AscensionEnabled`.
 - **Curses**: after each ascension, every player picks one of three random curses for themselves (1/2/3 or a click), since each character has its own weaknesses. The party pauses meanwhile, as for a level up. Curses stack for the rest of the run.
 - 26 curses, from one stat (max HP, damage, attack speed, armor, evasion, shield, lifesteal, luck...) to two or more (crits, elemental damage, power-ups, gold and silver). Each card rolls its strength: lesser (x0.6, 45%), normal (40%) or greater (x1.6, 15%). A curse takes a percentage of what the player has, so a build without that stat doesn't care. One stat loses at most 75% to curses.
-- **Rifts**: from the first ascension, every stage but the final boss's opens a rift 60 seconds in, then 3 minutes after the previous one ends. For now one kind: zones to hold (one per player, at most two; a purple ring and beam, an arrow on the minimap). Each fills in 20 seconds while a player, alive and not downed, stands in it; all of them within 90 seconds. A rift adds no enemy. Cleared: every player picks a **pact**, a boon (+15 to 40% to a stat) paid with a lesser or normal curse. Failed: every player picks a curse.
+- **Rifts**: from the first ascension, every stage but the final boss's opens a rift 60 seconds in, then 3 minutes after the previous one ends, a random kind, within 120 seconds:
+  - zones to hold (one per player, at most two; purple ring): each fills in 20 seconds while a player, alive and not downed, stands in it, faster with more players in it;
+  - shards to collect (3 per player, 4 to 8; golden): each is picked up by walking to it.
+  They go anywhere on the map on open, even ground, with a beam to the sky and a ring seen through walls at any distance, and an arrow on the minimap. A rift adds no enemy. Cleared: every player picks a **pact**, a boon (+15 to 40% to a stat) paid with a lesser or normal curse. Failed: every player picks a curse.
 - Co-op only, the host decides: a client using the portal asks the host.
 
 ### Run modifiers
@@ -97,7 +101,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 With a mod manager: install [MegaphonkMod on Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) with r2modman or Gale, the mod manager installs BepInEx and updates the mod. Manual installation:
 
 1. Close the game.
-2. Download `MegaphonkMod-2.8.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Download `MegaphonkMod-2.9.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 4. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -166,6 +170,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 
 #### Кооп-механики
 - **Нокдаун**: смертельный урон не убивает, а роняет игрока. Он истекает кровью 25 секунд, неуязвим, но не может атаковать и еле ползёт (скольжение и прыжки тоже не помогают), враги его игнорируют. Упавший персонаж шатается, как оглушённый. Напарник в радиусе 8 метров поднимает его за 3 секунды с 30% здоровья. Пока идёт выбор награды (сундук, уровень...), таймеры стоят. Не успели: обычная смерть и могила. Подсказки на экране показывают таймер и расстояние до упавшего напарника.
+- **Напарники сквозь стены**: напарник за стеной, деревом или рельефом виден силуэтом своего цвета, а его ник виден на любой дистанции (дальше 25 м с расстоянием).
 - **Пинг**: средняя кнопка мыши (`PingKey`) ставит метку для всей команды: столб света цвета игрока и стрелка на миникарте, на 6 секунд.
 - **Командная шкала**: убийство заполняет шкалу, только если за последние 5 секунд убивали минимум двое разных игроков. Полная шкала даёт всем +25% урона и +15% скорости на 10 секунд, следующий порог в 1,5 раза выше.
 - **Кооп-испытания** (`ChallengesEnabled`), объявляются в начале уровня, награда: сундуки, которые падают с неба в начале следующего уровня (нокдаун смертью не считается):
@@ -182,7 +187,10 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Каждое восхождение делает врагов сильнее, но не многочисленнее: здоровье врагов x1,5 (`AscensionEnemyHpGrowth`) и урон x1,25 (`AscensionEnemyDamageGrowth`) за уровень, с накоплением, и не больше 300 врагов на карте одновременно (`AscensionMaxEnemies`). Отключается параметром `AscensionEnabled`.
 - **Проклятия**: после каждого восхождения каждый игрок сам выбирает одно из трёх случайных проклятий (1/2/3 или клик): у каждого персонажа свои слабости. Пати на это время стоит на паузе, как при повышении уровня. Проклятия копятся до конца забега.
 - 26 проклятий: на один стат (здоровье, урон, скорость атаки, броня, уклонение, щит, вампиризм, удача...) и на несколько (криты, урон стихиями, усиления, золото и серебро). Сила каждой карточки случайна: слабое (x0,6, 45%), обычное (40%) или тяжёлое (x1,6, 15%). Проклятие снимает процент от того, что есть у игрока, поэтому билду без этого стата оно не мешает. Один стат теряет от проклятий не больше 75%.
-- **Разломы**: с первого восхождения на каждом этапе, кроме арены финального босса, через 60 секунд открывается разлом, следующий через 3 минуты после конца предыдущего. Пока один вид: зоны для удержания (по одной на игрока, не больше двух; фиолетовое кольцо и луч, стрелка на миникарте). Зона заполняется за 20 секунд, пока в ней стоит живой игрок не в нокдауне; все зоны нужно заполнить за 90 секунд. Разлом не добавляет врагов. Закрыт: каждый выбирает **пакт**, дар (+15–40% к стату) ценой слабого или обычного проклятия. Провален: каждый выбирает проклятие.
+- **Разломы**: с первого восхождения на каждом этапе, кроме арены финального босса, через 60 секунд открывается разлом, следующий через 3 минуты после конца предыдущего, случайного вида, на всё 120 секунд:
+  - зоны для удержания (по одной на игрока, не больше двух; фиолетовое кольцо): зона заполняется за 20 секунд, пока в ней стоит живой игрок не в нокдауне, быстрее, если игроков в ней больше;
+  - осколки (по 3 на игрока, от 4 до 8; золотые): осколок подбирается, если подойти к нему.
+  Они появляются в любом месте карты на ровной открытой земле, с лучом в небо и кольцом, видными сквозь стены на любой дистанции, и стрелкой на миникарте. Разлом не добавляет врагов. Закрыт: каждый выбирает **пакт**, дар (+15–40% к стату) ценой слабого или обычного проклятия. Провален: каждый выбирает проклятие.
 - Только в коопе, решает хост: портал клиента отправляет запрос хосту.
 
 #### Модификаторы забега
@@ -220,7 +228,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 Через менеджер модов: установи [MegaphonkMod из Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) через r2modman или Gale, менеджер сам поставит BepInEx и будет обновлять мод. Ручная установка:
 
 1. Закрой игру.
-2. Скачай `MegaphonkMod-2.8.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Скачай `MegaphonkMod-2.9.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 4. Запусти игру через Steam. Первый запуск дольше обычного.
 
