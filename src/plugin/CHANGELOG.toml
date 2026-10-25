@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.3.2"]
+changes = [
+    "The Thunderstore version has no self-update code at all: the mod manager updates it, the mod only tells you a new version is out.",
+]
+
 [version."2.3.1"]
 changes = [
     "The mod is on Thunderstore (ROFL_MODS-MegaphonkMod): install and update it with r2modman or Gale. Installed by a mod manager, the mod no longer downloads updates itself and tells you to update in the mod manager.",

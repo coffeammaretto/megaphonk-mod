@@ -193,7 +193,11 @@ namespace Megaphonk.Common
                         return true;
                     }
 
+#if THUNDERSTORE
+                    isUpdateAvailable = false;
+#else
                     isUpdateAvailable = await PrepareUpdate(latestRelease);
+#endif
                     if (isUpdateAvailable)
                     {
                         downloadedVersion = latestRelease.TagName;
@@ -246,6 +250,8 @@ namespace Megaphonk.Common
             }
         }
 
+        // The Thunderstore build cannot update itself at all (Thunderstore rules): the mod manager updates it
+#if !THUNDERSTORE
         private async Task<bool> PrepareUpdate(GitHubRelease release)
         {
             try
@@ -282,6 +288,8 @@ namespace Megaphonk.Common
                 return false;
             }
         }
+
+#endif
 
         public async Task EnsureChangelogExists(string version, string pluginDirectory)
         {
@@ -335,6 +343,7 @@ namespace Megaphonk.Common
         /// <summary>
         /// I think mod site are flagging the bat, so we will generate it on the fly and they can leave me alone
         /// </summary>
+#if !THUNDERSTORE
         private void GenerateUpdaterBatchFile(string pluginDirectory, string version)
         {
             try
@@ -582,5 +591,10 @@ namespace Megaphonk.Common
                 logger.LogError($"Error in LaunchUpdaterOnExit: {ex}");
             }
         }
+#else
+        public void LaunchUpdaterOnExit(string pluginDirectory)
+        {
+        }
+#endif
     }
 }
