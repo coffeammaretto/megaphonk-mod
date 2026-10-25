@@ -52,6 +52,7 @@ namespace Megaphonk.Scripts
         private IDownedService downedService;
         private IPingService pingService;
         private ITeamMeterService teamMeterService;
+        private ICurseService curseService;
         private IChallengeService challengeService;
         private IRunStatsService runStatsService;
         private ICoopLeaderboardService coopLeaderboardService;
@@ -146,8 +147,10 @@ namespace Megaphonk.Scripts
                     downedService.Tick,
                     pingService.Tick,
                     teamMeterService.Tick,
+                    curseService.Tick,
                     challengeService.Tick,
                     runStatsService.Tick,
+                    DebugTools.Tick,
                 ];
                 foreach (var tick in updateTicks)
                 {
@@ -336,6 +339,7 @@ namespace Megaphonk.Scripts
             downedService?.Reset();
             pingService?.Reset();
             teamMeterService?.Reset();
+            curseService?.Reset();
             challengeService?.Reset();
             runStatsService?.Reset();
             coopLeaderboardService?.Reset();
@@ -386,6 +390,7 @@ namespace Megaphonk.Scripts
                 downedService = Plugin.Services.GetRequiredService<IDownedService>();
                 pingService = Plugin.Services.GetRequiredService<IPingService>();
                 teamMeterService = Plugin.Services.GetRequiredService<ITeamMeterService>();
+                curseService = Plugin.Services.GetRequiredService<ICurseService>();
                 challengeService = Plugin.Services.GetRequiredService<IChallengeService>();
                 runStatsService = Plugin.Services.GetRequiredService<IRunStatsService>();
                 coopLeaderboardService = Plugin.Services.GetRequiredService<ICoopLeaderboardService>();

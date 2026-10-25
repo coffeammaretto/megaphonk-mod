@@ -42,6 +42,10 @@ namespace Megaphonk.Configuration
         public static ConfigEntry<float> TeamBuffSeconds { get; private set; }
         public static ConfigEntry<RunModifier> RunModifiers { get; private set; }
         public static ConfigEntry<bool> ChallengesEnabled { get; private set; }
+        public static ConfigEntry<bool> AscensionEnabled { get; private set; }
+        public static ConfigEntry<float> AscensionEnemyHpGrowth { get; private set; }
+        public static ConfigEntry<float> AscensionEnemyDamageGrowth { get; private set; }
+        public static ConfigEntry<int> AscensionMaxEnemies { get; private set; }
 
         public static ConfigEntry<bool> CustomMusic { get; private set; }
         public static ConfigEntry<int> MaxPickupObjects { get; private set; }
@@ -52,6 +56,7 @@ namespace Megaphonk.Configuration
         public static ConfigEntry<float> PerformanceSpikeMs { get; private set; }
         public static ConfigEntry<bool> KeepBepInExConsole { get; private set; }
         public static ConfigEntry<bool> NativeTransformHooks { get; private set; }
+        public static ConfigEntry<bool> DebugTools { get; private set; }
 
         public static void Initialize(ConfigFile config)
         {
@@ -164,6 +169,17 @@ namespace Megaphonk.Configuration
             ChallengesEnabled = config.Bind(party, "ChallengesEnabled", true,
                 "Coop challenges rewarded with chests on the next stage: one for each player with no death on the stage, one for each player who survived the stage boss fight.");
 
+            const string ascension = "Ascension";
+            AscensionEnabled = config.Bind(ascension, "AscensionEnabled", true,
+                "Co-op, host: an ascension portal next to the final portal (which still ends the run) takes the party back to the first stage of the map with their builds, enemies stronger at each ascension.");
+            AscensionEnemyHpGrowth = config.Bind(ascension, "AscensionEnemyHpGrowth", 1.5f,
+                "Enemy HP multiplied by this at each ascension (1.5: x1.5, x2.25, x3.4...).");
+            AscensionEnemyDamageGrowth = config.Bind(ascension, "AscensionEnemyDamageGrowth", 1.25f,
+                "Enemy damage multiplied by this at each ascension.");
+            AscensionMaxEnemies = config.Bind(ascension, "AscensionMaxEnemies", 300,
+                new ConfigDescription("Most enemies on the map at once during an ascension: the difficulty grows with their strength, never with their number.",
+                    new AcceptableValueRange<int>(50, 500)));
+
             CustomMusic = config.Bind("Music", "CustomMusic", true,
                 "The mod's music: its tracks play in a random order instead of the stage music, the host's track for everybody in co-op, and the main menu has its own track. Boss music stays the game's.");
 
@@ -182,6 +198,8 @@ namespace Megaphonk.Configuration
                 "Performance log: frames longer than this (milliseconds) are logged with the mod's share.");
             KeepBepInExConsole = config.Bind("Diagnostics", "KeepBepInExConsole", false,
                 "Keep the BepInEx console window. Off: the mod turns it off (from the next launch), writing to it stalls the game when a lot is logged. The log file is still written.");
+            DebugTools = config.Bind("Diagnostics", "DebugTools", false,
+                "Testing shortcuts, set it on every PC of the party: the first stage's portal leads to the final boss stage, F10 on the host kills every enemy. Leave off to play.");
             NativeTransformHooks = config.Bind("Diagnostics", "NativeTransformHooks", true,
                 "Hook Component.transform, Transform.position and Transform.rotation natively (much faster in the late game). Set to false if the game crashes on startup since 2.0.13: the slower Harmony patches are used instead.");
         }
@@ -210,6 +228,10 @@ namespace Megaphonk.Configuration
                 TeamBuffSeconds = TeamBuffSeconds.Value,
                 RunModifiers = RunModifiers.Value,
                 ChallengesEnabled = ChallengesEnabled.Value,
+                AscensionEnabled = AscensionEnabled.Value,
+                AscensionEnemyHpGrowth = AscensionEnemyHpGrowth.Value,
+                AscensionEnemyDamageGrowth = AscensionEnemyDamageGrowth.Value,
+                AscensionMaxEnemies = AscensionMaxEnemies.Value,
             };
         }
 

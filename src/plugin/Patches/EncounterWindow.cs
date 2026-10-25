@@ -66,7 +66,7 @@ namespace Megaphonk.Patches
                 return true;
             }
 
-            if (__instance.encounterInProgress)
+            if (__instance.encounterInProgress || encounterService.IsCurseChoiceOpen) //A curse is chosen first
             {
                 //Plugin.Log.LogWarning($"Encounter in progress, queueing encounter {rewardWindowType}");
                 __instance.rewardQueue.Enqueue(rewardWindowType);
@@ -137,7 +137,7 @@ namespace Megaphonk.Patches
             }
 
             var currentQueue = __instance.rewardQueue;
-            if (currentQueue.Count > 0 && !__instance.encounterInProgress)
+            if (currentQueue.Count > 0 && !__instance.encounterInProgress && !encounterService.IsCurseChoiceOpen)
             {
                 //Plugin.Log.LogInfo($"Pop previously missed reward");
                 __instance.PopReward();

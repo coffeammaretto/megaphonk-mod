@@ -41,6 +41,9 @@ namespace Megaphonk.Services
             settings.TeamMeterKillsToFill = Clamp(settings.TeamMeterKillsToFill, 10f, 100000f, 250f);
             settings.TeamMeterGrowth = Clamp(settings.TeamMeterGrowth, 1f, 10f, 1.5f);
             settings.TeamBuffSeconds = Clamp(settings.TeamBuffSeconds, 1f, 120f, 10f);
+            settings.AscensionEnemyHpGrowth = Clamp(settings.AscensionEnemyHpGrowth, 1f, 10f, 1.5f);
+            settings.AscensionEnemyDamageGrowth = Clamp(settings.AscensionEnemyDamageGrowth, 1f, 10f, 1.25f);
+            settings.AscensionMaxEnemies = Math.Clamp(settings.AscensionMaxEnemies, 50, 500);
             return settings;
         }
 

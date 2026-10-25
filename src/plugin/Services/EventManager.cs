@@ -56,6 +56,7 @@ namespace Megaphonk.Services
         private static event Action<ItemRemoved> ItemRemovedEvents;
         private static event Action<WeaponToggled> WeaponToggledEvents;
         private static event Action<MusicTrackChanged> MusicTrackChangedEvents;
+        private static event Action<AscensionStarted> AscensionStartedEvents;
         private static event Action GameStartedEvents;
         private static event Action PortalOpenedEvents;
         private static event Action<SpawnedObjectInCrypt> SpawnedObjectInCryptEvents;
@@ -678,6 +679,19 @@ namespace Megaphonk.Services
             MainThreadDispatcher.Enqueue(() =>
             {
                 MusicTrackChangedEvents?.Invoke(musicTrackChanged);
+            });
+        }
+
+        public static void SubscribeAscensionStartedEvents(Action<AscensionStarted> action)
+        {
+            AscensionStartedEvents += action;
+        }
+
+        public static void OnAscensionStarted(AscensionStarted ascensionStarted)
+        {
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                AscensionStartedEvents?.Invoke(ascensionStarted);
             });
         }
 

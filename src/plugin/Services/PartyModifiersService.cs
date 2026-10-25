@@ -21,7 +21,7 @@ namespace Megaphonk.Services
         public void Reset();
     }
 
-    internal class PartyModifiersService(IUdpClientService udpClientService, IPartySettingsService partySettingsService, ITeamMeterService teamMeterService) : IPartyModifiersService
+    internal class PartyModifiersService(IUdpClientService udpClientService, IPartySettingsService partySettingsService, ITeamMeterService teamMeterService, IAscensionService ascensionService, ICurseService curseService) : IPartyModifiersService
     {
         private const float TICK_INTERVAL = 0.5f;
         private const string PREFIX = "Megaphonk_Party_";
@@ -81,6 +81,15 @@ namespace Megaphonk.Services
             }
 
             AddRunModifiers(wanted, settings.RunModifiers, isHost);
+
+            if (isHost && ascensionService.Level > 0)
+            {
+                var level = ascensionService.Level;
+                wanted["AscensionEnemyHp"] = (EStat.EnemyHpMultiplier, EStatModifyType.Addition, Mathf.Pow(settings.AscensionEnemyHpGrowth, level) - 1f);
+                wanted["AscensionEnemyDamage"] = (EStat.EnemyDamageMultiplier, EStatModifyType.Addition, Mathf.Pow(settings.AscensionEnemyDamageGrowth, level) - 1f);
+            }
+
+            curseService.AddModifiers(wanted); //The local player's own curses, on every machine
 
             if (teamMeterService.IsBuffActive)
             {

@@ -28,6 +28,11 @@ namespace Megaphonk.Services
         /// </summary>
         public bool IsReleasing { get; set; }
 
+        /// <summary>
+        /// The local player is choosing an ascension curse (CurseService): choosing, like a reward window
+        /// </summary>
+        public bool IsCurseChoiceOpen { get; set; }
+
         public EncounterSyncState GetLocalState();
         public void StartWaiting();
         public void StopWaiting();
@@ -67,16 +72,18 @@ namespace Megaphonk.Services
         public float WaitingSince { get; private set; } = 0f;
         public bool IsWaitingOnHiddenReward { get; private set; } = false;
         public bool IsReleasing { get; set; } = false;
+        public bool IsCurseChoiceOpen { get; set; } = false;
         public uint CloseSeq { get; set; } = 0;
 
         public EncounterSyncState GetLocalState()
         {
             var encounterWindows = UiManager.Instance?.encounterWindows;
             var encounterInProgress = encounterWindows != null && encounterWindows.encounterInProgress;
+            var isChoosing = encounterInProgress || IsCurseChoiceOpen;
 
             if (IsWaiting)
             {
-                if (IsWaitingOnHiddenReward || !encounterInProgress)
+                if (IsWaitingOnHiddenReward || !isChoosing)
                 {
                     return EncounterSyncState.Waiting;
                 }
@@ -86,7 +93,7 @@ namespace Megaphonk.Services
                 ScreenTextHelper.Clear();
             }
 
-            return encounterInProgress ? EncounterSyncState.Choosing : EncounterSyncState.Free;
+            return isChoosing ? EncounterSyncState.Choosing : EncounterSyncState.Free;
         }
 
         public void StartWaiting()

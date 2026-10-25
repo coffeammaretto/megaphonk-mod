@@ -38,6 +38,7 @@ namespace Megaphonk.Services
         public void RemoveReviverEnemy_Name(Enemy enemy);
         public void RebalanceIfNeededReviverEnemy(Enemy enemy, uint? currentReviver, uint? currentReviverOwner);
         public void ResetReviverSpawnCounts();
+        public List<Enemy> GetAllSpawnedEnemies();
     }
     internal class EnemyManagerService : IEnemyManagerService
     {
@@ -63,6 +64,11 @@ namespace Megaphonk.Services
         private readonly ConcurrentDictionary<Enemy, string> reviverEnemies_NetplayNames = [];
         private readonly ConcurrentDictionary<uint, int> reviverSpawnCountPerOwner = [];
         private uint currentEnemyId = 0; //TODO: concurrency?
+
+        public List<Enemy> GetAllSpawnedEnemies()
+        {
+            return [.. spawnedEnemies.Values];
+        }
 
         /// <summary>
         /// Server side, retarget enemies when a player dies (or other use case ? )

@@ -40,6 +40,8 @@ namespace Megaphonk.Services
             { ("Megaphonk", "RunModifiers_Description"), "{0}" },
             { ("Megaphonk", "Challenge"), "Coop challenge" },
             { ("Megaphonk", "Challenge_Description"), "{0}" },
+            { ("Megaphonk", "Ascension"), "Ascension" },
+            { ("Megaphonk", "Ascension_Description"), "Level {0}: enemies are stronger" },
         };
 
         private readonly Queue<IEnumerable<string>> NextLocalizedDescription = new();

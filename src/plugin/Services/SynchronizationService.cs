@@ -127,6 +127,7 @@ namespace Megaphonk.Services
         public void OnSkinSelected(SkinData skin);
         public void OnRespawn(uint ownerId, Vector3 position);
         public bool IsSharedExperienceEnabled();
+        public bool IsEndgame();
 
         /// <summary>
         /// Shared experience with the party pause: everyone pauses while someone picks a reward
@@ -167,6 +168,10 @@ namespace Megaphonk.Services
         private readonly ConcurrentBag<SpawnedObjectInCrypt> toUpdate = [];
         private readonly ConcurrentQueue<SpawnedEnemy> pendingEnemySpawns = new();
         private readonly HashSet<uint> enemiesDiedBeforeSpawn = [];
+        // Client: the host sends a projectile's spawn unordered and its end ordered, so the end can come first. The spawn
+        // that came after created a copy nothing ever removed (clients piled up hundreds of projectiles)
+        private readonly HashSet<uint> projectilesDoneBeforeSpawn = [];
+        private const int MAX_PROJECTILES_DONE_BEFORE_SPAWN = 4096;
         private readonly Dictionary<EEnemy, Material> clonedExtraEnemyMaterials = [];
         private Coroutine newObjectToSpawnRoutine;
         private Coroutine pendingEnemySpawnRoutine;
@@ -635,6 +640,11 @@ namespace Megaphonk.Services
             return (IChallengeService)Plugin.Services.GetService(typeof(IChallengeService));
         }
 
+        private static IAscensionService GetAscensionService()
+        {
+            return (IAscensionService)Plugin.Services.GetService(typeof(IAscensionService));
+        }
+
         private static IRunStatsService GetRunStatsService()
         {
             return (IRunStatsService)Plugin.Services.GetService(typeof(IRunStatsService));
@@ -891,6 +901,7 @@ namespace Megaphonk.Services
 
             pendingEnemySpawns.Clear();
             enemiesDiedBeforeSpawn.Clear();
+            projectilesDoneBeforeSpawn.Clear();
             pendingEnemyDamages.Clear();
             Plugin.ResetPointerCaches();
 
@@ -1357,6 +1368,12 @@ namespace Megaphonk.Services
 
         private void OnReceivedSpawnedProjectile(AbstractSpawnedProjectile projectile)
         {
+            if (IsServerMode() == false && projectilesDoneBeforeSpawn.Remove(projectile.Id))
+            {
+                return; //Already over on the host
+            }
+
+            GameObject spawned = null;
             try
             {
                 PlayerInventory owner =
@@ -1371,6 +1388,7 @@ namespace Megaphonk.Services
                     var attack = weapon.weaponData.attack.GetComponent<WeaponAttack>();
                     attack.weaponBase = weapon;
                     var proj = GameObject.Instantiate(attack.prefabProjectile);
+                    spawned = proj;
 
                     PoolHelper.EnsureWeaponPoolExists(eweapon);
 
@@ -1610,12 +1628,16 @@ namespace Megaphonk.Services
 
 
                     projectileManagerService.RegisterProjectileForInterpolation(projectile.Id, proj);
-
+                    spawned = null;
                 }
             }
             catch (Exception ex)
             {
                 logger.LogError($"Error in OnReceivedSpawnedProjectile: {ex}");
+                if (spawned != null)
+                {
+                    GameObject.Destroy(spawned); //Never registered: its ProjectileDone could not remove it
+                }
             }
         }
 
@@ -2063,7 +2085,16 @@ namespace Megaphonk.Services
 
         private void OnReceivedProjectileDone(ProjectileDone done)
         {
-            projectileManagerService.UnregisterProjectileFromInterpolation(done.ProjectileId);
+            if (projectileManagerService.UnregisterProjectileFromInterpolation(done.ProjectileId) || IsServerMode() != false)
+            {
+                return;
+            }
+
+            if (projectilesDoneBeforeSpawn.Count >= MAX_PROJECTILES_DONE_BEFORE_SPAWN)
+            {
+                projectilesDoneBeforeSpawn.Clear(); //Spawns that never came (e.g. failed on the host): bounded
+            }
+            projectilesDoneBeforeSpawn.Add(done.ProjectileId);
         }
 
         public void OnPickupSpawned(Pickup pickup, EPickup ePickup, Vector3 pos, int value)
@@ -2663,6 +2694,11 @@ namespace Megaphonk.Services
 
         public void OnInteractableUsed(BaseInteractable instance)
         {
+            if (Patches.AscensionPatches.IsAscensionPortal(instance))
+            {
+                return; //Its own message (AscensionService), the final portal one would end the run for the others
+            }
+
             var netplayId = DynamicData.For(instance.gameObject).Get<uint?>("netplayId");
 
             if (!netplayId.HasValue)
@@ -2894,7 +2930,16 @@ namespace Megaphonk.Services
 
             if (used.IsFinalPortal)
             {
-                var finalPortal = Il2CppFindHelper.FindAllGameObjects().FirstOrDefault(go => go.GetComponent<InteractablePortalFinal>() != null).GetComponent<InteractablePortalFinal>(); //Find the componnt somehow instead of whole gameobject search
+                if (GetAscensionService()?.IsStarting ?? false)
+                {
+                    logger.LogInfo("Final portal used while the ascension starts: ascending");
+                    return;
+                }
+
+                // Not the ascension portal next to it: it is a final portal too
+                var finalPortal = Il2CppFindHelper.FindAllGameObjects()
+                    .Select(go => go.GetComponent<InteractablePortalFinal>())
+                    .FirstOrDefault(portal => portal != null && !Patches.AscensionPatches.IsAscensionPortal(portal));
                 if (finalPortal != null)
                 {
                     Plugin.CAN_SEND_MESSAGES = false;
@@ -4990,6 +5035,11 @@ namespace Megaphonk.Services
             return HasNetplaySessionStarted() && !IsPartyPauseEnabled() && !udpClientService.IsSoloSession();
         }
 
+        public bool IsEndgame()
+        {
+            return currentState == State.Endgame;
+        }
+
         public bool IsSharedExperienceEnabled()
         {
             var sharedExperienceEnabled = Plugin.Instance.Mode.EnabledSharedExperience;
@@ -5077,7 +5127,7 @@ namespace Megaphonk.Services
 
             // Waiting for the others, or paused with no reward window to pick from, whatever the bookkeeping says
             var encounterWindows = UiManager.Instance.encounterWindows;
-            var isRewardWindowShown = IsRewardWindowShown(encounterWindows);
+            var isRewardWindowShown = IsRewardWindowShown(encounterWindows) || encounterService.IsCurseChoiceOpen;
             var isPossiblyStuck = encounterService.IsWaiting || (MyTime.paused && !isRewardWindowShown);
             if (!isPossiblyStuck)
             {

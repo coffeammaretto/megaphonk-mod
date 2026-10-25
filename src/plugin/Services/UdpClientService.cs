@@ -872,6 +872,9 @@ namespace Megaphonk.Services
                     case MusicTrackChanged musicTrackChanged:
                         EventManager.OnMusicTrackChanged(musicTrackChanged);
                         break;
+                    case AscensionStarted ascensionStarted:
+                        EventManager.OnAscensionStarted(ascensionStarted);
+                        break;
                     default:
                         Plugin.Log.LogWarning($"Unknown message type received. message={message}");
                         break;
@@ -1148,6 +1151,9 @@ namespace Megaphonk.Services
                     case PlayerStatsChanged playerStatsChanged:
                         EventManager.OnPlayerStatsChanged(playerStatsChanged);
                         SendToAllClientsExcept(netPeerId, playerStatsChanged.OwnerId, playerStatsChanged);
+                        break;
+                    case AscensionStarted ascensionStarted: //A client asks for the next ascension
+                        EventManager.OnAscensionStarted(ascensionStarted);
                         break;
                     case ModVersionInfo modVersionInfo:
                         EventManager.OnModVersionInfo(modVersionInfo);

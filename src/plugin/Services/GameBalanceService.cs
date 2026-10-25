@@ -25,7 +25,7 @@ namespace Megaphonk.Services
         Six
     }
 
-    internal class GameBalanceService(IPlayerManagerService playerManagerService, IPartySettingsService partySettingsService) : IGameBalanceService
+    internal class GameBalanceService(IPlayerManagerService playerManagerService, IPartySettingsService partySettingsService, IAscensionService ascensionService) : IGameBalanceService
     {
         private int PlayersCount => playerManagerService.GetAllPlayersAlive().Count();
         private static int StageIndex => MapController.runConfig?.mapData.stages.IndexOf(MapController.currentStage) ?? 0;
@@ -34,6 +34,11 @@ namespace Megaphonk.Services
 
         public int GetMaxEnemiesSpawnable()
         {
+            if (ascensionService.Level > 0)
+            {
+                return partySettingsService.Current.AscensionMaxEnemies; //Stronger enemies, never more of them
+            }
+
             if (GameManager.Instance.IsFinalSwarm())
             {
                 return 400; // Keep the original cap during Final Swarm

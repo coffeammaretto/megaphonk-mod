@@ -21,7 +21,7 @@ namespace Megaphonk.Services
         public void ResetForNextLevel();
         public void RemoveProjectile(Projectile projectileId);
         public void RegisterProjectileForInterpolation(uint id, GameObject projectile);
-        public void UnregisterProjectileFromInterpolation(uint id);
+        public bool UnregisterProjectileFromInterpolation(uint id);
         public void UpdateProjectileSnapshots(List<ProjectileSnapshot> projectileSnapshots);
         public void RemoveProjectilesByOwnerId(uint connectionId);
     }
@@ -266,12 +266,9 @@ namespace Megaphonk.Services
             projectileInterpolator.RegisterProjectile(id, projectile);
         }
 
-        public void UnregisterProjectileFromInterpolation(uint id)
+        public bool UnregisterProjectileFromInterpolation(uint id)
         {
-            if (projectileInterpolator != null)
-            {
-                projectileInterpolator.UnregisterProjectile(id);
-            }
+            return projectileInterpolator != null && projectileInterpolator.UnregisterProjectile(id);
         }
 
         public void UpdateProjectileSnapshots(List<ProjectileSnapshot> projectileSnapshots)

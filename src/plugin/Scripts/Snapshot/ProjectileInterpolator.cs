@@ -156,10 +156,15 @@ namespace Megaphonk.Scripts.Snapshot
             }
         }
 
-        public void UnregisterProjectile(uint id)
+        /// <summary>
+        /// False when no projectile has this id (not spawned here yet)
+        /// </summary>
+        public bool UnregisterProjectile(uint id)
         {
+            var found = false;
             if (activeProjectiles.TryGetValue(id, out var toDel))
             {
+                found = true;
                 var rocket = toDel.GetComponent<ProjectileRocket>();
                 if (rocket != null)
                 {
@@ -173,6 +178,7 @@ namespace Megaphonk.Scripts.Snapshot
             activeTransforms.Remove(id);
 
             snapshotsBuffers.Remove(id);
+            return found;
         }
 
         /// <summary>

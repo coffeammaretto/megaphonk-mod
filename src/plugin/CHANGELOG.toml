@@ -6,6 +6,14 @@
 #     "Change 2 description",
 # ]
 
+[version."2.7.0"]
+changes = [
+    "Ascension, a co-op endgame: once the final boss is dead, an Ascend portal next to the final portal takes the party back to the first stage with their builds. Each ascension makes enemies stronger (HP x1.5, damage x1.25 per level) but never more numerous (at most 300 at once). The final portal still ends the run and unlocks characters.",
+    "Ascension curses: after each ascension every player picks one of three random curses for themselves (26 curses, lesser, normal or greater). The party pauses meanwhile, and curses stack for the rest of the run.",
+    "Fixed projectiles piling up on clients when a projectile ended before its spawn message arrived.",
+    "Testing shortcuts (DebugTools setting, off by default): the first stage's portal leads to the final boss, F10 on the host kills every enemy.",
+]
+
 [version."2.6.0"]
 changes = [
     "Shared experience reworked: every XP orb picked up by anyone gives its XP to every player once, each with their own XP gain, so levels may differ. The XP bar no longer jumps back and no XP is lost when several players pick up orbs at the same time.",

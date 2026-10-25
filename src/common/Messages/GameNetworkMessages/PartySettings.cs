@@ -46,6 +46,12 @@ namespace Megaphonk.Common.Messages.GameNetworkMessages
         public RunModifier RunModifiers { get; set; } = RunModifier.None;
 
         public bool ChallengesEnabled { get; set; } = true;
+
+        // Co-op endgame: an ascension portal next to the final portal takes the party back to the first stage
+        public bool AscensionEnabled { get; set; } = true;
+        public float AscensionEnemyHpGrowth { get; set; } = 1.5f;
+        public float AscensionEnemyDamageGrowth { get; set; } = 1.25f;
+        public int AscensionMaxEnemies { get; set; } = 300;
     }
 
     [System.Flags]
