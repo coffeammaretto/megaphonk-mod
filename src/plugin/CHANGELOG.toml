@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.7.2"]
+changes = [
+    "Fixed the party freezing after using the Ascend portal: the first stage now loads after the teleport, as with the game's portal.",
+]
+
 [version."2.7.1"]
 changes = [
     "Fixed the Ascend portal staying invisible next to the final portal: it now appears once the final portal is set up.",

@@ -11,7 +11,7 @@ namespace Megaphonk.Common.Messages.GameNetworkMessages
         /// <summary>
         /// Change it whenever the network messages change
         /// </summary>
-        public const string CurrentVersion = "2.7.1";
+        public const string CurrentVersion = "2.7.2";
 
         public uint OwnerId { get; set; }
         public string Version { get; set; }

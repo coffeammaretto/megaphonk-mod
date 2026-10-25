@@ -5,6 +5,7 @@ using Megaphonk.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections;
+using UnityEngine;
 
 namespace Megaphonk.Services
 {
@@ -39,6 +40,8 @@ namespace Megaphonk.Services
 
     internal class AscensionService : IAscensionService
     {
+        private const float LOAD_DELAY = 2f; //InteractablePortal.DoLoadNextStage waits as long after the teleport
+
         private readonly IUdpClientService udpClientService;
         private readonly IPartySettingsService partySettingsService;
         private readonly ICurseService curseService;
@@ -153,6 +156,25 @@ namespace Megaphonk.Services
             finally
             {
                 Plugin.CAN_SEND_MESSAGES = true;
+            }
+
+            // As the game's portal does: the stage loads once the teleport animation played
+            var loadAt = Time.realtimeSinceStartup + LOAD_DELAY;
+            while (Time.realtimeSinceStartup < loadAt)
+            {
+                yield return null;
+            }
+
+            try
+            {
+                MapController.LoadNextStage();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogError($"Ascension {level}: loading the first stage failed: {ex}");
+            }
+            finally
+            {
                 starting = false;
             }
 
