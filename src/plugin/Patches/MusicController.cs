@@ -9,6 +9,19 @@ namespace MegabonkTogether.Patches
     [HarmonyPatch(typeof(MusicController))]
     internal static class MusicControllerPatches
     {
+        /// <summary>
+        /// A stage starts its music
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(nameof(MusicController.OnStageStarted))]
+        public static void OnStageStarted_Postfix(MusicController __instance)
+        {
+            CustomMusic.OnStageMusic(__instance);
+        }
+
+        /// <summary>
+        /// The stage music again, after the final boss cinematic
+        /// </summary>
         [HarmonyPostfix]
         [HarmonyPatch(nameof(MusicController.PlayStageMusic))]
         public static void PlayStageMusic_Postfix(MusicController __instance)
