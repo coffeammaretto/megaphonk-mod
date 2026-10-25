@@ -71,11 +71,6 @@ namespace Megaphonk.Patches
 
             Scripts.CoopLeaderboardPanel.Create(__instance);
 
-            if (autoUpdaterService.IsCustomBuild() && autoUpdaterService.IsAnUpdateAvailable())
-            {
-                customButton.gameObject.SetActive(false);
-            }
-
             if (!hasCheckedChangelog)
             {
                 hasCheckedChangelog = true;
@@ -86,11 +81,16 @@ namespace Megaphonk.Patches
                     Steam.SteamApi.Initialize();
                 }
 
-                if (string.IsNullOrEmpty(ModConfig.PreviousVersion.Value) && !autoUpdaterService.IsCustomBuild())
+                // Updated by hand or by a mod manager: the changelog of the versions since the last one played
+                var currentVersion = autoUpdaterService.GetCurrentVersion();
+                if (string.IsNullOrEmpty(ModConfig.PreviousVersion.Value))
                 {
-                    Plugin.Log.LogInfo("First time with changelog system detected");
+                    ModConfig.PreviousVersion.Value = currentVersion; //Fresh install
+                    ModConfig.Save();
+                }
+                else if (ModConfig.PreviousVersion.Value != currentVersion)
+                {
                     ModConfig.ShowChangelog.Value = true;
-                    ModConfig.PreviousVersion.Value = "1.0.0";
                     ModConfig.Save();
                 }
 

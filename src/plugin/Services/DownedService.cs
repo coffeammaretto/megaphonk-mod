@@ -302,6 +302,14 @@ namespace Megaphonk.Services
                 health.hp = Math.Max(1, Mathf.CeilToInt(health.maxHp * partySettingsService.Current.DownedReviveHpFraction));
             }
 
+            // Tell the others: a "down" message still in flight (a teammate loading the next level) marked us down for the
+            // whole next stage, as nothing sent "back up" after it
+            var localPlayer = playerManagerService.GetLocalPlayer();
+            if (IsLocalDowned && localPlayer != null)
+            {
+                SetDowned(localPlayer.ConnectionId, false);
+            }
+
             IsLocalDowned = false;
             allowNextDeath = false;
             bleedingFor = 0f;

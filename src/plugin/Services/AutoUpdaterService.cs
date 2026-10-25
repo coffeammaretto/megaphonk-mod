@@ -1,14 +1,11 @@
-﻿using BepInEx.Logging;
+using BepInEx.Logging;
 using Megaphonk.Services;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Megaphonk.Common
@@ -43,9 +40,7 @@ namespace Megaphonk.Common
         Task<bool> CheckAndUpdate();
         bool IsAnUpdateAvailable();
         string GetDownloadedVersion();
-        public void LaunchUpdaterOnExit(string pluginDirectory);
         public string GetLatestVersion();
-        public bool IsCustomBuild();
         public bool IsModManagerInstall();
         public string GetCurrentVersion();
         public Task EnsureChangelogExists(string version, string pluginDirectory);
@@ -67,16 +62,7 @@ namespace Megaphonk.Common
         private string latestVersion = "";
         private DateTime lastUpdateCheck = DateTime.MinValue;
 
-#if THUNDERSTORE
-        private bool isCustomBuild = true;
-        private string buildType = "Thunderstore";
-#elif PROTON
-        private bool isCustomBuild = true;
-        private string buildType = "Proton";
-#else
-        private bool isCustomBuild = false;
-        private string buildType = "Standard";
-#endif
+        private bool isModManagerInstall = false;
 
         public AutoUpdaterService(ManualLogSource logger)
         {
@@ -99,13 +85,33 @@ namespace Megaphonk.Common
             this.currentVersion = MyPluginInfo.PLUGIN_VERSION;
             this.pluginPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
 
-            // Installed by a mod manager (r2modman, Gale): the Thunderstore package's manifest lies next to the dll. The
-            // manager updates the mod, a download from GitHub would leave it out of date in the manager
+            // Installed by a mod manager (r2modman, Gale): the Thunderstore package's manifest lies next to the dll, the
+            // notice points to the manager instead of GitHub
             var pluginDirectory = Path.GetDirectoryName(pluginPath);
-            if (File.Exists(Path.Combine(pluginDirectory, "manifest.json")) || File.Exists(Path.Combine(Path.GetDirectoryName(pluginDirectory), "manifest.json")))
+            isModManagerInstall = File.Exists(Path.Combine(pluginDirectory, "manifest.json")) || File.Exists(Path.Combine(Path.GetDirectoryName(pluginDirectory), "manifest.json"));
+
+            DeleteSelfUpdaterLeftovers(pluginDirectory);
+        }
+
+        /// <summary>
+        /// The mod used to download its updates and apply them with a generated ApplyUpdate.bat: remove what is left of it
+        /// </summary>
+        private void DeleteSelfUpdaterLeftovers(string pluginDirectory)
+        {
+            try
             {
-                isCustomBuild = true;
-                buildType = "Thunderstore";
+                foreach (var file in Directory.GetFiles(pluginDirectory, UPDATE_FILE_PREFIX + "*").Append(Path.Combine(pluginDirectory, "ApplyUpdate.bat")))
+                {
+                    if (File.Exists(file))
+                    {
+                        File.Delete(file);
+                        logger.LogInfo($"Deleted old self-updater file {Path.GetFileName(file)}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning($"Could not delete old self-updater files: {ex.Message}");
             }
         }
 
@@ -114,14 +120,9 @@ namespace Megaphonk.Common
             return isUpdateAvailable;
         }
 
-        public bool IsCustomBuild()
-        {
-            return isCustomBuild;
-        }
-
         public bool IsModManagerInstall()
         {
-            return buildType == "Thunderstore";
+            return isModManagerInstall;
         }
 
         public string GetDownloadedVersion()
@@ -183,26 +184,11 @@ namespace Megaphonk.Common
 
                 if (IsNewerVersion(latestRelease.TagName, currentVersion))
                 {
-                    logger.LogInfo($"New version available: {latestRelease.TagName} (current: {currentVersion})");
-
-                    if (isCustomBuild)
-                    {
-                        logger.LogInfo($"{buildType} build detected - update download is disabled. Please update through {buildType}.");
-                        isUpdateAvailable = true;
-                        downloadedVersion = latestRelease.TagName;
-                        return true;
-                    }
-
-#if THUNDERSTORE
-                    isUpdateAvailable = false;
-#else
-                    isUpdateAvailable = await PrepareUpdate(latestRelease);
-#endif
-                    if (isUpdateAvailable)
-                    {
-                        downloadedVersion = latestRelease.TagName;
-                    }
-                    return isUpdateAvailable;
+                    logger.LogInfo($"New version available: {latestRelease.TagName} (current: {currentVersion}). " +
+                        (isModManagerInstall ? "Update it in your mod manager." : "Download it from GitHub."));
+                    isUpdateAvailable = true;
+                    downloadedVersion = latestRelease.TagName;
+                    return true;
                 }
                 else
                 {
@@ -249,47 +235,6 @@ namespace Megaphonk.Common
                 return string.Compare(remoteVersion, localVersion, StringComparison.OrdinalIgnoreCase) > 0;
             }
         }
-
-        // The Thunderstore build cannot update itself at all (Thunderstore rules): the mod manager updates it
-#if !THUNDERSTORE
-        private async Task<bool> PrepareUpdate(GitHubRelease release)
-        {
-            try
-            {
-                var asset = release.Assets.FirstOrDefault(a =>
-                    Regex.IsMatch(a.Name ?? string.Empty, @"^MegaphonkMod\-\d+\.\d+\.\d+\.zip$", RegexOptions.IgnoreCase)); //this should pick MegaphonkMod-X.Y.Z.zip (plugin files only)
-
-                if (asset == null)
-                {
-                    logger.LogError("No suitable asset found in release");
-                    return false;
-                }
-
-                logger.LogInfo($"Downloading update: {asset.Name}");
-
-                var downloadUrl = !string.IsNullOrEmpty(asset.BrowserDownloadUrl) ? asset.BrowserDownloadUrl : asset.Url;
-
-                var pluginDirectory = Path.GetDirectoryName(pluginPath);
-                var downloadPath = Path.Combine(pluginDirectory, UPDATE_FILE_PREFIX + asset.Name);
-
-                CleanupOldUpdateFiles(pluginDirectory);
-
-                await DownloadFile(downloadUrl, downloadPath);
-
-                GenerateUpdaterBatchFile(pluginDirectory, release.TagName);
-
-                logger.LogInfo($"Update {release.TagName} downloaded. Quit the game to apply.");
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError($"Error preparing update: {ex.Message}");
-                return false;
-            }
-        }
-
-#endif
 
         public async Task EnsureChangelogExists(string version, string pluginDirectory)
         {
@@ -339,262 +284,5 @@ namespace Megaphonk.Common
                 logger.LogWarning($"Failed to fetch CHANGELOG.toml: {ex.Message}");
             }
         }
-
-        /// <summary>
-        /// I think mod site are flagging the bat, so we will generate it on the fly and they can leave me alone
-        /// </summary>
-#if !THUNDERSTORE
-        private void GenerateUpdaterBatchFile(string pluginDirectory, string version)
-        {
-            try
-            {
-                var updaterPath = Path.Combine(pluginDirectory, "ApplyUpdate.bat");
-                var batchContent = new StringBuilder();
-
-                batchContent.AppendLine("@echo off");
-                batchContent.AppendLine("setlocal enabledelayedexpansion");
-                batchContent.AppendLine();
-                batchContent.AppendLine("REM ========================================");
-                batchContent.AppendLine("REM  Megaphonk Mod Auto-Updater");
-                batchContent.AppendLine("REM  Applies updates after game exits");
-                batchContent.AppendLine("REM ========================================");
-                batchContent.AppendLine();
-                batchContent.AppendLine("set GAME_PID=%1");
-                batchContent.AppendLine("set PLUGIN_DIR=%2");
-                batchContent.AppendLine();
-                batchContent.AppendLine("if \"%GAME_PID%\"==\"\" (");
-                batchContent.AppendLine("    echo ERROR: Missing game process ID");
-                batchContent.AppendLine("    echo Usage: ApplyUpdate.bat [gameProcessId] [pluginDirectory]");
-                batchContent.AppendLine("    pause");
-                batchContent.AppendLine("    exit /b 1");
-                batchContent.AppendLine(")");
-                batchContent.AppendLine();
-                batchContent.AppendLine("if \"%PLUGIN_DIR%\"==\"\" (");
-                batchContent.AppendLine("    echo ERROR: Missing plugin directory");
-                batchContent.AppendLine("    echo Usage: ApplyUpdate.bat [gameProcessId] [pluginDirectory]");
-                batchContent.AppendLine("    pause");
-                batchContent.AppendLine("    exit /b 1");
-                batchContent.AppendLine(")");
-                batchContent.AppendLine();
-                batchContent.AppendLine("cls");
-                batchContent.AppendLine("echo ========================================");
-                batchContent.AppendLine($"echo   Megaphonk Mod Auto-Updater v{version}");
-                batchContent.AppendLine("echo ========================================");
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine();
-                batchContent.AppendLine("REM Wait for exit");
-                batchContent.AppendLine("echo Waiting for game process (PID: %GAME_PID%) to exit...");
-                batchContent.AppendLine(":WAIT_LOOP");
-                batchContent.AppendLine("tasklist /FI \"PID eq %GAME_PID%\" 2>NUL | find \"%GAME_PID%\" >NUL");
-                batchContent.AppendLine("if !ERRORLEVEL! EQU 0 (");
-                batchContent.AppendLine("    timeout /t 1 /nobreak >NUL");
-                batchContent.AppendLine("    goto WAIT_LOOP");
-                batchContent.AppendLine(")");
-                batchContent.AppendLine("echo Game process exited successfully.");
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine();
-                batchContent.AppendLine("echo Waiting a bit for file locks to release...");
-                batchContent.AppendLine("timeout /t 2 /nobreak >NUL");
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine();
-                batchContent.AppendLine("set UPDATE_FILE=");
-                batchContent.AppendLine("for %%F in (\"%PLUGIN_DIR%\\.update_download_*\") do (");
-                batchContent.AppendLine("    set UPDATE_FILE=%%~fF");
-                batchContent.AppendLine(")");
-                batchContent.AppendLine();
-                batchContent.AppendLine("if \"%UPDATE_FILE%\"==\"\" (");
-                batchContent.AppendLine("    echo ERROR: No update file found");
-                batchContent.AppendLine("    pause");
-                batchContent.AppendLine("    exit /b 1");
-                batchContent.AppendLine(")");
-                batchContent.AppendLine();
-                batchContent.AppendLine("echo Found update file: %UPDATE_FILE%");
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine();
-                batchContent.AppendLine("REM backup");
-                batchContent.AppendLine("set PLUGIN_DLL=%PLUGIN_DIR%\\MegaphonkMod.dll");
-                batchContent.AppendLine("set BACKUP_DLL=%PLUGIN_DLL%.backup");
-                batchContent.AppendLine();
-                batchContent.AppendLine("if exist \"%PLUGIN_DLL%\" (");
-                batchContent.AppendLine("    echo Creating backup...");
-                batchContent.AppendLine("    copy /Y \"%PLUGIN_DLL%\" \"%BACKUP_DLL%\" >NUL");
-                batchContent.AppendLine("    if !ERRORLEVEL! NEQ 0 (");
-                batchContent.AppendLine("        echo ERROR: Failed to create backup");
-                batchContent.AppendLine("        pause");
-                batchContent.AppendLine("        exit /b 1");
-                batchContent.AppendLine("    )");
-                batchContent.AppendLine("    echo Backup created.");
-                batchContent.AppendLine("    echo.");
-                batchContent.AppendLine(")");
-                batchContent.AppendLine();
-                batchContent.AppendLine("echo Applying update...");
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine();
-                batchContent.AppendLine("echo %UPDATE_FILE% | find /i \".zip\" >NUL");
-                batchContent.AppendLine("if !ERRORLEVEL! EQU 0 (");
-                batchContent.AppendLine("    echo Extracting ZIP archive...");
-                batchContent.AppendLine("    ");
-                batchContent.AppendLine("    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"$zipPath = '%UPDATE_FILE%'; $destPath = '%PLUGIN_DIR%'; Add-Type -AssemblyName System.IO.Compression.FileSystem; $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath); try { foreach ($entry in $zip.Entries) { if ($entry.Name) { $targetPath = Join-Path $destPath $entry.Name; [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $targetPath, $true); Write-Host ('  Extracted: ' + $entry.Name) } } } finally { $zip.Dispose() }\"");
-                batchContent.AppendLine("    ");
-                batchContent.AppendLine("    if !ERRORLEVEL! NEQ 0 (");
-                batchContent.AppendLine("        echo ERROR: Failed to extract ZIP");
-                batchContent.AppendLine("        goto RESTORE_BACKUP");
-                batchContent.AppendLine("    )");
-                batchContent.AppendLine(")");
-                batchContent.AppendLine();
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine("echo Cleaning up...");
-                batchContent.AppendLine("del /F /Q \"%UPDATE_FILE%\" 2>NUL");
-                batchContent.AppendLine("if exist \"%BACKUP_DLL%\" del /F /Q \"%BACKUP_DLL%\" 2>NUL");
-                batchContent.AppendLine();
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine("echo ========================================");
-                batchContent.AppendLine("echo   Update applied successfully!");
-                batchContent.AppendLine("echo ========================================");
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine("echo You can now restart the game.");
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine("echo This window will close in 5 seconds...");
-                batchContent.AppendLine("timeout /t 5 /nobreak >NUL");
-                batchContent.AppendLine("exit /b 0");
-                batchContent.AppendLine();
-                batchContent.AppendLine(":RESTORE_BACKUP");
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine("echo Restoring backup...");
-                batchContent.AppendLine("if exist \"%BACKUP_DLL%\" (");
-                batchContent.AppendLine("    copy /Y \"%BACKUP_DLL%\" \"%PLUGIN_DLL%\" >NUL");
-                batchContent.AppendLine("    echo Backup restored.");
-                batchContent.AppendLine(") else (");
-                batchContent.AppendLine("    echo WARNING: No backup found to restore");
-                batchContent.AppendLine(")");
-                batchContent.AppendLine("echo.");
-                batchContent.AppendLine("echo Update failed. Press any key to exit...");
-                batchContent.AppendLine("pause >NUL");
-                batchContent.AppendLine("exit /b 1");
-
-                File.WriteAllText(updaterPath, batchContent.ToString());
-                logger.LogInfo($"Generated updater batch file!");
-            }
-            catch (Exception ex)
-            {
-                logger.LogError($"Error generating updater batch file: {ex.Message}");
-                throw;
-            }
-        }
-
-        private async Task DownloadFile(string url, string destinationPath)
-        {
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Add("Accept", "application/octet-stream");
-            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogError($"Download failed: {response.StatusCode} - {response.ReasonPhrase}");
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError($"Error details: {errorContent}");
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            using var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            await response.Content.CopyToAsync(fileStream);
-        }
-
-        private static void CleanupOldUpdateFiles(string pluginDirectory)
-        {
-            try
-            {
-                var updateFiles = Directory.GetFiles(pluginDirectory, UPDATE_FILE_PREFIX + "*");
-                foreach (var file in updateFiles)
-                {
-                    try
-                    {
-                        File.Delete(file);
-                    }
-                    catch
-                    {
-
-                    }
-                }
-            }
-            catch
-            {
-
-            }
-        }
-
-        public void LaunchUpdaterOnExit(string pluginDirectory)
-        {
-            if (isCustomBuild)
-            {
-                logger.LogInfo($"{buildType} build - updater launch is disabled");
-                return;
-            }
-
-            try
-            {
-                logger.LogInfo("=== Updater ===");
-
-                var updateFiles = Directory.GetFiles(pluginDirectory, UPDATE_FILE_PREFIX + "*");
-                if (updateFiles.Length == 0)
-                {
-                    logger.LogInfo("No update files found with prefix: " + UPDATE_FILE_PREFIX);
-                    return;
-                }
-
-                logger.LogInfo($"Found {updateFiles.Length} update file(s): {string.Join(", ", updateFiles.Select(Path.GetFileName))}");
-
-                var updaterPath = Path.Combine(pluginDirectory, "ApplyUpdate.bat");
-                logger.LogInfo($"Looking for updater at: {updaterPath}");
-
-                if (!File.Exists(updaterPath))
-                {
-                    logger.LogError($"Updater script not found at: {updaterPath}");
-                    return;
-                }
-
-                Configuration.ModConfig.PreviousVersion.Value = currentVersion;
-                Configuration.ModConfig.ShowChangelog.Value = true;
-                Configuration.ModConfig.Save();
-                logger.LogInfo($"Changelog will be shown on next launch");
-
-                var currentProcess = Process.GetCurrentProcess();
-                var gameProcessId = currentProcess.Id;
-
-                logger.LogInfo($"Current game process ID: {gameProcessId}");
-
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = updaterPath,
-                    Arguments = $"{gameProcessId} \"{pluginDirectory}\"",
-                    UseShellExecute = true,
-                    CreateNoWindow = false,
-                    WindowStyle = ProcessWindowStyle.Normal,
-                    WorkingDirectory = pluginDirectory
-                };
-
-                logger.LogInfo($"Starting updater: {updaterPath}");
-                var updaterProcess = Process.Start(startInfo);
-
-                if (updaterProcess != null)
-                {
-                    logger.LogInfo($"Updater process STARTED with PID: {updaterProcess.Id}");
-                }
-                else
-                {
-                    logger.LogError("Failed to start updater process");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError($"Error in LaunchUpdaterOnExit: {ex}");
-            }
-        }
-#else
-        public void LaunchUpdaterOnExit(string pluginDirectory)
-        {
-        }
-#endif
     }
 }

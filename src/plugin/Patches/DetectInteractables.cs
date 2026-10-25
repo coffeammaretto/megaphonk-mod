@@ -11,6 +11,7 @@ namespace Megaphonk.Patches
     public static class DetectInteractablesPatches
     {
         private static readonly ISynchronizationService synchronizationService = Plugin.Services.GetService<ISynchronizationService>();
+        private static readonly IDownedService downedService = Plugin.Services.GetService<IDownedService>();
 
         /// <summary>
         /// Send interaction to other players
@@ -33,6 +34,11 @@ namespace Megaphonk.Patches
             if (__instance.currentInteractable == null)
             {
                 return true;
+            }
+
+            if (downedService.IsLocalDowned) //A downed player took the whole party through the portal to the boss
+            {
+                return false;
             }
 
             if (!CanSynchronize(__instance))

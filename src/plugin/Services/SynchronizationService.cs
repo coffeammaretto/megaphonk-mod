@@ -2926,6 +2926,13 @@ namespace Megaphonk.Services
             // the host is already in the arena waiting for us to be ready
             if (used.IsFinalBossSpawner)
             {
+                // Both players used it within the same window: the teleport is already under way here
+                if (currentState == State.LoadingNextLevel)
+                {
+                    logger.LogInfo("Final boss spawner already used: not teleporting twice");
+                    return;
+                }
+
                 InteractableBossSpawnerFinal finalBossSpawner = null;
 
                 var spawnerObj = spawnedObjectManagerService.GetSpawnedObject(used.NetplayId);
@@ -2942,12 +2949,12 @@ namespace Megaphonk.Services
 
                 if (finalBossSpawner == null)
                 {
-                    logger.LogWarning("Final boss spawner not found ?");
+                    // The other player's use arrived after we teleported ourselves: already in the arena
+                    logger.LogInfo("Final boss spawner not on this map: already teleported");
                     return;
                 }
 
-                // Both players used it within the same window: the teleport is already under way here
-                if (currentState == State.LoadingNextLevel || finalBossSpawner.done)
+                if (finalBossSpawner.done)
                 {
                     logger.LogInfo("Final boss spawner already used: not teleporting twice");
                     return;
@@ -4394,6 +4401,11 @@ namespace Megaphonk.Services
 
         public void OnLightningStrike(Enemy enemy, int bounces, DamageContainer dc, float bounceRange, float bounceProcCoefficient)
         {
+            if (!(IsServerMode() ?? false))
+            {
+                return; //Host only: a client's strikes failed the host check, logging a warning per strike (hundreds per second)
+            }
+
             var enemySpawned = enemyManagerService.GetEnemyByReference(enemy);
             if (enemySpawned.Value == null)
             {

@@ -7,9 +7,11 @@ using HarmonyLib;
 using Megaphonk.Helpers;
 using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 namespace Megaphonk.Patches.Items
 {
@@ -27,15 +29,65 @@ namespace Megaphonk.Patches.Items
 
         public static bool IsNetplay => synchronizationService.HasNetplaySessionStarted();
 
+        // Late game the item hit handlers run ~160k times a second, each lookup walking native wrappers (garbage and CPU):
+        // results are kept for the frame
+        private static int cacheFrame = -1;
+        private static readonly Dictionary<IntPtr, bool> isLocalByItem = [];
+        private static readonly Dictionary<IntPtr, uint?> ownerByItem = [];
+
+        private static void RefreshCache()
+        {
+            var frame = Time.frameCount;
+            if (frame == cacheFrame)
+            {
+                return;
+            }
+
+            cacheFrame = frame;
+            isLocalByItem.Clear();
+            ownerByItem.Clear();
+        }
+
         public static bool IsLocalItem(ItemBase item)
         {
-            return OwnsItem(GameManager.Instance?.player?.inventory?.itemInventory, item);
+            if (item == null)
+            {
+                return false;
+            }
+
+            RefreshCache();
+            var key = item.Pointer;
+            if (!isLocalByItem.TryGetValue(key, out var isLocal))
+            {
+                isLocal = OwnsItem(GameManager.Instance?.player?.inventory?.itemInventory, item);
+                isLocalByItem[key] = isLocal;
+            }
+
+            return isLocal;
         }
 
         /// <summary>
         /// Connection id of the player whose inventory holds this item
         /// </summary>
         public static uint? GetOwnerId(ItemBase item)
+        {
+            if (item == null)
+            {
+                return null;
+            }
+
+            RefreshCache();
+            var key = item.Pointer;
+            if (!ownerByItem.TryGetValue(key, out var ownerId))
+            {
+                ownerId = FindOwnerId(item);
+                ownerByItem[key] = ownerId;
+            }
+
+            return ownerId;
+        }
+
+        private static uint? FindOwnerId(ItemBase item)
         {
             if (IsLocalItem(item))
             {

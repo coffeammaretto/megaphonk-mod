@@ -80,7 +80,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 - Team table at the end of a run: damage, kills and gold of each player (defeat screen).
 - Run music: the mod's tracks play in a random order instead of the stage music; boss and menu music stay the game's. In co-op everybody hears the host's track. Turned off with `CustomMusic` in the config.
 - Player name, key bindings and every party rule in `BepInEx\config\MegaphonkMod.cfg`.
-- Automatic check for new versions on GitHub (`CheckForUpdates`) and a changelog window.
+- Notice when a new version is out on GitHub (`CheckForUpdates`) and a changelog window. The mod never downloads or installs anything itself.
 - The mod's texts follow the game's language: English and Russian (other languages show English).
 
 ## Installation
@@ -88,11 +88,11 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 With a mod manager: install [MegaphonkMod on Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) with r2modman or Gale, the mod manager installs BepInEx and updates the mod. Manual installation:
 
 1. Close the game.
-2. Download `MegaphonkMod-2.3.2-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Download `MegaphonkMod-2.4.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 4. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
-Every player of a room needs the same mod version and must be on the host's Steam friends list. The `MegaphonkMod-X.Y.Z.zip` asset contains only the mod files: the mod uses it to update itself.
+Every player of a room needs the same mod version and must be on the host's Steam friends list. The `MegaphonkMod-X.Y.Z.zip` asset contains only the mod files, to update an existing installation by hand.
 
 Versions follow [semantic versioning](https://semver.org): X.Y.**Z** for fixes, X.**Y**.0 for new features, **X**.0.0 for changes that break compatibility (for example, players on different major versions cannot play together).
 
@@ -195,18 +195,18 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Таблица команды в конце забега: урон, убийства и золото каждого игрока (экран поражения).
 - Музыка забега: треки мода играют в случайном порядке вместо музыки уровня; музыка босса и меню остаётся игровой. В коопе у всех играет трек хоста. Отключается параметром `CustomMusic` в конфиге.
 - Имя игрока, клавиши и все правила пати в `BepInEx\config\MegaphonkMod.cfg`.
-- Автоматическая проверка новых версий на GitHub (`CheckForUpdates`) и окно со списком изменений.
+- Уведомление о новой версии на GitHub (`CheckForUpdates`) и окно со списком изменений. Сам мод ничего не скачивает и не устанавливает.
 - Тексты мода следуют языку игры: английский и русский (в остальных языках английский).
 
 ### Установка
 Через менеджер модов: установи [MegaphonkMod из Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) через r2modman или Gale, менеджер сам поставит BepInEx и будет обновлять мод. Ручная установка:
 
 1. Закрой игру.
-2. Скачай `MegaphonkMod-2.3.2-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Скачай `MegaphonkMod-2.4.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 4. Запусти игру через Steam. Первый запуск дольше обычного.
 
-У всех в комнате должна быть одна версия мода, а игроки должны быть в списке друзей Steam у хоста. Архив `MegaphonkMod-X.Y.Z.zip` содержит только файлы мода: им мод обновляет сам себя.
+У всех в комнате должна быть одна версия мода, а игроки должны быть в списке друзей Steam у хоста. Архив `MegaphonkMod-X.Y.Z.zip` содержит только файлы мода, чтобы обновить уже установленный мод вручную.
 
 Версии нумеруются по [семантическому версионированию](https://semver.org/lang/ru/): X.Y.**Z** для исправлений, X.**Y**.0 для новых возможностей, **X**.0.0 для изменений, ломающих совместимость (например, игроки с разными первыми цифрами версии не смогут играть вместе).
 

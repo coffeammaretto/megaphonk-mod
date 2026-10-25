@@ -9,7 +9,6 @@ namespace Megaphonk.Scripts.Modal
 {
     internal class UpdateAvailableModal : ModalBase
     {
-        private CustomButton updateButton;
         private CustomButton closeButton;
         private readonly IAutoUpdaterService autoUpdaterService = Plugin.Services.GetService<IAutoUpdaterService>();
 
@@ -23,24 +22,11 @@ namespace Megaphonk.Scripts.Modal
             }
 
             CreateVersionText();
-
-            if (autoUpdaterService.IsCustomBuild())
-            {
-                CreateCloseButton();
-            }
-            else
-            {
-                CreateUpdateButton();
-            }
+            CreateCloseButton();
         }
 
         protected void Update()
         {
-            if (updateButton != null)
-            {
-                updateButton.SetInteractable(true);
-            }
-
             if (closeButton != null)
             {
                 closeButton.SetInteractable(true);
@@ -64,13 +50,9 @@ namespace Megaphonk.Scripts.Modal
             {
                 text.text = Loc.F("Megaphonk Mod version {0}\nis available!\nUpdate it in your mod manager.", autoUpdaterService.GetDownloadedVersion());
             }
-            else if (autoUpdaterService.IsCustomBuild())
-            {
-                text.text = Loc.F("Megaphonk Mod version {0}\nis available!\nDownload it from GitHub.", autoUpdaterService.GetDownloadedVersion());
-            }
             else
             {
-                text.text = Loc.F("Megaphonk Mod version {0}\ndownloaded and ready\nto be applied! Restart the game after the update!", autoUpdaterService.GetDownloadedVersion());
+                text.text = Loc.F("Megaphonk Mod version {0}\nis available!\nDownload it from GitHub.", autoUpdaterService.GetDownloadedVersion());
             }
             text.alignment = TextAlignmentOptions.Center;
             text.fontSize = 30;
@@ -116,45 +98,6 @@ namespace Megaphonk.Scripts.Modal
             rectTransform.sizeDelta = new Vector2(200, 50);
         }
 
-        private void CreateUpdateButton()
-        {
-            var mainMenu = Plugin.Instance.GetMainMenu();
-            if (mainMenu == null)
-            {
-                Plugin.Log.LogError("MainMenu not found for update button!");
-                return;
-            }
-
-            var buttonObj = GameObject.Instantiate(mainMenu.btnPlay.gameObject);
-            buttonObj.transform.SetParent(panel.transform, false);
-
-            var originalButton = buttonObj.GetComponent<MyButtonNormal>();
-            if (originalButton != null)
-            {
-                UnityEngine.Object.DestroyImmediate(originalButton);
-            }
-
-            UnityEngine.UI.Button button = buttonObj.GetComponentInChildren<UnityEngine.UI.Button>();
-            if (button != null)
-            {
-                button.onClick = new();
-            }
-
-            updateButton = buttonObj.AddComponent<CustomButton>();
-            updateButton.SetOnClickAction(OnUpdateClicked);
-
-            var textWrapper = buttonObj.GetComponent<ButtonTextWrapper>();
-            textWrapper.t_text.text = Loc.T("Quit & Update");
-            textWrapper.t_text.fontSize = 36;
-
-            var rectTransform = buttonObj.GetComponent<RectTransform>();
-            rectTransform.anchorMin = new Vector2(0.5f, 0.3f);
-            rectTransform.anchorMax = new Vector2(0.5f, 0.3f);
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            rectTransform.anchoredPosition = new Vector2(0, -30);
-            rectTransform.sizeDelta = new Vector2(300, 70);
-        }
-
         private void OnCloseClicked()
         {
             AudioManager.Instance?.PlaySfx(AudioManager.Instance.uiSelect.sounds[0]);
@@ -164,18 +107,6 @@ namespace Megaphonk.Scripts.Modal
             {
                 button.SetInteractable(true);
             }
-        }
-
-        private void OnUpdateClicked()
-        {
-            AudioManager.Instance.PlaySfx(AudioManager.Instance.uiSelect.sounds[0]);
-
-            if (autoUpdaterService.IsCustomBuild())
-            {
-                return;
-            }
-
-            Application.Quit();
         }
     }
 }

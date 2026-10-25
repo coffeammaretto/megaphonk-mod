@@ -6,6 +6,17 @@
 #     "Change 2 description",
 # ]
 
+[version."2.4.0"]
+changes = [
+    "The mod no longer updates itself: it only tells you a new version is out (download it from GitHub or update it in your mod manager). Leftover files of the old updater are deleted. The changelog window still shows what changed after an update.",
+    "Co-op button no longer hidden while an update is available.",
+    "Downed players can no longer use anything (portals, the final boss teleport...): a downed player could take everyone to the next stage.",
+    "Fixed: a player downed when leaving a stage stayed downed for the others during the whole next stage (big desync on the final boss arena).",
+    "Fixed: both players using the final boss teleport at the same time logged a false \"spawner not found\" warning.",
+    "Late game performance on the host: item hit effects look up the item owner once per frame instead of on every hit.",
+    "Fixed: clients spammed a warning on every lightning strike (hundreds of lines per second, log files of several hundred MB).",
+]
+
 [version."2.3.2"]
 changes = [
     "The Thunderstore version has no self-update code at all: the mod manager updates it, the mod only tells you a new version is out.",

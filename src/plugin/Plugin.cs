@@ -207,20 +207,15 @@ namespace Megaphonk
             _ = Services.GetRequiredService<ISynchronizationService>(); // Initialize SynchronizationService
             _ = Host.StartAsync(cancellationToken);
             var autoUpdaterService = Services.GetRequiredService<IAutoUpdaterService>();
+            autoUpdaterService.Initialize(); //Current version for the changelog, even without update checks
 
             if (ModConfig.CheckForUpdates.Value)
             {
-                autoUpdaterService.Initialize();
-
                 Task.Run(async () =>
                 {
                     try
                     {
-                        var updateAvailable = await autoUpdaterService.CheckAndUpdate();
-                        if (updateAvailable && !autoUpdaterService.IsCustomBuild())
-                        {
-                            Log.LogInfo("An update has been downloaded and will be applied when you quit the game.");
-                        }
+                        await autoUpdaterService.CheckAndUpdate();
                     }
                     catch (Exception ex)
                     {
@@ -230,7 +225,7 @@ namespace Megaphonk
             }
             else
             {
-                Log.LogInfo("Auto-update is disabled in configuration.");
+                Log.LogInfo("Update check is disabled in configuration.");
             }
 
             // Patch each class separately so a single broken target (e.g. after a game update)

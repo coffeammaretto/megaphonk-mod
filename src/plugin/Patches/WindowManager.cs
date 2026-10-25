@@ -62,7 +62,7 @@ namespace Megaphonk.Patches
                 }
 
                 if (!ModConfig.CheckForUpdates.Value) return;
-                if (autoUpdaterService.IsCustomBuild() && hasShownUpdateModal) return;
+                if (hasShownUpdateModal) return;
 
                 Task.Run(async () =>
                 {
@@ -71,17 +71,7 @@ namespace Megaphonk.Patches
                     if (autoUpdaterService.IsAnUpdateAvailable())
                     {
                         Plugin.ShowUpdateAvailableModal();
-
-                        if (autoUpdaterService.IsCustomBuild())
-                        {
-                            hasShownUpdateModal = true;
-                        }
-
-                        if (Plugin.Instance.PlayTogetherButton == null)
-                        {
-                            return;
-                        }
-                        Plugin.Instance.PlayTogetherButton.enabled = false;
+                        hasShownUpdateModal = true;
                     }
                 });
             }

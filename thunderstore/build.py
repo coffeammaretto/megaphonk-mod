@@ -1,7 +1,6 @@
 """Builds the Thunderstore package of the mod (and publishes it with --publish).
 
-The package holds the mod built with THUNDERSTORE (no self-update: Thunderstore packages must be updated by the mod
-manager), the license, the icon and a README made from the English part of the repository's README, with mod manager
+The package holds the mod (it never updates itself: the mod manager does), the license, the icon and a README made from the English part of the repository's README, with mod manager
 installation steps instead of the manual ones.
 
     python thunderstore/build.py            # build thunderstore/build/ROFL_MODS-MegaphonkMod-<version>.zip
@@ -60,7 +59,7 @@ def main():
     if not os.path.exists(dotnet):
         dotnet = shutil.which('dotnet')
     subprocess.run([dotnet, 'build', os.path.join(PLUGIN, 'Megaphonk.Plugin.csproj'), '-c', 'Debug', '-p:PluginPath=',
-                    '-p:THUNDERSTORE_BUILD=true', '-p:IntermediateOutputPath=obj/thunderstore/', '-o', dist], check=True)
+                    '-p:IntermediateOutputPath=obj/thunderstore/', '-o', dist], check=True)
     shutil.copy(os.path.join(ROOT, 'LICENSE'), os.path.join(dist, 'LICENSE.txt'))
     open(os.path.join(HERE, 'README.generated.md'), 'w', encoding='utf-8', newline='\n').write(readme())
 
