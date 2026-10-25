@@ -1,0 +1,30 @@
+[config]
+schemaVersion = "0.0.1"
+
+[package]
+namespace = "ROFL_MODS"
+name = "MegaphonkMod"
+# Set by build.py from the mod's version
+versionNumber = "0.0.0"
+description = "Online co-op for Megabonk, up to 6 Steam friends: synced runs, downed state and revives, run modifiers, co-op challenges, a co-op leaderboard and party-synced run music."
+websiteUrl = "https://github.com/coffeammaretto/megaphonk-mod"
+containsNsfwContent = false
+[package.dependencies]
+BepInEx-BepInExPack_IL2CPP = "6.0.788"
+
+
+[build]
+icon = "./icon.png"
+readme = "./README.generated.md"
+outdir = "./build"
+
+[[build.copy]]
+source = "./dist"
+target = "plugins"
+
+
+[publish]
+repository = "https://thunderstore.io"
+communities = [ "megabonk", ]
+[publish.categories]
+megabonk = [ "mods", ]

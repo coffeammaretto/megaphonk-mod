@@ -46,6 +46,7 @@ namespace Megaphonk.Common
         public void LaunchUpdaterOnExit(string pluginDirectory);
         public string GetLatestVersion();
         public bool IsCustomBuild();
+        public bool IsModManagerInstall();
         public string GetCurrentVersion();
         public Task EnsureChangelogExists(string version, string pluginDirectory);
     }
@@ -97,6 +98,15 @@ namespace Megaphonk.Common
         {
             this.currentVersion = MyPluginInfo.PLUGIN_VERSION;
             this.pluginPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+
+            // Installed by a mod manager (r2modman, Gale): the Thunderstore package's manifest lies next to the dll. The
+            // manager updates the mod, a download from GitHub would leave it out of date in the manager
+            var pluginDirectory = Path.GetDirectoryName(pluginPath);
+            if (File.Exists(Path.Combine(pluginDirectory, "manifest.json")) || File.Exists(Path.Combine(Path.GetDirectoryName(pluginDirectory), "manifest.json")))
+            {
+                isCustomBuild = true;
+                buildType = "Thunderstore";
+            }
         }
 
         public bool IsAnUpdateAvailable()
@@ -107,6 +117,11 @@ namespace Megaphonk.Common
         public bool IsCustomBuild()
         {
             return isCustomBuild;
+        }
+
+        public bool IsModManagerInstall()
+        {
+            return buildType == "Thunderstore";
         }
 
         public string GetDownloadedVersion()

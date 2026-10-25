@@ -6,6 +6,12 @@
 #     "Change 2 description",
 # ]
 
+[version."2.3.1"]
+changes = [
+    "The mod is on Thunderstore (ROFL_MODS-MegaphonkMod): install and update it with r2modman or Gale. Installed by a mod manager, the mod no longer downloads updates itself and tells you to update in the mod manager.",
+    "The changelog window no longer shows a Patreon link of another author.",
+]
+
 [version."2.3.0"]
 changes = [
     "Run music works: the tracks are loaded by Unity itself like the game's own music (the game has no audio file loader). The game's effects (muffled in chests and pause, danger pitch) apply to them.",

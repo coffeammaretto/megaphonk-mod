@@ -60,7 +60,11 @@ namespace Megaphonk.Scripts.Modal
             rectTransform.sizeDelta = new Vector2(450, 120);
 
             var text = textObj.AddComponent<TextMeshProUGUI>();
-            if (autoUpdaterService.IsCustomBuild())
+            if (autoUpdaterService.IsModManagerInstall())
+            {
+                text.text = Loc.F("Megaphonk Mod version {0}\nis available!\nUpdate it in your mod manager.", autoUpdaterService.GetDownloadedVersion());
+            }
+            else if (autoUpdaterService.IsCustomBuild())
             {
                 text.text = Loc.F("Megaphonk Mod version {0}\nis available!\nDownload it from GitHub.", autoUpdaterService.GetDownloadedVersion());
             }

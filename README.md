@@ -85,8 +85,10 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 
 ## Installation
 
+With a mod manager: install [MegaphonkMod on Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) with r2modman or Gale, the mod manager installs BepInEx and updates the mod. Manual installation:
+
 1. Close the game.
-2. Download `MegaphonkMod-2.3.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Download `MegaphonkMod-2.3.1-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 4. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -197,8 +199,10 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Тексты мода следуют языку игры: английский и русский (в остальных языках английский).
 
 ### Установка
+Через менеджер модов: установи [MegaphonkMod из Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) через r2modman или Gale, менеджер сам поставит BepInEx и будет обновлять мод. Ручная установка:
+
 1. Закрой игру.
-2. Скачай `MegaphonkMod-2.3.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Скачай `MegaphonkMod-2.3.1-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 4. Запусти игру через Steam. Первый запуск дольше обычного.
 
