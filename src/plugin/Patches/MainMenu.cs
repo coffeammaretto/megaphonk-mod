@@ -69,6 +69,8 @@ namespace MegabonkTogether.Patches
             Plugin.Instance.PlayTogetherButton = customButton;
             Plugin.Instance.SetMainMenu(__instance);
 
+            Scripts.CoopLeaderboardPanel.Create(__instance);
+
             if (autoUpdaterService.IsCustomBuild() && autoUpdaterService.IsAnUpdateAvailable())
             {
                 customButton.gameObject.SetActive(false);

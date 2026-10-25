@@ -1,0 +1,13 @@
+{
+  "name": "megaphonk-leaderboard",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "schema:local": "wrangler d1 execute megaphonk-leaderboard --local --file=schema.sql",
+    "schema:remote": "wrangler d1 execute megaphonk-leaderboard --remote --file=schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,8 @@
+name = "megaphonk-leaderboard"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "megaphonk-leaderboard"
+database_id = "db3b2a07-656c-41a0-9904-9d331e7efb5f"

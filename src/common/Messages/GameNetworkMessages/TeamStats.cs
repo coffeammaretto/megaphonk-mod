@@ -4,13 +4,16 @@ using System.Collections.Generic;
 namespace MegabonkTogether.Common.Messages.GameNetworkMessages
 {
     /// <summary>
-    /// Client to host: gold the client earned so far this run
+    /// Client to host: gold the client earned so far this run, and its Steam id with the session ticket proving it
+    /// (co-op leaderboard)
     /// </summary>
     [MemoryPackable]
     public partial class RunStatsReport : IGameNetworkMessage
     {
         public uint OwnerId { get; set; }
         public int GoldEarned { get; set; }
+        public ulong SteamId { get; set; }
+        public string SteamTicket { get; set; }
     }
 
     /// <summary>

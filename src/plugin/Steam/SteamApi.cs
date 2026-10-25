@@ -113,6 +113,54 @@ namespace MegabonkTogether.Steam
 
         public static ulong GetLocalSteamId() => SteamAPI_ISteamUser_GetSteamID(user);
 
+        private const uint INVALID_AUTH_TICKET = 0;
+        private static string authTicket;
+        private static uint authTicketHandle = INVALID_AUTH_TICKET;
+        private static bool isAuthTicketStale;
+
+        /// <summary>
+        /// Hex Steam session ticket of the local user, proving its Steam id to a web service (Steam Web API
+        /// AuthenticateUserTicket). Valid until cancelled: one per netplay session (see <see cref="RenewAuthTicket"/>),
+        /// so a host keeping it can't use it for later runs.
+        /// </summary>
+        public static string GetAuthTicket()
+        {
+            if (!IsAvailable)
+            {
+                return "";
+            }
+
+            if (isAuthTicketStale && authTicketHandle != INVALID_AUTH_TICKET)
+            {
+                SteamAPI_ISteamUser_CancelAuthTicket(user, authTicketHandle);
+                authTicketHandle = INVALID_AUTH_TICKET;
+                authTicket = null;
+            }
+            isAuthTicketStale = false;
+
+            if (string.IsNullOrEmpty(authTicket))
+            {
+                var buffer = new byte[2048];
+                var handle = SteamAPI_ISteamUser_GetAuthSessionTicket(user, buffer, buffer.Length, out var length, IntPtr.Zero);
+                if (handle != INVALID_AUTH_TICKET && length > 0)
+                {
+                    authTicketHandle = handle;
+                    authTicket = Convert.ToHexString(buffer, 0, (int)length);
+                }
+            }
+
+            return authTicket ?? "";
+        }
+
+        /// <summary>
+        /// The netplay session ended: the next ticket asked for replaces (and cancels) the current one. Not cancelled
+        /// right away, the host may still be submitting the run that just ended.
+        /// </summary>
+        public static void RenewAuthTicket()
+        {
+            isAuthTicketStale = true;
+        }
+
         public static uint AccountId(ulong steamId) => (uint)(steamId & 0xFFFFFFFFUL);
 
         public static string GetPersonaName() => PtrToUtf8(SteamAPI_ISteamFriends_GetPersonaName(friends));
@@ -179,6 +227,26 @@ namespace MegabonkTogether.Steam
             finally
             {
                 Marshal.FreeHGlobal(gameInfo);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Steam ids of the local user's friends
+        /// </summary>
+        public static List<ulong> GetFriendSteamIds()
+        {
+            var result = new List<ulong>();
+            if (!IsAvailable)
+            {
+                return result;
+            }
+
+            var count = SteamAPI_ISteamFriends_GetFriendCount(friends, FRIEND_FLAG_IMMEDIATE);
+            for (var i = 0; i < count; i++)
+            {
+                result.Add(SteamAPI_ISteamFriends_GetFriendByIndex(friends, i, FRIEND_FLAG_IMMEDIATE));
             }
 
             return result;
@@ -383,6 +451,8 @@ namespace MegabonkTogether.Steam
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern IntPtr SteamAPI_SteamNetworkingUtils_SteamAPI_v004();
 
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern ulong SteamAPI_ISteamUser_GetSteamID(IntPtr self);
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern uint SteamAPI_ISteamUser_GetAuthSessionTicket(IntPtr self, byte[] ticket, int maxTicket, out uint ticketLength, IntPtr identity);
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern void SteamAPI_ISteamUser_CancelAuthTicket(IntPtr self, uint authTicket);
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern IntPtr SteamAPI_ISteamFriends_GetPersonaName(IntPtr self);
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)] private static extern uint SteamAPI_ISteamUtils_GetAppID(IntPtr self);
 

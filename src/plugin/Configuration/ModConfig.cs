@@ -43,6 +43,9 @@ namespace MegabonkTogether.Configuration
         public static ConfigEntry<RunModifier> RunModifiers { get; private set; }
         public static ConfigEntry<bool> ChallengesEnabled { get; private set; }
 
+        public static ConfigEntry<bool> SubmitCoopRuns { get; private set; }
+        public static ConfigEntry<string> LeaderboardUrl { get; private set; }
+
         public static ConfigEntry<bool> PerformanceLog { get; private set; }
         public static ConfigEntry<float> PerformanceSpikeMs { get; private set; }
         public static ConfigEntry<bool> KeepBepInExConsole { get; private set; }
@@ -158,6 +161,11 @@ namespace MegabonkTogether.Configuration
                 "Run modifiers, comma separated: GlassCannon (damage +50%, max HP -40%), Horde (enemies x1.5), ThickSkinned (enemy HP x2, luck +0.25), Frenzy (enemies 10% faster every 5 minutes, gold +20%), Lucky (luck +0.3, difficulty +0.3), Poverty (gold -50%, XP +15%), Colossus (enemy HP +50%, XP +25%), BrittleSwarm (enemy HP -40%, enemies x1.5, XP -20%), Bloodbath (enemy damage +50%, healing -50%, gold +25%), Pinball (knockback x2, move speed +15%), SilverRush (silver +50%, enemy damage +25%), Overdrive (move speed +20%, projectile speed +25%, enemies 20% faster), Shockwave (weapon area +25%, damage -20%), RisingTide (enemies grow stronger 50% faster, chests 25% cheaper). Combined bonuses are capped: XP gain (counting the extra enemies) +50%, luck +0.5, gold +50%, damage +50%, move speed +30%. None for a normal run.");
             ChallengesEnabled = config.Bind(party, "ChallengesEnabled", true,
                 "Coop challenges rewarded with chests on the next stage: one for each player with no death on the stage, one for each player who survived the stage boss fight.");
+
+            SubmitCoopRuns = config.Bind("Leaderboard", "SubmitCoopRuns", true,
+                "Host: submit each finished co-op run to the Megaphonk co-op leaderboard (map, tier, players' names, Steam IDs, characters and kills). The game's own leaderboards do not count co-op runs.");
+            LeaderboardUrl = config.Bind("Leaderboard", "LeaderboardUrl", "https://megaphonk-leaderboard.megaphonk-leaderboard.workers.dev",
+                "The URL of the co-op leaderboard. Do not change this unless you know what you're doing (e.g. for self-hosting).");
 
             PerformanceLog = config.Bind("Diagnostics", "PerformanceLog", true,
                 "Log the time the mod spends each frame (report every 10 s, slow frames) to find what causes lag. Small overhead, leave off when not needed. Restart the game after changing.");

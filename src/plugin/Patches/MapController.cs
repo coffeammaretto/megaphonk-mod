@@ -19,6 +19,7 @@ namespace MegabonkTogether.Patches
         private static readonly IUdpClientService udpClientService = Plugin.Services.GetService<IUdpClientService>();
         private static readonly IWebsocketClientService websocketClientService = Plugin.Services.GetService<IWebsocketClientService>();
         private static readonly IPlayerManagerService playerManagerService = Plugin.Services.GetService<IPlayerManagerService>();
+        private static readonly ICoopLeaderboardService coopLeaderboardService = Plugin.Services.GetService<ICoopLeaderboardService>();
 
         private static bool isWaitingForServerResponse = false;
 
@@ -150,6 +151,7 @@ namespace MegabonkTogether.Patches
 
             UnityEngine.Random.InitState(playerManagerService.GetSeed());
             synchronizationService.OnRunStarted(newRunConfig);
+            coopLeaderboardService.OnRunStarted(newRunConfig);
 
             var allPlayers = playerManagerService.GetAllPlayers().ToList();
             var playerCount = allPlayers.Count;

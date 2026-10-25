@@ -20,6 +20,9 @@ namespace MegabonkTogether.Services
         public void OnKill(uint killerId);
         public void OnLocalGoldEarned(int amount);
         public void PublishTeamStats();
+        public int GetKills(uint connectionId);
+        public ulong GetSteamId(uint connectionId);
+        public string GetSteamTicket(uint connectionId);
         public void Tick();
         public void Reset();
     }
@@ -33,6 +36,8 @@ namespace MegabonkTogether.Services
         private readonly Dictionary<uint, float> damage = [];
         private readonly Dictionary<uint, int> kills = [];
         private readonly Dictionary<uint, int> goldEarned = [];
+        private readonly Dictionary<uint, ulong> steamIds = [];
+        private readonly Dictionary<uint, string> steamTickets = [];
         private int localGoldEarned = 0;
         private float nextReportAt = 0f;
         private TextMeshProUGUI panel;
@@ -42,7 +47,12 @@ namespace MegabonkTogether.Services
             this.udpClientService = udpClientService;
             this.playerManagerService = playerManagerService;
 
-            EventManager.SubscribeRunStatsReportEvents(report => goldEarned[report.OwnerId] = report.GoldEarned);
+            EventManager.SubscribeRunStatsReportEvents(report =>
+            {
+                goldEarned[report.OwnerId] = report.GoldEarned;
+                steamIds[report.OwnerId] = report.SteamId;
+                steamTickets[report.OwnerId] = report.SteamTicket ?? "";
+            });
             EventManager.SubscribeTeamStatsEvents(ShowPanel);
         }
 
@@ -79,7 +89,9 @@ namespace MegabonkTogether.Services
             IGameNetworkMessage message = new RunStatsReport
             {
                 OwnerId = localPlayer.ConnectionId,
-                GoldEarned = localGoldEarned
+                GoldEarned = localGoldEarned,
+                SteamId = GetLocalSteamId(),
+                SteamTicket = Steam.SteamApi.GetAuthTicket()
             };
             udpClientService.SendToHost(message, LiteNetLib.DeliveryMethod.ReliableOrdered);
         }
@@ -118,6 +130,38 @@ namespace MegabonkTogether.Services
             {
                 Plugin.Log.LogError($"Could not publish team stats: {ex}");
             }
+        }
+
+        public int GetKills(uint connectionId)
+        {
+            return kills.GetValueOrDefault(connectionId);
+        }
+
+        /// <summary>
+        /// Host: a player's Steam id, 0 when unknown (no Steam, or no report from that client yet)
+        /// </summary>
+        public ulong GetSteamId(uint connectionId)
+        {
+            var localPlayer = playerManagerService.GetLocalPlayer();
+            return localPlayer != null && localPlayer.ConnectionId == connectionId
+                ? GetLocalSteamId()
+                : steamIds.GetValueOrDefault(connectionId);
+        }
+
+        /// <summary>
+        /// Host: a player's Steam session ticket, empty when unknown
+        /// </summary>
+        public string GetSteamTicket(uint connectionId)
+        {
+            var localPlayer = playerManagerService.GetLocalPlayer();
+            return localPlayer != null && localPlayer.ConnectionId == connectionId
+                ? Steam.SteamApi.GetAuthTicket()
+                : steamTickets.GetValueOrDefault(connectionId, "");
+        }
+
+        private static ulong GetLocalSteamId()
+        {
+            return Steam.SteamApi.Initialize() ? Steam.SteamApi.GetLocalSteamId() : 0UL;
         }
 
         private void ShowPanel(TeamStats stats)
@@ -171,6 +215,9 @@ namespace MegabonkTogether.Services
             damage.Clear();
             kills.Clear();
             goldEarned.Clear();
+            steamIds.Clear();
+            steamTickets.Clear();
+            Steam.SteamApi.RenewAuthTicket();
             localGoldEarned = 0;
             nextReportAt = 0f;
             if (panel != null)

@@ -5,6 +5,7 @@ assembly-publicizer "%MegabonkPath%\BepInEx\unity-libs\UnityEngine.PhysicsModule
 assembly-publicizer "%MegabonkPath%\BepInEx\unity-libs\UnityEngine.ParticleSystemModule.dll" --strip-only -o ./stripped-libs/unity-libs/UnityEngine.ParticleSystemModule.dll
 assembly-publicizer "%MegabonkPath%\BepInEx\unity-libs\UnityEngine.AudioModule.dll" --strip-only -o ./stripped-libs/unity-libs/UnityEngine.AudioModule.dll
 assembly-publicizer "%MegabonkPath%\BepInEx\interop\UnityEngine.UI.dll" --strip-only -o ./stripped-libs/interop/UnityEngine.UI.dll
+assembly-publicizer "%MegabonkPath%\BepInEx\interop\UnityEngine.UIModule.dll" --strip-only -o ./stripped-libs/interop/UnityEngine.UIModule.dll
 assembly-publicizer "%MegabonkPath%\BepInEx\interop\Unity.TextMeshPro.dll" --strip-only -o ./stripped-libs/interop/Unity.TextMeshPro.dll
 assembly-publicizer "%MegabonkPath%\BepInEx\interop\Il2Cppmscorlib.dll" --strip-only -o ./stripped-libs/interop/Il2Cppmscorlib.dll
 assembly-publicizer "%MegabonkPath%\BepInEx\interop\Il2CppSystem.dll" --strip-only -o ./stripped-libs/interop/Il2CppSystem.dll

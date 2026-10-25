@@ -158,6 +158,7 @@ namespace MegabonkTogether
             ClassInjector.RegisterTypeInIl2Cpp<LoadingModal>();
             ClassInjector.RegisterTypeInIl2Cpp<UpdateAvailableModal>();
             ClassInjector.RegisterTypeInIl2Cpp<ChangelogModal>();
+            ClassInjector.RegisterTypeInIl2Cpp<CoopLeaderboardPanel>();
             ClassInjector.RegisterTypeInIl2Cpp<TargetSwitcher>();
             ClassInjector.RegisterTypeInIl2Cpp<InteractableReviver>();
             ClassInjector.RegisterTypeInIl2Cpp<NotificationQueueManager>();
@@ -196,6 +197,7 @@ namespace MegabonkTogether
                 services.AddSingleton<ITeamMeterService, TeamMeterService>();
                 services.AddSingleton<IChallengeService, ChallengeService>();
                 services.AddSingleton<IRunStatsService, RunStatsService>();
+                services.AddSingleton<ICoopLeaderboardService, CoopLeaderboardService>();
                 services.AddSingleton<ITrackerService, TrackerService>();
             });
 

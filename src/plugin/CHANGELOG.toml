@@ -6,6 +6,13 @@
 #     "Change 2 description",
 # ]
 
+[version."2.1.0"]
+changes = [
+    "Co-op leaderboard: co-op runs are not counted by the game's leaderboards, they now go to a co-op leaderboard shown above the game's one in the main menu.",
+    "One board per map, tier and party size, global or friends only, 5 runs per page: party characters, run modifiers and party kills. Click a run to see the players' Steam names.",
+    "The host submits each finished run (death or win). Every player is verified with Steam: Steam must be running. Can be turned off in the config (Leaderboard section).",
+]
+
 [version."2.0.16"]
 changes = [
     "Projectiles now push enemies along their flight direction.",
