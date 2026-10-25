@@ -164,7 +164,7 @@ namespace MegabonkTogether.Configuration
                 "Coop challenges rewarded with chests on the next stage: one for each player with no death on the stage, one for each player who survived the stage boss fight.");
 
             CustomMusic = config.Bind("Music", "CustomMusic", true,
-                "Play your own music in runs: the mp3/ogg/wav files of the Music folder (next to the mod's dll) play in a random order instead of the stage music. Boss and menu music stay the game's. Nothing happens when the folder is empty.");
+                "Play your own music in runs: the mp3 files of the Music folder (next to the mod's dll) play in a random order instead of the stage music. Boss and menu music stay the game's. Nothing happens when the folder is empty.");
 
             SubmitCoopRuns = config.Bind("Leaderboard", "SubmitCoopRuns", true,
                 "Host: submit each finished co-op run to the Megaphonk co-op leaderboard (map, tier, players' names, Steam IDs, characters and kills). The game's own leaderboards do not count co-op runs.");

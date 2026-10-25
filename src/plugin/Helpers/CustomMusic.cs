@@ -1,27 +1,31 @@
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using MegabonkTogether.Configuration;
+using NLayer;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace MegabonkTogether.Helpers
 {
     /// <summary>
-    /// The player's own music in runs: the mp3/ogg/wav files of the plugin's Music folder play in a random order (each
-    /// once before any repeats) instead of the stage music. Played on the game's music source, so the music volume
-    /// setting and the game's effects (muffled in chests and pause, danger pitch) still apply. Boss and menu music stay
-    /// the game's. Local to each player: nothing goes over the network.
+    /// The player's own music in runs: the mp3 files of the plugin's Music folder play in a random order (each once
+    /// before any repeats) instead of the stage music. Played on the game's music source, so the music volume setting
+    /// and the game's effects (muffled in chests and pause, danger pitch) still apply. Boss and menu music stay the
+    /// game's. Local to each player: nothing goes over the network.
+    /// The game has no audio file loader (DownloadHandlerAudioClip is stripped): the mp3 is decoded by NLayer on a
+    /// background thread, then copied into an AudioClip a chunk per frame.
     /// </summary>
     internal static class CustomMusic
     {
-        private static readonly Dictionary<string, AudioType> Formats = new(StringComparer.OrdinalIgnoreCase)
-        {
-            [".mp3"] = AudioType.MPEG,
-            [".ogg"] = AudioType.OGGVORBIS,
-            [".wav"] = AudioType.WAV,
-        };
+        private const string Extension = ".mp3";
+        private const int CHUNK_SECONDS = 2;
+
+        // The game has only the IL2CPP overload (float array as Il2CppStructArray)
+        private static readonly MethodInfo SetData = typeof(AudioClip).GetMethod(nameof(AudioClip.SetData), [typeof(Il2CppStructArray<float>), typeof(int)]);
 
         public static string Folder => Path.Combine(Path.GetDirectoryName(typeof(CustomMusic).Assembly.Location), "Music");
 
@@ -31,10 +35,24 @@ namespace MegabonkTogether.Helpers
         // Playing our music on the game's source (cleared when the game plays something else or stops the music)
         private static bool active;
         private static AudioClip currentClip;
-        // The next track, loaded ahead
-        private static UnityWebRequest nextRequest;
+        // The next track: decoding, then copied into a clip, then waiting for the current track to end
+        private static Task<Decoded> decoding;
+        private static Decoded building;
+        private static AudioClip buildingClip;
+        private static int builtFrames;
+        private static AudioClip pendingClip;
         private static string nextFile;
         private static bool failedFolder;
+
+        private sealed class Decoded
+        {
+            public string Name;
+            public float[] Samples;
+            public int Channels;
+            public int Rate;
+        }
+
+        private static bool Loading => decoding != null || building != null;
 
         /// <summary>
         /// The game started the stage music: play ours instead, when the folder has any
@@ -46,7 +64,7 @@ namespace MegabonkTogether.Helpers
                 return;
             }
 
-            if (currentClip == null && nextRequest == null && !LoadNext())
+            if (currentClip == null && pendingClip == null && !Loading && !LoadNext())
             {
                 return; // No music of the player's
             }
@@ -96,34 +114,29 @@ namespace MegabonkTogether.Helpers
                 return;
             }
 
-            AudioClip loaded = null;
-            if (nextRequest != null && nextRequest.isDone)
-            {
-                loaded = FinishLoading();
-            }
+            ContinueLoading();
 
             // A track that ended rewinds to 0 and stops; a paused one keeps its position
             var ended = currentClip == null || (!source.isPlaying && source.time <= 0f);
             if (!ended)
             {
-                if (nextRequest == null && loaded == null && pendingClip == null)
+                if (!Loading && pendingClip == null)
                 {
                     LoadNext();
                 }
-                pendingClip ??= loaded;
                 return;
             }
 
-            var next = pendingClip ?? loaded;
-            if (next == null)
+            if (pendingClip == null)
             {
-                if (nextRequest == null)
+                if (!Loading)
                 {
                     LoadNext();
                 }
                 return;
             }
 
+            var next = pendingClip;
             pendingClip = null;
             if (currentClip != null && currentClip.Ptr() != next.Ptr())
             {
@@ -131,9 +144,6 @@ namespace MegabonkTogether.Helpers
             }
             Play(controller, next);
         }
-
-        // Loaded ahead, waiting for the current track to end
-        private static AudioClip pendingClip;
 
         private static void Play(MusicController controller, AudioClip clip)
         {
@@ -148,7 +158,7 @@ namespace MegabonkTogether.Helpers
         }
 
         /// <summary>
-        /// Starts loading the next file of the shuffled playlist (refilled once every track was played)
+        /// Starts decoding the next file of the shuffled playlist (refilled once every track was played)
         /// </summary>
         private static bool LoadNext()
         {
@@ -158,53 +168,114 @@ namespace MegabonkTogether.Helpers
             }
 
             nextFile = playlist.Dequeue();
-            try
-            {
-                nextRequest = UnityWebRequestMultimedia.GetAudioClip(new Uri(nextFile).AbsoluteUri, Formats[Path.GetExtension(nextFile)]);
-                // Kept compressed in memory (an mp3 takes its file size, not minutes of raw samples)
-                nextRequest.downloadHandler.Cast<DownloadHandlerAudioClip>().compressed = true;
-                nextRequest.SendWebRequest();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log.LogWarning($"Custom music: could not load {nextFile}: {ex.Message}");
-                nextRequest = null;
-                return false;
-            }
+            var file = nextFile;
+            decoding = Task.Run(() => Decode(file));
+            return true;
         }
 
-        private static AudioClip FinishLoading()
+        private static Decoded Decode(string file)
         {
-            var request = nextRequest;
-            nextRequest = null;
+            using var mp3 = new MpegFile(file);
+            var chunks = new List<float[]>();
+            var total = 0;
+            while (true)
+            {
+                var chunk = new float[1 << 16];
+                var read = mp3.ReadSamples(chunk, 0, chunk.Length);
+                if (read <= 0)
+                {
+                    break;
+                }
+                if (read < chunk.Length)
+                {
+                    Array.Resize(ref chunk, read);
+                }
+                chunks.Add(chunk);
+                total += read;
+            }
+
+            var samples = new float[total - total % mp3.Channels];
+            var offset = 0;
+            foreach (var chunk in chunks)
+            {
+                var count = Math.Min(chunk.Length, samples.Length - offset);
+                Array.Copy(chunk, 0, samples, offset, count);
+                offset += count;
+            }
+            return new Decoded { Name = Path.GetFileNameWithoutExtension(file), Samples = samples, Channels = mp3.Channels, Rate = mp3.SampleRate };
+        }
+
+        /// <summary>
+        /// Takes the decoded track once ready, then copies a chunk of it into its clip per frame (a whole track at once
+        /// stalls a frame)
+        /// </summary>
+        private static void ContinueLoading()
+        {
             try
             {
-                if (request.result != UnityWebRequest.Result.Success)
+                if (decoding != null)
                 {
-                    Plugin.Log.LogWarning($"Custom music: could not load {nextFile}: {request.error}");
-                    return null;
+                    if (!decoding.IsCompleted)
+                    {
+                        return;
+                    }
+
+                    var task = decoding;
+                    decoding = null;
+                    if (task.IsFaulted)
+                    {
+                        Plugin.Log.LogWarning($"Custom music: could not load {nextFile}: {task.Exception?.GetBaseException().Message}");
+                        return;
+                    }
+
+                    var decoded = task.Result;
+                    var frames = decoded.Samples.Length / decoded.Channels;
+                    if (frames == 0)
+                    {
+                        Plugin.Log.LogWarning($"Custom music: {nextFile} has no audio");
+                        return;
+                    }
+
+                    building = decoded;
+                    builtFrames = 0;
+                    buildingClip = AudioClip.Create(decoded.Name, frames, decoded.Channels, decoded.Rate, false);
+                    buildingClip.name = decoded.Name;
+                    buildingClip.hideFlags = HideFlags.DontUnloadUnusedAsset; // survives the stage changes
+                    return;
                 }
 
-                var clip = DownloadHandlerAudioClip.GetContent(request);
-                if (clip == null || clip.length <= 0f)
+                if (building == null)
                 {
-                    Plugin.Log.LogWarning($"Custom music: {nextFile} has no audio");
-                    return null;
+                    return;
                 }
 
-                clip.name = Path.GetFileNameWithoutExtension(nextFile);
-                clip.hideFlags = HideFlags.DontUnloadUnusedAsset; // survives the stage changes
-                return clip;
+                var totalFrames = building.Samples.Length / building.Channels;
+                var count = Math.Min(building.Rate * CHUNK_SECONDS, totalFrames - builtFrames);
+                var chunk = new Il2CppStructArray<float>(count * building.Channels);
+                var start = builtFrames * building.Channels;
+                for (var i = 0; i < chunk.Length; i++)
+                {
+                    chunk[i] = building.Samples[start + i];
+                }
+                SetData.Invoke(buildingClip, [chunk, builtFrames]);
+                builtFrames += count;
+
+                if (builtFrames >= totalFrames)
+                {
+                    pendingClip = buildingClip;
+                    buildingClip = null;
+                    building = null;
+                }
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogWarning($"Custom music: could not load {nextFile}: {ex.Message}");
-                return null;
-            }
-            finally
-            {
-                request.Dispose();
+                Plugin.Log.LogWarning($"Custom music: could not load {nextFile}: {ex.GetBaseException().Message}");
+                if (buildingClip != null)
+                {
+                    UnityEngine.Object.Destroy(buildingClip);
+                }
+                buildingClip = null;
+                building = null;
             }
         }
 
@@ -215,7 +286,7 @@ namespace MegabonkTogether.Helpers
         private static void MoveStrayTracks()
         {
             var pluginFolder = Path.GetDirectoryName(Folder);
-            foreach (var file in Directory.GetFiles(pluginFolder).Where(f => Formats.ContainsKey(Path.GetExtension(f))))
+            foreach (var file in Directory.GetFiles(pluginFolder, "*" + Extension))
             {
                 try
                 {
@@ -240,7 +311,7 @@ namespace MegabonkTogether.Helpers
             {
                 Directory.CreateDirectory(Folder);
                 MoveStrayTracks();
-                files = Directory.GetFiles(Folder).Where(f => Formats.ContainsKey(Path.GetExtension(f))).ToArray();
+                files = Directory.GetFiles(Folder, "*" + Extension);
             }
             catch (Exception ex)
             {

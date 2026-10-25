@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.2.2"]
+changes = [
+    "Fixed the run music not playing: the game has no audio file loader, the mod now decodes the mp3 tracks itself (ogg/wav are no longer supported).",
+]
+
 [version."2.2.1"]
 changes = [
     "Fixed the run music: the mod's tracks did not replace the stage music.",

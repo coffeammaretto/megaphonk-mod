@@ -4,7 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>MegaphonkMod</AssemblyName>
     <Product>Megaphonk Mod</Product>
-    <Version>2.2.1</Version>
+    <Version>2.2.2</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -52,6 +52,7 @@
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
     <PackageReference Include="LiteNetLib" Version="1.3.5" />
 	<PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+	<PackageReference Include="NLayer" Version="1.16.0" />
 	<PackageReference Include="Profanity.Detector" Version="0.1.8" />
 	<PackageReference Include="TextCopy" Version="6.2.1" />
 	<PackageReference Include="Tomlyn" Version="0.17.0" />
