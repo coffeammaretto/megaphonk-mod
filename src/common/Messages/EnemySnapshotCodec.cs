@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 
-namespace MegabonkTogether.Common.Messages
+namespace Megaphonk.Common.Messages
 {
     /// <summary>
     /// One enemy of an enemy snapshot. Position and yaw are already quantized (Quantizer on the plugin side).

@@ -1,6 +1,6 @@
 using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages
+namespace Megaphonk.Common.Messages
 {
     public static class SnapshotChunker
     {

@@ -1,9 +1,9 @@
 ﻿using Assets.Scripts.Utility;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(PauseUi))]
     internal static class PauseUiPatches

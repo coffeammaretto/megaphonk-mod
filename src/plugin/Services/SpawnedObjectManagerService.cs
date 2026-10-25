@@ -1,14 +1,14 @@
 ﻿using Actors.Enemies;
 using Assets.Scripts.Inventory__Items__Pickups.Items;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Snapshot;
+using Megaphonk.Common.Models;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Snapshot;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public interface ISpawnedObjectManagerService
     {

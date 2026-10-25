@@ -1,10 +1,10 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Weapons.Attacks;
 using HarmonyLib;
 using Il2CppInterop.Runtime.InteropTypes;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(WeaponAttack))]
     internal static class WeaponAttackPatches

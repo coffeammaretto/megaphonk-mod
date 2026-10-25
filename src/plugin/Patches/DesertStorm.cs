@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(DesertStorm))]
     internal static class DesertStormPatches

@@ -1,4 +1,4 @@
-﻿namespace MegabonkTogether.Patches.Summoner
+﻿namespace Megaphonk.Patches.Summoner
 {
     //TODO: re enable again when no more FPS drops
 

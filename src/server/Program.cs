@@ -1,6 +1,6 @@
-﻿using MegabonkTogether.Common.Models;
-using MegabonkTogether.Server;
-using MegabonkTogether.Server.Services;
+﻿using Megaphonk.Common.Models;
+using Megaphonk.Server;
+using Megaphonk.Server.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using OpenTelemetry.Metrics;
 
@@ -18,7 +18,7 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics =>
     {
         metrics
-            .AddMeter("MegabonkTogether.Server")
+            .AddMeter("Megaphonk.Server")
             .AddPrometheusExporter();
     });
 

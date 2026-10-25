@@ -1,14 +1,14 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Common;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Button;
-using MegabonkTogether.Scripts.Modal;
-using MegabonkTogether.Services;
+using Megaphonk.Common;
+using Megaphonk.Configuration;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Button;
+using Megaphonk.Scripts.Modal;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Tasks;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(MainMenu))]
     internal static class MainMenuPatches

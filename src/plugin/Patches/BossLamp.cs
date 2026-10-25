@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(BossLamp))]
     internal static class BossLampPatches

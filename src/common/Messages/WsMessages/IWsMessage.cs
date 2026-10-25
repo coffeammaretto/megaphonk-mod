@@ -1,6 +1,6 @@
 ﻿using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages.WsMessages
+namespace Megaphonk.Common.Messages.WsMessages
 {
     [MemoryPackable]
     [MemoryPackUnion(0, typeof(MatchmakingServerConnectionStatus))]

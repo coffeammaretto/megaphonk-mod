@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace MegabonkTogether.Common.Messages
+namespace Megaphonk.Common.Messages
 {
     /// <summary>
     /// Position quantization of the current map (same arithmetic as the plugin's Quantizer)

@@ -1,10 +1,10 @@
 using Assets.Scripts.Inventory__Items__Pickups.Items;
 using HarmonyLib;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Button;
-using MegabonkTogether.Services;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Button;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using System.Reflection;
@@ -12,7 +12,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     /// <summary>
     /// "Give" button in the chest window: the item goes to the closest alive teammate instead of the local player
@@ -89,7 +89,7 @@ namespace MegabonkTogether.Patches
         private static void CreateGiveButton(GameObject leaveButton)
         {
             giveButton = Object.Instantiate(leaveButton, leaveButton.transform.parent);
-            giveButton.name = "MegabonkTogether_GiveButton";
+            giveButton.name = "Megaphonk_GiveButton";
 
             // Cloned from the leave button: replace its behaviour, keep its look
             for (var i = 0; i < 3; i++)

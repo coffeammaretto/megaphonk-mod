@@ -1,11 +1,11 @@
 ﻿using LiteNetLib;
 using LiteNetLib.Utils;
-using MegabonkTogether.Common.Messages;
+using Megaphonk.Common.Messages;
 using MemoryPack;
 using System.Collections.Concurrent;
 using System.Net;
 
-namespace MegabonkTogether.Server.Services
+namespace Megaphonk.Server.Services
 {
     public class HostInfo
     {

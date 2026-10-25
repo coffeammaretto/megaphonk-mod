@@ -5,7 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace MegabonkTogether.Steam
+namespace Megaphonk.Steam
 {
     /// <summary>
     /// Carries LiteNetLib's UDP packets over Steam networking (P2P with Steam's relays, no NAT punching, no own server).

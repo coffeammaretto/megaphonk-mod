@@ -1,10 +1,10 @@
 ﻿using Assets.Scripts.Actors.Enemies;
 using Assets.Scripts.Inventory.Stats;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches.Enemies
+namespace Megaphonk.Patches.Enemies
 {
     [HarmonyPatch(typeof(EnemyStats))]
     internal static class EnemyStatsPatches

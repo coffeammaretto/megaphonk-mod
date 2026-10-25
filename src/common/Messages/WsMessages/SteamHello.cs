@@ -1,6 +1,6 @@
 using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages.WsMessages
+namespace Megaphonk.Common.Messages.WsMessages
 {
     /// <summary>
     /// Steam rooms: a client's join request and heartbeat, also the host's heartbeat

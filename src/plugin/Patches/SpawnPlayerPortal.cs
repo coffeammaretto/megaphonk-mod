@@ -1,14 +1,14 @@
 ﻿using Assets.Scripts.Utility;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
 using TMPro;
 using UnityEngine;
 using Utility;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(SpawnPlayerPortal))]
     internal static class SpawnPlayerPortalPatches

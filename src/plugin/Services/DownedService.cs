@@ -1,14 +1,14 @@
 using Assets.Scripts.Actors.Player;
 using Assets.Scripts.Inventory__Items__Pickups;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
 using System;
 using System.Linq;
 using TMPro;
 using UnityEngine;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Downed state: lethal damage downs the local player instead of killing it (invulnerable, no attacks, slow) while it
@@ -266,7 +266,7 @@ namespace MegabonkTogether.Services
                     return;
                 }
 
-                var go = new GameObject("MegabonkTogether_DownedHud");
+                var go = new GameObject("Megaphonk_DownedHud");
                 hudText = go.AddComponent<TextMeshProUGUI>();
                 hudText.transform.SetParent(UiManager.Instance.transform, false);
                 hudText.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);

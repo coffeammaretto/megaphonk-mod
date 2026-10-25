@@ -2,10 +2,10 @@
 using HarmonyLib;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches.Projectiles
+namespace Megaphonk.Patches.Projectiles
 {
     [HarmonyPatch(typeof(ProjectileLightningBolt))]
     internal static class ProjectileLightningBoltPatches

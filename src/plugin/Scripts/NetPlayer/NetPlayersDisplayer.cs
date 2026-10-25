@@ -1,13 +1,13 @@
 ﻿using Assets.Scripts._Data.Tomes;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Services;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Models;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts.NetPlayer
+namespace Megaphonk.Scripts.NetPlayer
 {
     public class NetPlayersDisplayer : MonoBehaviour
     {

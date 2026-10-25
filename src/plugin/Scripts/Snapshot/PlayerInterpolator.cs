@@ -1,8 +1,8 @@
-﻿using MegabonkTogether.Extensions;
+﻿using Megaphonk.Extensions;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts.Snapshot
+namespace Megaphonk.Scripts.Snapshot
 {
     //TODO: Find a way to make abstract class work with IL2CPP because its not working for some reason ¯\_(ツ)_/¯
     public class PlayerInterpolator : MonoBehaviour

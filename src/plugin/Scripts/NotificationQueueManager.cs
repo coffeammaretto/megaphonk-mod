@@ -1,7 +1,7 @@
 using Assets.Scripts.Inventory__Items__Pickups.Items;
 using Assets.Scripts.Saves___Serialization.Progression.Achievements;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Localization;
 
-namespace MegabonkTogether.Scripts
+namespace Megaphonk.Scripts
 {
     public class NotificationQueueManager : MonoBehaviour
     {

@@ -1,16 +1,16 @@
 ﻿using Assets.Scripts.Game.Other;
 using Assets.Scripts.Managers;
 using HarmonyLib;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Extensions;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Common.Models;
+using Megaphonk.Extensions;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(MapController))]
     internal static class MapControllerPatches

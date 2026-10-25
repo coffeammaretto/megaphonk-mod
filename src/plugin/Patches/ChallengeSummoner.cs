@@ -1,9 +1,9 @@
 ﻿using Assets.Scripts.Game.Spawning.New.Summoners;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(ChallengeSummoner))]
     internal static class ChallengeSummonerPatches

@@ -2,7 +2,7 @@
 using Assets.Scripts.Managers;
 using System.Linq;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public interface IGameBalanceService
     {

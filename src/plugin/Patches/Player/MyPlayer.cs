@@ -1,10 +1,10 @@
 ﻿using Assets.Scripts.Actors.Player;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches.Player
+namespace Megaphonk.Patches.Player
 {
     [HarmonyPatch(typeof(MyPlayer))]
     internal class MyPlayerPatches

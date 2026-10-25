@@ -1,10 +1,10 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 using static EnemySpecialAttackManyRandom;
 
-namespace MegabonkTogether.Patches.SpecialAttack
+namespace Megaphonk.Patches.SpecialAttack
 {
     [HarmonyPatch(typeof(_DoAttack_d__8))]
     internal static class EnemySpecialAttackManyRandomPatches

@@ -1,13 +1,13 @@
 using Assets.Scripts.Actors.Enemies;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace MegabonkTogether.Scripts.Enemies
+namespace Megaphonk.Scripts.Enemies
 {
     public class TargetSwitcher : MonoBehaviour
     {

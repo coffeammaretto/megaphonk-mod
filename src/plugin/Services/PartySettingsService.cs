@@ -1,9 +1,9 @@
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Configuration;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Configuration;
 using System;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Party wide rules: the host's config, sent to clients when a game starts and whenever the host changes a setting

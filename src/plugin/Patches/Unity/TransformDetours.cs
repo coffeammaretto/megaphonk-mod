@@ -2,15 +2,15 @@ using BepInEx.Unity.IL2CPP.Hook;
 using HarmonyLib;
 using Il2CppInterop.Common;
 using Il2CppInterop.Runtime;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches.Unity
+namespace Megaphonk.Patches.Unity
 {
     /// <summary>
     /// Native hooks on Component.transform, Transform.position and Transform.rotation. The game calls them hundreds of

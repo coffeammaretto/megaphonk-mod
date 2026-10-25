@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts.Modal
+namespace Megaphonk.Scripts.Modal
 {
     /// <summary>
     /// Simple loading modal

@@ -1,6 +1,6 @@
 ﻿using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     [MemoryPackable]
     public partial class ItemAdded : IGameNetworkMessage

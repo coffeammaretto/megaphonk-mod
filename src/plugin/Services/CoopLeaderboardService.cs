@@ -1,6 +1,6 @@
 using Assets.Scripts.Game.Other;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Extensions;
+using Megaphonk.Configuration;
+using Megaphonk.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Co-op leaderboard (the game's own leaderboards do not take netplay runs): the host submits each finished run

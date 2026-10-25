@@ -1,11 +1,11 @@
-﻿using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Scripts;
+﻿using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Models;
+using Megaphonk.Scripts;
 using System;
 using System.Collections.Generic;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public static class EventManager
     {
@@ -55,6 +55,7 @@ namespace MegabonkTogether.Services
         private static event Action<ItemAdded> ItemAddedEvents;
         private static event Action<ItemRemoved> ItemRemovedEvents;
         private static event Action<WeaponToggled> WeaponToggledEvents;
+        private static event Action<MusicTrackChanged> MusicTrackChangedEvents;
         private static event Action GameStartedEvents;
         private static event Action PortalOpenedEvents;
         private static event Action<SpawnedObjectInCrypt> SpawnedObjectInCryptEvents;
@@ -665,6 +666,19 @@ namespace MegabonkTogether.Services
             MainThreadDispatcher.Enqueue(() =>
             {
                 WeaponToggledEvents?.Invoke(weaponToggled);
+            });
+        }
+
+        public static void SubscribeMusicTrackChangedEvents(Action<MusicTrackChanged> action)
+        {
+            MusicTrackChangedEvents += action;
+        }
+
+        public static void OnMusicTrackChanged(MusicTrackChanged musicTrackChanged)
+        {
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                MusicTrackChangedEvents?.Invoke(musicTrackChanged);
             });
         }
 

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     /// <summary>
     /// Updates far objects less often on clients (their position comes from the host's snapshots anyway).

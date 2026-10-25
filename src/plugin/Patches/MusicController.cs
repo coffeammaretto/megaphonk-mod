@@ -1,7 +1,7 @@
 using HarmonyLib;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     /// <summary>
     /// The player's own music in runs (see CustomMusic)

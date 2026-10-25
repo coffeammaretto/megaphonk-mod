@@ -1,14 +1,14 @@
 using Assets.Scripts.Camera;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Extensions;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Configuration;
+using Megaphonk.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Pings: the ping key marks the spot the camera looks at, for everyone (light beam + minimap arrow), a few seconds
@@ -128,7 +128,7 @@ namespace MegabonkTogether.Services
             RemovePing(ownerId); //One ping per player
 
             var color = GetPlayerColor(ownerId);
-            var marker = new GameObject($"MegabonkTogether_Ping_{ownerId}");
+            var marker = new GameObject($"Megaphonk_Ping_{ownerId}");
             marker.transform.position = position;
 
             var beam = marker.AddComponent<LineRenderer>();

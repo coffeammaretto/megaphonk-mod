@@ -1,15 +1,15 @@
 ﻿using Actors.Enemies;
 using Assets.Scripts.Actors.Enemies;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Enemies;
-using MegabonkTogether.Scripts.Snapshot;
+using Megaphonk.Common.Messages;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Enemies;
+using Megaphonk.Scripts.Snapshot;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public interface IEnemyManagerService
     {

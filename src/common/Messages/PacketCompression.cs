@@ -1,6 +1,6 @@
 using System.IO.Compression;
 
-namespace MegabonkTogether.Common.Messages
+namespace Megaphonk.Common.Messages
 {
     /// <summary>
     /// Compression of whole packets (a message or a MessageBatch, as serialized). A compressed packet is

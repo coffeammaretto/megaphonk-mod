@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 
-namespace MegabonkTogether.Patches.ConstantAttacks
+namespace Megaphonk.Patches.ConstantAttacks
 {
     //TODO: Synchronize laser beam attacks properly
     [HarmonyPatch(typeof(LaserBeamAttack))]

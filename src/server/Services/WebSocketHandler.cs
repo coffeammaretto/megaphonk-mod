@@ -1,14 +1,14 @@
-﻿using MegabonkTogether.Common.Extensions;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.WsMessages;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Server.Models;
-using MegabonkTogether.Server.Pools;
+﻿using Megaphonk.Common.Extensions;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.WsMessages;
+using Megaphonk.Common.Models;
+using Megaphonk.Server.Models;
+using Megaphonk.Server.Pools;
 using MemoryPack;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 
-namespace MegabonkTogether.Server.Services
+namespace Megaphonk.Server.Services
 {
     public class WebSocketHandler
     {

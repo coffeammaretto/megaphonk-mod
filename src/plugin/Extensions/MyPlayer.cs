@@ -1,7 +1,7 @@
 ﻿using Assets.Scripts.Actors.Player;
-using MegabonkTogether.Common.Messages;
+using Megaphonk.Common.Messages;
 
-namespace MegabonkTogether.Extensions
+namespace Megaphonk.Extensions
 {
     public static class MyPlayerExtensions
     {

@@ -1,6 +1,6 @@
 using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     /// <summary>
     /// Host announces a coop challenge or its outcome, shown to every player

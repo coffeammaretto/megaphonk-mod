@@ -2,16 +2,16 @@
 using Assets.Scripts.Actors.Enemies;
 using Assets.Scripts.Inventory__Items__Pickups.Items;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Enemies;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Enemies;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches.Enemies
+namespace Megaphonk.Patches.Enemies
 {
     [HarmonyPatch(typeof(Enemy))]
     internal static class EnemyPatch

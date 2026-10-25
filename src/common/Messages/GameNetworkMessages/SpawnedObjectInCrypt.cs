@@ -1,7 +1,7 @@
-﻿using MegabonkTogether.Common.Models;
+﻿using Megaphonk.Common.Models;
 using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     [MemoryPackable]
     public partial class SpawnedObjectInCrypt : IGameNetworkMessage

@@ -1,14 +1,14 @@
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using TMPro;
 using UnityEngine;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Team table at the end of a run: the host counts every player's damage and kills (it applies all hits), each player
@@ -180,7 +180,7 @@ namespace MegabonkTogether.Services
                     return;
                 }
 
-                var go = new GameObject("MegabonkTogether_TeamStats");
+                var go = new GameObject("Megaphonk_TeamStats");
                 panel = go.AddComponent<TextMeshProUGUI>();
                 panel.transform.SetParent(UiManager.Instance.transform, false);
                 panel.rectTransform.anchorMin = new Vector2(0f, 1f);

@@ -1,13 +1,13 @@
 using Assets.Scripts.Inventory__Items__Pickups.Stats;
 using Assets.Scripts.Menu.Shop;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Party wide stats:
@@ -36,7 +36,7 @@ namespace MegabonkTogether.Services
         private const float MIN_SEND_INTERVAL = 0.5f;
         private const float HEARTBEAT_INTERVAL = 5f;
         private const float EPSILON = 0.0001f;
-        private const string PASSIVE_MOVING_STAT_PREFIX = "MegabonkTogether_PartyPassive";
+        private const string PASSIVE_MOVING_STAT_PREFIX = "Megaphonk_PartyPassive";
 
         private const int MAX_STAT_READ_FAILURES = 5;
 

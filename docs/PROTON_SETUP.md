@@ -1,6 +1,6 @@
 # Proton Setup Guide for BepInEx 6
 
-This document details the steps to run Megabonk Together on Linux using Proton.
+This document details the steps to run Megaphonk Mod on Linux using Proton.
 
 ## 1. Game Configuration
 - **Steam Properties:** Force the use of **Proton 9.0-2** (or newer).
@@ -26,4 +26,4 @@ WINEDLLOVERRIDES="winhttp=n,b" %command%
 ## 5. Mod Deployment
 Run the `./build.sh` script from the project root. It will:
 1. Compile the C# code.
-2. Copy the DLLs to `BepInEx/plugins/MegabonkTogether/`.
+2. Copy the DLLs to `BepInEx/plugins/MegaphonkMod/`.

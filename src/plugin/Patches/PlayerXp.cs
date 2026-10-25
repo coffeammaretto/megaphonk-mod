@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
 using Inventory__Items__Pickups.Xp_and_Levels;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(PlayerXp))]
     internal static class PlayerXpPatches

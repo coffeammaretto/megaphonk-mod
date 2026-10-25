@@ -1,12 +1,12 @@
 using Assets.Scripts.Actors.Enemies;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using TMPro;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts
+namespace Megaphonk.Scripts
 {
     public class CameraState
     {

@@ -1,4 +1,4 @@
-﻿namespace MegabonkTogether.Server.Models
+﻿namespace Megaphonk.Server.Models
 {
     public class Lobby
     {

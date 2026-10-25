@@ -8,7 +8,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     /// <summary>
     /// Diagnostic, off by default (Diagnostics.PerformanceLog): main thread time spent in the mod. Every Harmony patch method

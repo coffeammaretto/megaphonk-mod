@@ -1,9 +1,9 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.AbilitiesPassive.Implementations;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches.Passives
+namespace Megaphonk.Patches.Passives
 {
     [HarmonyPatch(typeof(PassiveAbilityBullseye))]
     internal static class PassiveAbilityBullseyePatches

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public interface ILocalizationService
     {
@@ -15,31 +15,31 @@ namespace MegabonkTogether.Services
     {
         public readonly Dictionary<(string, string), string> LocalizationOverrides = new()
         {
-            { ("MegabonkTogether", "MatchSuccess"), "Match" },
-            { ("MegabonkTogether", "MatchSuccessDesc"), "Joined a lobby of {1} players as {0}!" },
-            { ("MegabonkTogether", "PlayerDisconnected"), "Disconnected" },
-            { ("MegabonkTogether", "PlayerDisconnected_Description"), "Player {0} disconnected" },
-            { ("MegabonkTogether", "AllPlayerDisconnected"), "Disconnected" },
-            { ("MegabonkTogether", "AllPlayerDisconnected_Description"), "All players left!" },
-            { ("MegabonkTogether", "HostDisconnected"), "Disconnected" },
-            { ("MegabonkTogether", "HostDisconnected_Description"), "Host left!" },
-            { ("MegabonkTogether", "ClientDisconnected"), "Disconnected" },
-            { ("MegabonkTogether", "ClientDisconnected_Description"), "Client disconnected" },
-            { ("MegabonkTogether", "FriendliesHostSuccess"), "Friendlies" },
-            { ("MegabonkTogether", "FriendliesHostSuccessDesc"), "Hosting a friendly lobby" },
-            { ("MegabonkTogether", "FriendliesClientSuccess"), "Friendlies" },
-            { ("MegabonkTogether", "FriendliesClientSuccessDesc"), "Joined the lobby" },
-            { ("MegabonkTogether", "FriendliesClientJoinSuccess"), "Friendlies" },
-            { ("MegabonkTogether", "FriendliesClientJoinSuccessDesc"), "{0} joined" },
-            { ("MegabonkTogether", "VersionMismatch"), "Mod version mismatch" },
-            { ("MegabonkTogether", "VersionMismatch_Description"), "{0} has {1}, you have {2}. Install the same build on every PC." },
-            { ("MegabonkTogether", "VersionMissing_Description"), "{0} has an older build of the mod. Install the same build on every PC." },
-            { ("MegabonkTogether", "ItemGiven"), "Gift" },
-            { ("MegabonkTogether", "ItemGiven_Description"), "{0} gave you {1}" },
-            { ("MegabonkTogether", "RunModifiers"), "Run modifiers" },
-            { ("MegabonkTogether", "RunModifiers_Description"), "{0}" },
-            { ("MegabonkTogether", "Challenge"), "Coop challenge" },
-            { ("MegabonkTogether", "Challenge_Description"), "{0}" },
+            { ("Megaphonk", "MatchSuccess"), "Match" },
+            { ("Megaphonk", "MatchSuccessDesc"), "Joined a lobby of {1} players as {0}!" },
+            { ("Megaphonk", "PlayerDisconnected"), "Disconnected" },
+            { ("Megaphonk", "PlayerDisconnected_Description"), "Player {0} disconnected" },
+            { ("Megaphonk", "AllPlayerDisconnected"), "Disconnected" },
+            { ("Megaphonk", "AllPlayerDisconnected_Description"), "All players left!" },
+            { ("Megaphonk", "HostDisconnected"), "Disconnected" },
+            { ("Megaphonk", "HostDisconnected_Description"), "Host left!" },
+            { ("Megaphonk", "ClientDisconnected"), "Disconnected" },
+            { ("Megaphonk", "ClientDisconnected_Description"), "Client disconnected" },
+            { ("Megaphonk", "FriendliesHostSuccess"), "Friendlies" },
+            { ("Megaphonk", "FriendliesHostSuccessDesc"), "Hosting a friendly lobby" },
+            { ("Megaphonk", "FriendliesClientSuccess"), "Friendlies" },
+            { ("Megaphonk", "FriendliesClientSuccessDesc"), "Joined the lobby" },
+            { ("Megaphonk", "FriendliesClientJoinSuccess"), "Friendlies" },
+            { ("Megaphonk", "FriendliesClientJoinSuccessDesc"), "{0} joined" },
+            { ("Megaphonk", "VersionMismatch"), "Mod version mismatch" },
+            { ("Megaphonk", "VersionMismatch_Description"), "{0} has {1}, you have {2}. Install the same build on every PC." },
+            { ("Megaphonk", "VersionMissing_Description"), "{0} has an older build of the mod. Install the same build on every PC." },
+            { ("Megaphonk", "ItemGiven"), "Gift" },
+            { ("Megaphonk", "ItemGiven_Description"), "{0} gave you {1}" },
+            { ("Megaphonk", "RunModifiers"), "Run modifiers" },
+            { ("Megaphonk", "RunModifiers_Description"), "{0}" },
+            { ("Megaphonk", "Challenge"), "Coop challenge" },
+            { ("Megaphonk", "Challenge_Description"), "{0}" },
         };
 
         private readonly Queue<IEnumerable<string>> NextLocalizedDescription = new();

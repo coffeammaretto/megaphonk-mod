@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace MegabonkTogether.Common.Messages
+namespace Megaphonk.Common.Messages
 {
     /// <summary>
     /// Client: where to show a host enemy, from the snapshot entries received (no Unity here: it is tested offline).

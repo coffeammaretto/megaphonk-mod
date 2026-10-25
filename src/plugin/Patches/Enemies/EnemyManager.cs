@@ -1,11 +1,11 @@
 ﻿using Assets.Scripts.Actors.Enemies;
 using Assets.Scripts.Managers;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches.Enemies
+namespace Megaphonk.Patches.Enemies
 {
     [HarmonyPatch(typeof(EnemyManager))]
     internal class EnemyManagerPatches

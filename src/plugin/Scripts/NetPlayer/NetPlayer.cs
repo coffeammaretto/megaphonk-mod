@@ -3,11 +3,11 @@ using Assets.Scripts.Game.Combat.ConstantAttacks;
 using Assets.Scripts.Inventory__Items__Pickups.Items;
 using Assets.Scripts.Inventory__Items__Pickups.Stats;
 using Assets.Scripts.Utility;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Extensions;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Snapshot;
-using MegabonkTogether.Services;
+using Megaphonk.Common.Messages;
+using Megaphonk.Extensions;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Snapshot;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts.NetPlayer
+namespace Megaphonk.Scripts.NetPlayer
 {
     internal class SnapshotUpdate
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace MegabonkTogether.Scripts.Button
+namespace Megaphonk.Scripts.Button
 {
     /// <summary>
     /// CustomButton that use a System.Action instead of Unity Action since they are broken right now with BepInex and/or Il2Cpp

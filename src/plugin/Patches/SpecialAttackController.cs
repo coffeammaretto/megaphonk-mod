@@ -1,9 +1,9 @@
 ﻿using Assets.Scripts.Game.Combat.EnemySpecialAttacks;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(SpecialAttackController))]
     internal static class SpecialAttackControllerPatches

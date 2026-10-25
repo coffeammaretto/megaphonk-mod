@@ -3,12 +3,12 @@ using Assets.Scripts.Managers;
 using BepInEx.Logging;
 using LiteNetLib;
 using LiteNetLib.Utils;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Extensions;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Steam;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Models;
+using Megaphonk.Extensions;
+using Megaphonk.Helpers;
+using Megaphonk.Steam;
 using MemoryPack;
 using System;
 using System.Buffers.Binary;
@@ -18,7 +18,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     internal class PeerIntroduction
     {
@@ -483,8 +483,8 @@ namespace MegabonkTogether.Services
                     gamePeersIntroducedByRelay.Clear();
 
                     Plugin.StartNotification(
-                    ("MegabonkTogether", "ClientDisconnected"),
-                    ("MegabonkTogether", "ClientDisconnected_Description"),
+                    ("Megaphonk", "ClientDisconnected"),
+                    ("Megaphonk", "ClientDisconnected_Description"),
                     [],
                     AudioManager.Instance.uiAbort,
                     item: EItem.BobDead);
@@ -529,8 +529,8 @@ namespace MegabonkTogether.Services
             if (introInfo.IsHost)
             {
                 Plugin.StartNotification(
-                    ("MegabonkTogether", "HostDisconnected"),
-                    ("MegabonkTogether", "HostDisconnected_Description"),
+                    ("Megaphonk", "HostDisconnected"),
+                    ("Megaphonk", "HostDisconnected_Description"),
                     [introInfo.Name],
                     AudioManager.Instance.uiAbort,
                     item: EItem.BobDead
@@ -544,8 +544,8 @@ namespace MegabonkTogether.Services
                     Plugin.Log.LogInfo($"All players disconnected, returning to main menu. : is host : {isHost.Value}");
 
                     Plugin.StartNotification(
-                        ("MegabonkTogether", "AllPlayerDisconnected"),
-                        ("MegabonkTogether", "AllPlayerDisconnected_Description"),
+                        ("Megaphonk", "AllPlayerDisconnected"),
+                        ("Megaphonk", "AllPlayerDisconnected_Description"),
                         [introInfo.Name],
                         AudioManager.Instance.uiAbort,
                         item: EItem.BobDead
@@ -872,6 +872,9 @@ namespace MegabonkTogether.Services
                     case TeamStats teamStats:
                         EventManager.OnTeamStats(teamStats);
                         break;
+                    case MusicTrackChanged musicTrackChanged:
+                        EventManager.OnMusicTrackChanged(musicTrackChanged);
+                        break;
                     default:
                         Plugin.Log.LogWarning($"Unknown message type received. message={message}");
                         break;
@@ -892,7 +895,7 @@ namespace MegabonkTogether.Services
 
                             if (Plugin.Instance.Mode.Mode == Common.Models.NetworkModeType.Friendlies)
                             {
-                                Plugin.StartNotification(("MegabonkTogether", "FriendliesClientJoinSuccess"), ("MegabonkTogether", "FriendliesClientJoinSuccessDesc"), [introduced.Name]);
+                                Plugin.StartNotification(("Megaphonk", "FriendliesClientJoinSuccess"), ("Megaphonk", "FriendliesClientJoinSuccessDesc"), [introduced.Name]);
                             }
 
                             return;
@@ -908,7 +911,7 @@ namespace MegabonkTogether.Services
 
                         if (Plugin.Instance.Mode.Mode == Common.Models.NetworkModeType.Friendlies)
                         {
-                            Plugin.StartNotification(("MegabonkTogether", "FriendliesClientJoinSuccess"), ("MegabonkTogether", "FriendliesClientJoinSuccessDesc"), [introduced.Name]);
+                            Plugin.StartNotification(("Megaphonk", "FriendliesClientJoinSuccess"), ("Megaphonk", "FriendliesClientJoinSuccessDesc"), [introduced.Name]);
                         }
 
                         IGameNetworkMessage introducedResponse = new Introduced

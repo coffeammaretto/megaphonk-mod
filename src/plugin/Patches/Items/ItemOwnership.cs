@@ -4,14 +4,14 @@ using Assets.Scripts.Inventory__Items__Pickups.Items;
 using Assets.Scripts.Inventory__Items__Pickups.Items.ItemImplementations;
 using Assets.Scripts.Inventory__Items__Pickups.Stats;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace MegabonkTogether.Patches.Items
+namespace Megaphonk.Patches.Items
 {
     /// <summary>
     /// Items are written for a single player: they listen to static events (player hit, healed, evaded, enemy died...) and act

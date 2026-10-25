@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches.Player
+namespace Megaphonk.Patches.Player
 {
     [HarmonyPatch(typeof(PlayerRenderer))]
     internal static class PlayerRendererPatches

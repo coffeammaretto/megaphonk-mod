@@ -1,12 +1,12 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Stats;
 using Assets.Scripts.Menu.Shop;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     /// <summary>
     /// Use netplayer stats from his inventory when requested instead of local player stats

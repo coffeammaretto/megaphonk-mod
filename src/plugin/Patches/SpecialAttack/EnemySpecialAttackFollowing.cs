@@ -1,10 +1,10 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 using static Assets.Scripts.Game.Combat.EnemySpecialAttacks.Implementations.EnemySpecialAttackFollowing;
 
-namespace MegabonkTogether.Patches.SpecialAttack
+namespace Megaphonk.Patches.SpecialAttack
 {
     [HarmonyPatch(typeof(_DoAttack_d__5))]
     internal static class EnemySpecialAttackFollowingPatches

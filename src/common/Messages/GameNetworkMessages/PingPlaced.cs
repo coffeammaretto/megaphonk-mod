@@ -1,7 +1,7 @@
 using MemoryPack;
 using System.Numerics;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     /// <summary>
     /// A player marked a spot (chest, shrine, danger...) for the team

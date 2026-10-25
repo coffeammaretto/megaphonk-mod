@@ -1,7 +1,7 @@
-﻿using MegabonkTogether.Common.Messages.GameNetworkMessages;
+﻿using Megaphonk.Common.Messages.GameNetworkMessages;
 using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages
+namespace Megaphonk.Common.Messages
 {
     [MemoryPackable]
     [MemoryPackUnion(0, typeof(LobbyUpdates))]
@@ -86,6 +86,7 @@ namespace MegabonkTogether.Common.Messages
     [MemoryPackUnion(81, typeof(EnemiesUpdate))]
     [MemoryPackUnion(82, typeof(EnemiesAck))]
     [MemoryPackUnion(83, typeof(PeerCapabilities))]
+    [MemoryPackUnion(84, typeof(MusicTrackChanged))]
     // 249 is reserved: first byte of a compressed packet (PacketCompression)
     public partial interface IGameNetworkMessage
     {

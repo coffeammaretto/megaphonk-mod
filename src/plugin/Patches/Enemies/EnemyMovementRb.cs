@@ -1,10 +1,10 @@
 ﻿using Actors.Enemies;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches.Enemies
+namespace Megaphonk.Patches.Enemies
 {
     [HarmonyPatch(typeof(EnemyMovementRb))]
     internal class EnemyMovementRbPatch

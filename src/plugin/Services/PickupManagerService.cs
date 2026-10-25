@@ -1,13 +1,13 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Pickups;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Extensions;
-using MegabonkTogether.Helpers;
+using Megaphonk.Common.Models;
+using Megaphonk.Extensions;
+using Megaphonk.Helpers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public interface IPickupManagerService
     {

@@ -1,7 +1,7 @@
 using MemoryPack;
 using System.Collections.Generic;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     /// <summary>
     /// A player's own final stats (indexed by EStat, luck and difficulty without the other players' share) and its character

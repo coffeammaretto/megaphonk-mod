@@ -1,10 +1,10 @@
 ﻿using Assets.Scripts.Game.Combat.ConstantAttacks;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 
-namespace MegabonkTogether.Patches.ConstantAttacks
+namespace Megaphonk.Patches.ConstantAttacks
 {
     [HarmonyPatch(typeof(AegisAttack))]
     internal static class AegisAttackPatches

@@ -1,13 +1,13 @@
 using Assets.Scripts.Inventory__Items__Pickups.Chests;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(InteractableChest))]
     internal static class ChestPricePatches

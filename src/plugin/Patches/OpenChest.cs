@@ -4,7 +4,7 @@ using HarmonyLib;
 using Microsoft.Extensions.DependencyInjection;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(OpenChest))]
     internal static class OpenChestPatches

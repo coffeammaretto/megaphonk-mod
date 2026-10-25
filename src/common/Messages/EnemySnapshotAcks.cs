@@ -1,4 +1,4 @@
-namespace MegabonkTogether.Common.Messages
+namespace Megaphonk.Common.Messages
 {
     /// <summary>
     /// Host: which enemies each EnemiesUpdate packet carried, to resend them when a client reports the packet lost.

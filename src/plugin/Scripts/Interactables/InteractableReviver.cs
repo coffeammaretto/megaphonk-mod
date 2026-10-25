@@ -2,13 +2,13 @@
 using Assets.Scripts.Actors.Enemies;
 using Assets.Scripts.Managers;
 using Il2CppInterop.Runtime;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts.Interactables
+namespace Megaphonk.Scripts.Interactables
 {
     public class InteractableReviver : BaseInteractable
     {

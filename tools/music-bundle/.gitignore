@@ -1,0 +1,10 @@
+Library/
+Temp/
+Logs/
+UserSettings/
+Packages/
+ProjectSettings/
+Assets/Music/
+Assets/Music.meta
+*.csproj
+*.sln

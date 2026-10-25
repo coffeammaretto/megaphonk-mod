@@ -1,13 +1,13 @@
 ﻿using Actors.Enemies;
 using Assets.Scripts.Inventory__Items__Pickups.Weapons.Projectiles;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace MegabonkTogether.Patches.Enemies
+namespace Megaphonk.Patches.Enemies
 {
     /// <summary>
     /// Clients show the host's enemies from snapshots, and their enemy movement update (which also damps a knockback) never

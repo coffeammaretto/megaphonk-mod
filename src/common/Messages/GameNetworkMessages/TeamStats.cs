@@ -1,7 +1,7 @@
 using MemoryPack;
 using System.Collections.Generic;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     /// <summary>
     /// Client to host: gold the client earned so far this run, and its Steam id with the session ticket proving it

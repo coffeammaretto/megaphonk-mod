@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts.Snapshot
+namespace Megaphonk.Scripts.Snapshot
 {
     internal class BossOrbInterpolator : MonoBehaviour
     {

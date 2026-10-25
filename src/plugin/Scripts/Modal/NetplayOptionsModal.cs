@@ -1,14 +1,14 @@
 using Assets.Scripts.Settings___Saves.SaveFiles;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Button;
+using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Configuration;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Button;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
 
-namespace MegabonkTogether.Scripts.Modal
+namespace Megaphonk.Scripts.Modal
 {
     /// <summary>
     /// Party rules and run modifiers, opened by the host from the character selection

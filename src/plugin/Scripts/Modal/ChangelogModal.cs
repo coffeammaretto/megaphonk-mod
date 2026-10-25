@@ -1,8 +1,8 @@
-﻿using MegabonkTogether.Common;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Button;
-using MegabonkTogether.Services;
+﻿using Megaphonk.Common;
+using Megaphonk.Configuration;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Button;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MegabonkTogether.Scripts.Modal
+namespace Megaphonk.Scripts.Modal
 {
     internal class ChangelogModal : ModalBase
     {

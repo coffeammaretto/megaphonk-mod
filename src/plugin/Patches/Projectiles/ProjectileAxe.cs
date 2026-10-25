@@ -1,11 +1,11 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Weapons;
 using HarmonyLib;
-using MegabonkTogether.Scripts.NetPlayer;
-using MegabonkTogether.Services;
+using Megaphonk.Scripts.NetPlayer;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches.Projectiles
+namespace Megaphonk.Patches.Projectiles
 {
     [HarmonyPatch(typeof(ProjectileAxe))]
     internal static class ProjectileAxePatches

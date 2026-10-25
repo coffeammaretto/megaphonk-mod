@@ -1,13 +1,13 @@
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Team meter, run by the host: a kill fills it while at least two different players killed recently, so it rewards
@@ -153,7 +153,7 @@ namespace MegabonkTogether.Services
                     return;
                 }
 
-                var go = new GameObject("MegabonkTogether_TeamMeterHud");
+                var go = new GameObject("Megaphonk_TeamMeterHud");
                 hudText = go.AddComponent<TextMeshProUGUI>();
                 hudText.transform.SetParent(UiManager.Instance.transform, false);
                 hudText.rectTransform.anchorMin = new Vector2(0.5f, 1f);

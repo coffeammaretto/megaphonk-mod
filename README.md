@@ -78,7 +78,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 ### Convenience
 - Netplay Options (the host's button on the character selection): reward pause, downed state, team meter, co-op challenges, party luck/difficulty mode and the run modifiers. The host's values apply to everyone and are resent when changed. Numeric values (timers, multipliers) are in the config file.
 - Team table at the end of a run: damage, kills and gold of each player (defeat screen).
-- Run music: the mod's tracks (and any mp3 you add to `BepInEx\plugins\MegaphonkMod\Music`) play in a random order instead of the stage music; boss and menu music stay the game's. Turned off with `CustomMusic` in the config.
+- Run music: the mod's tracks play in a random order instead of the stage music; boss and menu music stay the game's. In co-op everybody hears the host's track. Turned off with `CustomMusic` in the config.
 - Player name, key bindings and every party rule in `BepInEx\config\MegaphonkMod.cfg`.
 - Automatic check for new versions on GitHub (`CheckForUpdates`) and a changelog window.
 - The mod's texts follow the game's language: English and Russian (other languages show English).
@@ -86,10 +86,9 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 ## Installation
 
 1. Close the game.
-2. If you used **Megabonk Together**, delete the `BepInEx\plugins\MegabonkTogether` folder from the game folder: both mods must not be installed together.
-3. Download `MegaphonkMod-2.2.2-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
-4. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
-5. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
+2. Download `MegaphonkMod-2.3.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
+4. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
 Every player of a room needs the same mod version and must be on the host's Steam friends list. The `MegaphonkMod-X.Y.Z.zip` asset contains only the mod files: the mod uses it to update itself.
 
@@ -104,7 +103,7 @@ Versions follow [semantic versioning](https://semver.org): X.Y.**Z** for fixes, 
 ## Limitations
 
 - No Steam overlay invites or "Join Game" button: the game consumes the Steam callbacks they need.
-- Random matchmaking is disabled: it relied on the Megabonk Together server, whose players run an incompatible mod.
+- Random matchmaking is disabled: its public server's players run an incompatible mod.
 - Joining through the friends list is new and has been tested on one PC only. If a friend does not show up, send `BepInEx\LogOutput.log` in an issue.
 - In a solo run there is no downed state (nobody can revive you) and no team meter (it needs kills by two players).
 
@@ -192,17 +191,16 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 #### Удобство
 - Netplay Options (кнопка хоста на экране выбора персонажа): пауза при выборе награды, нокдаун, командная шкала, кооп-испытания, режим общей удачи и сложности и модификаторы забега. Значения хоста действуют на всех и рассылаются заново при изменении. Числовые параметры (таймеры, множители) только в конфиге.
 - Таблица команды в конце забега: урон, убийства и золото каждого игрока (экран поражения).
-- Музыка забега: треки мода (и любые mp3, добавленные в `BepInEx\plugins\MegaphonkMod\Music`) играют в случайном порядке вместо музыки уровня; музыка босса и меню остаётся игровой. Отключается параметром `CustomMusic` в конфиге.
+- Музыка забега: треки мода играют в случайном порядке вместо музыки уровня; музыка босса и меню остаётся игровой. В коопе у всех играет трек хоста. Отключается параметром `CustomMusic` в конфиге.
 - Имя игрока, клавиши и все правила пати в `BepInEx\config\MegaphonkMod.cfg`.
 - Автоматическая проверка новых версий на GitHub (`CheckForUpdates`) и окно со списком изменений.
 - Тексты мода следуют языку игры: английский и русский (в остальных языках английский).
 
 ### Установка
 1. Закрой игру.
-2. Если стоял **Megabonk Together**, удали папку `BepInEx\plugins\MegabonkTogether` в папке игры: оба мода вместе стоять не должны.
-3. Скачай `MegaphonkMod-2.2.2-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
-4. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
-5. Запусти игру через Steam. Первый запуск дольше обычного.
+2. Скачай `MegaphonkMod-2.3.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+3. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
+4. Запусти игру через Steam. Первый запуск дольше обычного.
 
 У всех в комнате должна быть одна версия мода, а игроки должны быть в списке друзей Steam у хоста. Архив `MegaphonkMod-X.Y.Z.zip` содержит только файлы мода: им мод обновляет сам себя.
 
@@ -215,7 +213,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 
 ### Ограничения
 - Нет приглашений через оверлей Steam и кнопки «Присоединиться к игре»: нужные им колбэки Steam перехватывает сама игра.
-- Случайный подбор игроков отключён: он работал через сервер Megabonk Together, игроки которого используют несовместимый мод.
+- Случайный подбор игроков отключён: его публичный сервер используют игроки с несовместимым модом.
 - Вход через список друзей новый и проверен только на одном ПК. Если друг не появился в списке, пришли `BepInEx\LogOutput.log` в issue.
 - В соло-забеге нет нокдауна (поднять некому) и командной шкалы (ей нужны убийства двух игроков).
 

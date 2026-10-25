@@ -1,14 +1,14 @@
 using Assets.Scripts.Inventory__Items__Pickups.Stats;
 using Assets.Scripts.Utility;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
 using Assets.Scripts.Menu.Shop;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Stat modifiers the mod adds to the local player for party rules (enemy amount, run modifiers, team buff...).
@@ -24,7 +24,7 @@ namespace MegabonkTogether.Services
     internal class PartyModifiersService(IUdpClientService udpClientService, IPartySettingsService partySettingsService, ITeamMeterService teamMeterService) : IPartyModifiersService
     {
         private const float TICK_INTERVAL = 0.5f;
-        private const string PREFIX = "MegabonkTogether_Party_";
+        private const string PREFIX = "Megaphonk_Party_";
 
         // Caps on the player's bonuses from all run modifiers together (additions to the multipliers)
         private const float MAX_XP_GAIN = 0.5f;
@@ -105,7 +105,7 @@ namespace MegabonkTogether.Services
             if (modifiers != announcedModifiers)
             {
                 announcedModifiers = modifiers;
-                Plugin.StartNotification(("MegabonkTogether", "RunModifiers"), ("MegabonkTogether", "RunModifiers_Description"), [string.Join(", ", Scripts.Modal.NetplayOptionsModal.ModifierList.Where(m => modifiers.HasFlag(m.Flag)).Select(m => Loc.T(m.Name)))]);
+                Plugin.StartNotification(("Megaphonk", "RunModifiers"), ("Megaphonk", "RunModifiers_Description"), [string.Join(", ", Scripts.Modal.NetplayOptionsModal.ModifierList.Where(m => modifiers.HasFlag(m.Flag)).Select(m => Loc.T(m.Name)))]);
                 Plugin.Log.LogInfo($"Run modifiers: {modifiers}");
             }
 

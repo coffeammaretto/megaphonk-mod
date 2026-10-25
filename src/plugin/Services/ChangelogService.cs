@@ -1,5 +1,5 @@
 using BepInEx.Logging;
-using MegabonkTogether.Common;
+using Megaphonk.Common;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Tomlyn;
 using Tomlyn.Model;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public class VersionChanges
     {

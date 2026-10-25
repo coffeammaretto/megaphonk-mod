@@ -1,10 +1,10 @@
 ﻿using HarmonyLib;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using UnityEngine.Localization;
 
-namespace MegabonkTogether.Patches.Unity
+namespace Megaphonk.Patches.Unity
 {
     [HarmonyPatch(typeof(LocalizedString))]
     internal static class UnityLocalizedStringPatches

@@ -1,9 +1,9 @@
 ﻿using Assets.Scripts.Actors.Enemies;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Helpers;
+using Megaphonk.Common.Messages;
+using Megaphonk.Helpers;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts.Snapshot
+namespace Megaphonk.Scripts.Snapshot
 {
     /// <summary>
     /// Client: shows a host enemy from the snapshots received, 0.1 s behind (EnemyMotionModel): near enemies come every tick

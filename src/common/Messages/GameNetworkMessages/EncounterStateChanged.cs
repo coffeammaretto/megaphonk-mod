@@ -1,6 +1,6 @@
 using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     /// <summary>
     /// Shared experience: a client tells the host where it is in the reward flow (sent on change and periodically)

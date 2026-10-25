@@ -1,22 +1,22 @@
 ﻿using Assets.Scripts.Settings___Saves.SaveFiles;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Button;
-using MegabonkTogether.Scripts.Modal;
+using Megaphonk.Common.Models;
+using Megaphonk.Configuration;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Button;
+using Megaphonk.Scripts.Modal;
 using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
 
-namespace MegabonkTogether.Scripts
+namespace Megaphonk.Scripts
 {
     internal class NetworkMenuTab : ModalBase
     {
         private CustomButton randomButton;
 
-        // Random matchmaking needs the Megabonk Together server, whose players run an incompatible mod
+        // Random matchmaking goes through a public server whose players run an incompatible mod
         private const bool IS_RANDOM_MATCHMAKING_ENABLED = false;
         private const int MAX_FRIEND_ROWS = 4;
         private const float FRIENDS_REFRESH_SECONDS = 2f;
@@ -695,7 +695,7 @@ namespace MegabonkTogether.Scripts
 
             var role = Plugin.Instance.NetworkHandler.IsHost ? "Host" : "Client";
             var lobbySize = Plugin.Instance.NetworkHandler.GetLobbySize();
-            Plugin.StartNotification(("MegabonkTogether", "MatchSuccess"), ("MegabonkTogether", "MatchSuccessDesc"), [role, lobbySize.ToString()]);
+            Plugin.StartNotification(("Megaphonk", "MatchSuccess"), ("Megaphonk", "MatchSuccessDesc"), [role, lobbySize.ToString()]);
 
             yield return new WaitForSeconds(1f);
             CloseModal();
@@ -781,11 +781,11 @@ namespace MegabonkTogether.Scripts
 
             if (Plugin.Instance.NetworkHandler.IsHost)
             {
-                Plugin.StartNotification(("MegabonkTogether", "FriendliesHostSuccess"), ("MegabonkTogether", "FriendliesHostSuccessDesc"), []);
+                Plugin.StartNotification(("Megaphonk", "FriendliesHostSuccess"), ("Megaphonk", "FriendliesHostSuccessDesc"), []);
             }
             else
             {
-                Plugin.StartNotification(("MegabonkTogether", "FriendliesClientSuccess"), ("MegabonkTogether", "FriendliesClientSuccessDesc"), [""]);
+                Plugin.StartNotification(("Megaphonk", "FriendliesClientSuccess"), ("Megaphonk", "FriendliesClientSuccessDesc"), [""]);
             }
 
             yield return new WaitForSeconds(1f);

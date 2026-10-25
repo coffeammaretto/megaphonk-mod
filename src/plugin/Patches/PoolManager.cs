@@ -2,11 +2,11 @@
 using Assets.Scripts.Inventory__Items__Pickups.Weapons.Attacks;
 using Assets.Scripts.Objects.Pooling;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(PoolManager))]
     internal class PoolManagerPatches

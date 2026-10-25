@@ -1,8 +1,8 @@
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts.Snapshot
+namespace Megaphonk.Scripts.Snapshot
 {
     public class ProjectileInterpolator : MonoBehaviour
     {

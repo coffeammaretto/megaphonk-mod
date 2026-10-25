@@ -1,7 +1,7 @@
-﻿using MegabonkTogether.Common.Models;
+﻿using Megaphonk.Common.Models;
 using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages
+namespace Megaphonk.Common.Messages
 {
     [MemoryPackable]
     public partial class LobbyUpdates : IGameNetworkMessage

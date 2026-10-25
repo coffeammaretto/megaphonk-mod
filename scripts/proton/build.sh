@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"
 
-echo "Building Megabonk Together for Linux..."
+echo "Building Megaphonk Mod for Linux..."
 
 # Define the game path (edit this if your game is installed elsewhere)
 GAME_PATH="${MEGABONK_PATH:-$HOME/.local/share/Steam/steamapps/common/Megabonk}"
@@ -29,7 +29,7 @@ fi
 
 # Build the project with PROTON constant defined
 export PROTON_BUILD=true
-dotnet build src/plugin/MegabonkTogether.Plugin.csproj
+dotnet build src/plugin/Megaphonk.Plugin.csproj
 
 echo "Build complete!"
 if [ -f "$GAME_PATH/Megabonk.exe" ]; then

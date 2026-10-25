@@ -1,10 +1,10 @@
 ﻿using Assets.Scripts.Game.Combat.EnemySpecialAttacks;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 
-namespace MegabonkTogether.Patches.SpecialAttack
+namespace Megaphonk.Patches.SpecialAttack
 {
     [HarmonyPatch(typeof(EnemyProjectileMud))]
     internal static class EnemyProjectileMudPatches

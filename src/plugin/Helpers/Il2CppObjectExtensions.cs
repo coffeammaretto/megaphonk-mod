@@ -2,7 +2,7 @@ using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;
 using System;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     /// <summary>
     /// The plugin compiles against Unity's managed assemblies, where UnityEngine.Object exposes neither the interop

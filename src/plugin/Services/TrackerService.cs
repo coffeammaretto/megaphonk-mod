@@ -1,6 +1,6 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Items;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public class Tracks
     {

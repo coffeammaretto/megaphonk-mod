@@ -3,7 +3,7 @@ using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     /// <summary>
     /// IL2CPP builds fold byte-identical functions into one: an empty or forwarding method shares its native code with many

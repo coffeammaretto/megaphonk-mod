@@ -1,5 +1,5 @@
 ﻿using BepInEx.Logging;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace MegabonkTogether.Common
+namespace Megaphonk.Common
 {
     public class GitHubRelease
     {

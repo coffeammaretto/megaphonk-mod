@@ -2,7 +2,7 @@
 using System.Collections;
 using UnityEngine;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     public class CoroutineRunner : MonoBehaviour
     {

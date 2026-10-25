@@ -1,12 +1,12 @@
-﻿using MegabonkTogether.Common.Models;
-using MegabonkTogether.Helpers;
+﻿using Megaphonk.Common.Models;
+using Megaphonk.Helpers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public interface IFinalBossOrbManagerService
     {

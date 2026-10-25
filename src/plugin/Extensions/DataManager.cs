@@ -1,6 +1,6 @@
 ﻿using Actors.Enemies;
 
-namespace MegabonkTogether.Extensions
+namespace Megaphonk.Extensions
 {
     internal static class DataManagerExtensions
     {

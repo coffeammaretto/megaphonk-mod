@@ -2,10 +2,10 @@
 using Assets.Scripts.Inventory__Items__Pickups.Weapons;
 using HarmonyLib;
 using Il2CppSystem.Collections.Generic;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(WeaponInventory))]
     public static class WeaponInventoryPatches

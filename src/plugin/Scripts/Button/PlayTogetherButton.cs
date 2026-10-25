@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace MegabonkTogether.Scripts.Button
+namespace Megaphonk.Scripts.Button
 {
     public class PlayTogetherButton : MyButtonNormal
     {

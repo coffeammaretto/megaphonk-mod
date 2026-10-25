@@ -1,7 +1,7 @@
-﻿using MegabonkTogether.Common.Messages;
+﻿using Megaphonk.Common.Messages;
 using MemoryPack;
 
-namespace MegabonkTogether.Common.Models
+namespace Megaphonk.Common.Models
 {
     [MemoryPackable]
     public partial class Player

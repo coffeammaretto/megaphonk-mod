@@ -1,4 +1,4 @@
-﻿namespace MegabonkTogether.Server
+﻿namespace Megaphonk.Server
 {
     public class ConfigOptions
     {

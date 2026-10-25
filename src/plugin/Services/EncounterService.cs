@@ -1,10 +1,10 @@
-﻿using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Helpers;
+﻿using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Helpers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Shared experience reward pause. Each player is choosing (reward window open), waiting (paused until the others are

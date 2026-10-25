@@ -1,9 +1,9 @@
-﻿using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Models;
+﻿using Megaphonk.Common.Messages;
+using Megaphonk.Common.Models;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     public static class Quantizer
     {

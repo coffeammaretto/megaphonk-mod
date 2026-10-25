@@ -1,9 +1,9 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Weapons.Projectiles;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Helpers;
+using Megaphonk.Common.Models;
+using Megaphonk.Helpers;
 using UnityEngine;
 
-namespace MegabonkTogether.Extensions
+namespace Megaphonk.Extensions
 {
     public static class ProjectileBaseExtensions
     {

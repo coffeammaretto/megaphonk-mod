@@ -2,15 +2,15 @@
 using HarmonyLib;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches.Unity
+namespace Megaphonk.Patches.Unity
 {
     [HarmonyPatch(typeof(UnityEngine.Object))]
     internal static class UnityObjectPatches

@@ -6,6 +6,13 @@
 #     "Change 2 description",
 # ]
 
+[version."2.3.0"]
+changes = [
+    "Run music works: the tracks are loaded by Unity itself like the game's own music (the game has no audio file loader). The game's effects (muffled in chests and pause, danger pitch) apply to them.",
+    "Co-op: everybody hears the host's track, from the same position.",
+    "New track list (20 tracks). Adding your own mp3 files is no longer possible.",
+]
+
 [version."2.2.2"]
 changes = [
     "Fixed the run music not playing: the game has no audio file loader, the mod now decodes the mp3 tracks itself (ogg/wav are no longer supported).",
@@ -150,7 +157,7 @@ changes = [
 
 [version."1.0.0"]
 changes = [
-    "First release of Megaphonk Mod, a co-op mod for Megabonk 1.0.69 based on Megabonk Together.",
+    "First release of Megaphonk Mod, a co-op mod for Megabonk 1.0.69.",
     "Rooms through Steam, no server and no codes: the host presses Host, friends join from MEGAPHONK! -> Join. The host can also start a run alone.",
     "Netplay Options on the host's character selection: party rules and 14 run modifiers, with caps on the combined bonuses.",
     "Party pause while anyone picks a reward, F8 unlocks a stuck pause. A chest bought by one player opens for everyone, gold is per player.",

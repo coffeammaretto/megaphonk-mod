@@ -3,12 +3,12 @@ using Assets.Scripts.UI.InGame.Rewards;
 using Assets.Scripts.Utility;
 using Coffee.UIExtensions;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(EncounterWindows))]
     internal static class EncounterWindowPatches

@@ -1,15 +1,15 @@
 using Assets.Scripts.UI.InGame.Rewards;
 using HarmonyLib;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Configuration;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     /// <summary>
     /// Netplay never pauses and skips the chest opening, so reward windows pop up while the player is still pressing buttons.

@@ -1,13 +1,13 @@
 ﻿using Assets.Scripts.Managers;
 using HarmonyLib;
-using MegabonkTogether.Common;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Patches.Enemies;
-using MegabonkTogether.Scripts.Button;
-using MegabonkTogether.Scripts.Modal;
-using MegabonkTogether.Services;
+using Megaphonk.Common;
+using Megaphonk.Common.Models;
+using Megaphonk.Configuration;
+using Megaphonk.Helpers;
+using Megaphonk.Patches.Enemies;
+using Megaphonk.Scripts.Button;
+using Megaphonk.Scripts.Modal;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,7 +16,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(WindowManager))]
     internal static class WindowManagerPatches

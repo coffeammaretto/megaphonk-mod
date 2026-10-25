@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 
-namespace MegabonkTogether.Patches.ConstantAttacks
+namespace Megaphonk.Patches.ConstantAttacks
 {
     [HarmonyPatch(typeof(ProjectileDragonsBreath))]
     internal static class ProjectileDragonBreathPatches

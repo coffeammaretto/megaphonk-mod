@@ -1,14 +1,14 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Weapons.Projectiles;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Extensions;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.Snapshot;
+using Megaphonk.Common.Models;
+using Megaphonk.Extensions;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.Snapshot;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public interface IProjectileManagerService
     {

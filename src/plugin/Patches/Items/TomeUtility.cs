@@ -1,9 +1,9 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches.Items
+namespace Megaphonk.Patches.Items
 {
     [HarmonyPatch(typeof(TomeUtility))]
     internal static class TomeUtilityPatches

@@ -4,18 +4,18 @@ using Assets.Scripts.Inventory__Items__Pickups.AbilitiesPassive.Implementations;
 using Assets.Scripts.Inventory__Items__Pickups.Items.ItemImplementations;
 using Assets.Scripts.Inventory__Items__Pickups.Weapons;
 using BepInEx.Logging;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Extensions;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts.NetPlayer;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Models;
+using Megaphonk.Extensions;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts.NetPlayer;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public interface IPlayerManagerService
     {

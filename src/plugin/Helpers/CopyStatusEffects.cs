@@ -1,7 +1,7 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Stats;
 using System;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     /// <summary>
     /// Status effects of teammate copies (their PlayerInventory on this machine). The game's "effect added/removed" events

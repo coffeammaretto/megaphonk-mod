@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace MegabonkTogether.Steam
+namespace Megaphonk.Steam
 {
     /// <summary>
     /// Direct calls into the game's steam_api64.dll (flat API). The game's Steamworks.NET wrapper is not used:

@@ -1,10 +1,10 @@
 ﻿using Assets.Scripts.MapGeneration.ProceduralTiles;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 
-namespace MegabonkTogether.Patches.MapGeneration
+namespace Megaphonk.Patches.MapGeneration
 {
     [HarmonyPatch(typeof(Maze))]
     internal static class MazePatches

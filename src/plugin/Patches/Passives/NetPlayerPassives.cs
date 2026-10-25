@@ -1,13 +1,13 @@
 using Assets.Scripts.Inventory__Items__Pickups.AbilitiesPassive;
 using Assets.Scripts.Inventory__Items__Pickups.AbilitiesPassive.Implementations;
 using HarmonyLib;
-using MegabonkTogether.Patches.Items;
-using MegabonkTogether.Services;
+using Megaphonk.Patches.Items;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace MegabonkTogether.Patches.Passives
+namespace Megaphonk.Patches.Passives
 {
     /// <summary>
     /// Character passives are written for a single player, like items (see ItemOwnership): the copies of the other players'

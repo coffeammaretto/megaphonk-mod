@@ -1,12 +1,12 @@
 using Il2CppInterop.Runtime;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Common.Messages.WsMessages;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts;
-using MegabonkTogether.Services;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Messages.WsMessages;
+using Megaphonk.Common.Models;
+using Megaphonk.Configuration;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts;
+using Megaphonk.Services;
 using MemoryPack;
 using System;
 using System.Collections.Concurrent;
@@ -15,7 +15,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MegabonkTogether.Steam
+namespace Megaphonk.Steam
 {
     /// <summary>
     /// Friendlies rooms through Steam instead of the matchmaking server. The room code is the host's Steam account.

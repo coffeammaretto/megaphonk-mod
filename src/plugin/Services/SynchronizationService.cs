@@ -23,14 +23,14 @@ using Assets.Scripts.Utility;
 using BepInEx.Logging;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Extensions;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Patches;
-using MegabonkTogether.Scripts.Interactables;
-using MegabonkTogether.Scripts.Snapshot;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Models;
+using Megaphonk.Extensions;
+using Megaphonk.Helpers;
+using Megaphonk.Patches;
+using Megaphonk.Scripts.Interactables;
+using Megaphonk.Scripts.Snapshot;
 using MonoMod.Utils;
 using System;
 using System.Collections;
@@ -40,7 +40,7 @@ using System.Linq;
 using System.Threading;
 using UnityEngine;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public enum GameEvent
     {
@@ -118,6 +118,7 @@ namespace MegabonkTogether.Services
         public void OnItemAdded(EItem item);
         public void OnItemRemoved(EItem item);
         public void OnWeaponToggled(WeaponInventory instance, EWeapon eWeapon, bool enable);
+        public void OnMusicTrackChanged(string track, float position);
         public void OnSpawnedObjectInCrypt(GameObject obj);
         public bool OnStartingToChargingLamp(uint value);
         public bool OnStoppingChargingLamp(uint value);
@@ -294,6 +295,7 @@ namespace MegabonkTogether.Services
             EventManager.SubscribeEncounterPausedEvents(OnReceivedEncounterPaused);
             EventManager.SubscribeModVersionInfoEvents(OnReceivedModVersionInfo);
             EventManager.SubscribeGiveItemEvents(OnReceivedGiveItem);
+            EventManager.SubscribeMusicTrackChangedEvents(OnReceivedMusicTrackChanged);
 
             cancellationToken = cancellationTokenSource.Token;
             this.udpClientService = udpClientService;
@@ -679,8 +681,8 @@ namespace MegabonkTogether.Services
             var itemName = DataManager.Instance?.itemData != null && DataManager.Instance.itemData.TryGetValue(item, out var data) ? data.GetName() : item.ToString();
             logger.LogInfo($"{giverName} gave {item}");
             Plugin.StartNotification(
-                ("MegabonkTogether", "ItemGiven"),
-                ("MegabonkTogether", "ItemGiven_Description"),
+                ("Megaphonk", "ItemGiven"),
+                ("Megaphonk", "ItemGiven_Description"),
                 [giverName, itemName],
                 item: item
             );
@@ -697,8 +699,8 @@ namespace MegabonkTogether.Services
             var name = playerManagerService.GetPlayer(info.OwnerId)?.Name ?? info.OwnerId.ToString();
             logger.LogWarning($"Player {name} has mod build {info.Version}, this one is {ModVersionInfo.CurrentVersion}");
             Plugin.StartNotification(
-                ("MegabonkTogether", "VersionMismatch"),
-                ("MegabonkTogether", "VersionMismatch_Description"),
+                ("Megaphonk", "VersionMismatch"),
+                ("Megaphonk", "VersionMismatch_Description"),
                 [name, info.Version, ModVersionInfo.CurrentVersion]
             );
         }
@@ -722,8 +724,8 @@ namespace MegabonkTogether.Services
 
                 logger.LogWarning($"Player {player.Name} sent no mod build info: older build of the mod?");
                 Plugin.StartNotification(
-                    ("MegabonkTogether", "VersionMismatch"),
-                    ("MegabonkTogether", "VersionMissing_Description"),
+                    ("Megaphonk", "VersionMismatch"),
+                    ("Megaphonk", "VersionMissing_Description"),
                     [player.Name]
                 );
             }
@@ -4355,8 +4357,8 @@ namespace MegabonkTogether.Services
             }
 
             Plugin.StartNotification(
-                ("MegabonkTogether", "PlayerDisconnected"),
-                ("MegabonkTogether", "PlayerDisconnected_Description"),
+                ("Megaphonk", "PlayerDisconnected"),
+                ("Megaphonk", "PlayerDisconnected_Description"),
                 [disconnectedPeer.Name],
                 AudioManager.Instance.uiAbort,
                 item: EItem.BobDead
@@ -4721,6 +4723,21 @@ namespace MegabonkTogether.Services
             {
                 udpClientService.SendToHost(message, LiteNetLib.DeliveryMethod.ReliableOrdered);
             }
+        }
+
+        public void OnMusicTrackChanged(string track, float position)
+        {
+            if (IsServerMode() != true)
+            {
+                return;
+            }
+
+            udpClientService.SendToAllClients(new MusicTrackChanged { Track = track, Position = position }, LiteNetLib.DeliveryMethod.ReliableOrdered);
+        }
+
+        private void OnReceivedMusicTrackChanged(MusicTrackChanged changed)
+        {
+            CustomMusic.OnHostTrack(changed.Track, changed.Position);
         }
 
         private void OnReceivedWeaponToggled(WeaponToggled toggled)

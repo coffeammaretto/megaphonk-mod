@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 
-namespace MegabonkTogether.Server.Services
+namespace Megaphonk.Server.Services
 {
 
     public interface IMetricsService
@@ -35,7 +35,7 @@ namespace MegabonkTogether.Server.Services
 
         public MetricsService()
         {
-            meter = new Meter("MegabonkTogether.Server", "1.0.0");
+            meter = new Meter("Megaphonk.Server", "1.0.0");
 
             meter.CreateObservableGauge(
                 "megabonk.connected_clients",

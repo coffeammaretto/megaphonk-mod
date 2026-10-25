@@ -1,6 +1,6 @@
 ﻿using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     /// <summary>
     /// Sent by every player when a game starts: builds with different network messages silently drop each other's messages
@@ -11,7 +11,7 @@ namespace MegabonkTogether.Common.Messages.GameNetworkMessages
         /// <summary>
         /// Change it whenever the network messages change
         /// </summary>
-        public const string CurrentVersion = "2.2.2";
+        public const string CurrentVersion = "2.3.0";
 
         public uint OwnerId { get; set; }
         public string Version { get; set; }

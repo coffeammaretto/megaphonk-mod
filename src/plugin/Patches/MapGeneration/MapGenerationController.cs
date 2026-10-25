@@ -1,10 +1,10 @@
 ﻿using Assets.Scripts.Managers;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using static MapGenerationController;
 
-namespace MegabonkTogether.Patches.MapGeneration
+namespace Megaphonk.Patches.MapGeneration
 {
     [HarmonyPatch(typeof(_GenerateMap_d__39))]
     internal class MapGenerationControllerGenMapPatches

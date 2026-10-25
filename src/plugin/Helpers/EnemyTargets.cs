@@ -2,7 +2,7 @@ using Assets.Scripts.Actors.Enemies;
 using System;
 using System.Collections.Concurrent;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     /// <summary>
     /// Player each enemy chases (its connection id), keyed by the enemy's native pointer.

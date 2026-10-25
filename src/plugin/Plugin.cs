@@ -9,18 +9,18 @@ using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
-using MegabonkTogether.Common;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Scripts;
-using MegabonkTogether.Scripts.Button;
-using MegabonkTogether.Scripts.Enemies;
-using MegabonkTogether.Scripts.Interactables;
-using MegabonkTogether.Scripts.Modal;
-using MegabonkTogether.Scripts.NetPlayer;
-using MegabonkTogether.Scripts.Snapshot;
-using MegabonkTogether.Services;
+using Megaphonk.Common;
+using Megaphonk.Common.Models;
+using Megaphonk.Configuration;
+using Megaphonk.Helpers;
+using Megaphonk.Scripts;
+using Megaphonk.Scripts.Button;
+using Megaphonk.Scripts.Enemies;
+using Megaphonk.Scripts.Interactables;
+using Megaphonk.Scripts.Modal;
+using Megaphonk.Scripts.NetPlayer;
+using Megaphonk.Scripts.Snapshot;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
@@ -32,7 +32,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MegabonkTogether
+namespace Megaphonk
 {
     public enum DistanceToPlayer
     {

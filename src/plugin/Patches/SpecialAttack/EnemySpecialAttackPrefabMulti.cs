@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using static EnemySpecialAttackPrefabMulti;
 
-namespace MegabonkTogether.Patches.SpecialAttack
+namespace Megaphonk.Patches.SpecialAttack
 {
     [HarmonyPatch(typeof(_DoAttack_d__7))]
     internal class EnemySpecialAttackPrefabMultiPatches
@@ -22,7 +22,7 @@ namespace MegabonkTogether.Patches.SpecialAttack
             {
                 return;
             }
-            var targetId = MegabonkTogether.Helpers.EnemyTargets.Get(__instance.__4__this.enemy);
+            var targetId = Megaphonk.Helpers.EnemyTargets.Get(__instance.__4__this.enemy);
             if (targetId.HasValue)
             {
                 playerManagerService.AddGetNetplayerPositionRequest(targetId.Value);
@@ -40,7 +40,7 @@ namespace MegabonkTogether.Patches.SpecialAttack
             {
                 return;
             }
-            var targetId = MegabonkTogether.Helpers.EnemyTargets.Get(__instance.__4__this.enemy);
+            var targetId = Megaphonk.Helpers.EnemyTargets.Get(__instance.__4__this.enemy);
             if (targetId.HasValue)
             {
                 playerManagerService.UnqueueNetplayerPositionRequest();

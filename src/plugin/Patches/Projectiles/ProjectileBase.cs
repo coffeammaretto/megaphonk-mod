@@ -1,14 +1,14 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Weapons.Projectiles;
 using Assets.Scripts.Objects.Particles___Effects.ParticleOpacity;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 using System;
 using System.Collections.Generic;
 
-namespace MegabonkTogether.Patches.Projectiles
+namespace Megaphonk.Patches.Projectiles
 {
     [HarmonyPatch(typeof(ProjectileBase))]
     internal class ProjectileBasePatches

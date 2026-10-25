@@ -1,12 +1,12 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches.Unity
+namespace Megaphonk.Patches.Unity
 {
     /// <summary>
     /// Not attribute patched: these getters are called hundreds of thousands of times a second in the late game. They are

@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches.SpecialAttack
+namespace Megaphonk.Patches.SpecialAttack
 {
     [HarmonyPatch(typeof(EnemySpecialAttackCactusProjectile))]
     internal static class EnemySpecialAttackCactusProjectilePatches
@@ -22,7 +22,7 @@ namespace MegabonkTogether.Patches.SpecialAttack
             {
                 return;
             }
-            var targetId = MegabonkTogether.Helpers.EnemyTargets.Get(__instance.enemy);
+            var targetId = Megaphonk.Helpers.EnemyTargets.Get(__instance.enemy);
             if (targetId.HasValue)
             {
                 playerManagerService.AddGetNetplayerPositionRequest(targetId.Value);
@@ -40,7 +40,7 @@ namespace MegabonkTogether.Patches.SpecialAttack
             {
                 return;
             }
-            var targetId = MegabonkTogether.Helpers.EnemyTargets.Get(__instance.enemy);
+            var targetId = Megaphonk.Helpers.EnemyTargets.Get(__instance.enemy);
             if (targetId.HasValue)
             {
                 playerManagerService.UnqueueNetplayerPositionRequest();

@@ -1,8 +1,8 @@
-﻿using MegabonkTogether.Common.Models;
+﻿using Megaphonk.Common.Models;
 using MemoryPack;
 using System.Numerics;
 
-namespace MegabonkTogether.Common.Messages
+namespace Megaphonk.Common.Messages
 {
     [MemoryPackable]
     public partial class PlayerUpdate : IGameNetworkMessage

@@ -1,29 +1,22 @@
-# Self-Hosting a MegabonkTogether Server
+# Self-Hosting a Megaphonk Server
 
-This guide explains how to set up and run your own MegabonkTogether matchmaking/relay server and how players connect to it.
+This guide explains how to set up and run your own Megaphonk matchmaking/relay server and how players connect to it.
 
 ## Prerequisites
 
 - **Windows x64** (if using the prebuilt release)
 - **or** [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) (if building from source)
 
-### Option A - Download the Prebuilt Server
-
-1. Go to the [latest GitHub release](https://github.com/Fcornaire/megabonk-together/releases/latest).
-2. Download the **`MegabonkTogether-Server-win-x64-*.zip`** archive.
-3. Extract it to a folder of your choice.
-4. Run `MegabonkTogether.Server.exe`.
-
-### Option B - Build from Source
+### Build from Source
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Fcornaire/megabonk-together.git
-   cd megabonk-together
+   git clone https://github.com/coffeammaretto/megaphonk-mod.git
+   cd megaphonk-mod
    ```
 2. Build and run the server:
    ```bash
-   dotnet run --project src/server/MegabonkTogether.Server.csproj
+   dotnet run --project src/server/Megaphonk.Server.csproj
    ```
    By default it will listen on `http://127.0.0.1:5000`.
 
@@ -70,4 +63,4 @@ ws://<your-ip>:5000
 
 ## Connecting Players to Your Server
 
-Each player needs to update their `ServerUrl` setting in their **MegabonkTogether plugin config** (found in BepInEx config at `{Megabonk Game path}/BepInEx/config/MegabonkTogether.cfg`
+Each player needs to update their `ServerUrl` setting in their **Megaphonk plugin config** (found in BepInEx config at `{Megabonk Game path}/BepInEx/config/MegaphonkMod.cfg`

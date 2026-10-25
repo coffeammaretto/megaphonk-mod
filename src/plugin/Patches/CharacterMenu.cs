@@ -1,6 +1,6 @@
 ﻿using HarmonyLib;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(CharacterMenu))]
     internal static class CharacterMenuPatches

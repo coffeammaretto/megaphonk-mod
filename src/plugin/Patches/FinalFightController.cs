@@ -1,11 +1,11 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Services;
+using Megaphonk.Common.Messages;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 using System.Linq;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(FinalFightController))]
     internal static class FinalFightControllerPatches

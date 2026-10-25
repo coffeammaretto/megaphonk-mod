@@ -1,9 +1,9 @@
-﻿using MegabonkTogether.Helpers;
+﻿using Megaphonk.Helpers;
 using System;
 using System.Collections.Concurrent;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts
+namespace Megaphonk.Scripts
 {
     public class MainThreadDispatcher : MonoBehaviour
     {

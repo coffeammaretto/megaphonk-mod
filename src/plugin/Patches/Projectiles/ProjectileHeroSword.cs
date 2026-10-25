@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches.Projectiles
+namespace Megaphonk.Patches.Projectiles
 {
     [HarmonyPatch(typeof(ProjectileHeroSword))]
     internal static class ProjectileHeroSwordPatches

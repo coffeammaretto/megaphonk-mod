@@ -1,8 +1,8 @@
-﻿using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.WsMessages;
-using MegabonkTogether.Common.Models;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Scripts;
+﻿using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.WsMessages;
+using Megaphonk.Common.Models;
+using Megaphonk.Configuration;
+using Megaphonk.Scripts;
 using MemoryPack;
 using System;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     public interface IWebsocketClientService
     {

@@ -1,6 +1,6 @@
 using MemoryPack;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     /// <summary>
     /// Host -> clients enemy snapshot, sent unreliable. The enemies are packed by <see cref="EnemySnapshotCodec"/>:

@@ -1,11 +1,11 @@
 ﻿using Assets.Scripts.Managers;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches.MapGeneration
+namespace Megaphonk.Patches.MapGeneration
 {
     [HarmonyPatch(typeof(RsgController._GenerateMap_d__41))]
     internal static class RsgControllerGenerateMapPatches

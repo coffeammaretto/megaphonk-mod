@@ -1,12 +1,12 @@
-using MegabonkTogether.Common.Messages;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
+using Megaphonk.Common.Messages;
+using Megaphonk.Common.Messages.GameNetworkMessages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 
-namespace MegabonkTogether.Services
+namespace Megaphonk.Services
 {
     /// <summary>
     /// Coop challenges, run by the host, rewarded with chests dropped from the sky when the next stage starts
@@ -176,7 +176,7 @@ namespace MegabonkTogether.Services
         private static void ShowNotice(string text)
         {
             Plugin.Log.LogInfo(text);
-            Plugin.StartNotification(("MegabonkTogether", "Challenge"), ("MegabonkTogether", "Challenge_Description"), [Loc.T(text)]);
+            Plugin.StartNotification(("Megaphonk", "Challenge"), ("Megaphonk", "Challenge_Description"), [Loc.T(text)]);
         }
 
         public void Reset()

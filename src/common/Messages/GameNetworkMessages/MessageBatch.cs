@@ -1,7 +1,7 @@
 ﻿using MemoryPack;
 using System.Collections.Generic;
 
-namespace MegabonkTogether.Common.Messages.GameNetworkMessages
+namespace Megaphonk.Common.Messages.GameNetworkMessages
 {
     /// <summary>
     /// Several small messages sent in one packet (one per destination and delivery method per frame).

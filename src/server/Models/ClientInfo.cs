@@ -1,7 +1,7 @@
-﻿using MegabonkTogether.Common.Models;
+﻿using Megaphonk.Common.Models;
 using System.Net.WebSockets;
 
-namespace MegabonkTogether.Server.Models
+namespace Megaphonk.Server.Models
 {
     public class ClientInfo
     {

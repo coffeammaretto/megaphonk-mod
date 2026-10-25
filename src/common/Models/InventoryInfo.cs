@@ -1,6 +1,6 @@
 ﻿using MemoryPack;
 
-namespace MegabonkTogether.Common.Models
+namespace Megaphonk.Common.Models
 {
     [MemoryPackable]
     public partial class InventoryInfo

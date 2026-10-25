@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches.ConstantAttacks
+namespace Megaphonk.Patches.ConstantAttacks
 {
     [HarmonyPatch(typeof(CombatAura))]
     internal static class CombatAuraPatches

@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     public static class DnsHelper
     {

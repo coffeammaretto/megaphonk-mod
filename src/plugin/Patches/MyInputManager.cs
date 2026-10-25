@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Common;
+using Megaphonk.Common;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(MyInputManager))]
     internal static class MyInputManagerPatches

@@ -1,11 +1,11 @@
 ﻿using Assets.Scripts.Utility;
 using HarmonyLib;
-using MegabonkTogether.Helpers;
+using Megaphonk.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(ChestOpening))]
     internal static class ChestOpeningPatches

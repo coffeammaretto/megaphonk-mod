@@ -3,12 +3,12 @@ using Assets.Scripts.Actors.Enemies;
 using Assets.Scripts.Inventory__Items__Pickups.Weapons;
 using Assets.Scripts.Inventory__Items__Pickups.Weapons.Projectiles;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(WeaponUtility))]
     internal static class WeaponUtilityPatches

@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches.BossOrbPatch
+namespace Megaphonk.Patches.BossOrbPatch
 {
     [HarmonyPatch(typeof(BossOrb))]
     internal static class BossOrbFollowingPatches

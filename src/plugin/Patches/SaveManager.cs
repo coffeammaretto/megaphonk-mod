@@ -1,12 +1,12 @@
 ﻿using HarmonyLib;
-using MegabonkTogether.Common;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Services;
+using Megaphonk.Common;
+using Megaphonk.Configuration;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     /// <summary>
     /// Prevent saving during netplay sessions

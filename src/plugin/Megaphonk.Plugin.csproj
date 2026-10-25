@@ -4,7 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>MegaphonkMod</AssemblyName>
     <Product>Megaphonk Mod</Product>
-    <Version>2.2.2</Version>
+    <Version>2.3.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -12,7 +12,7 @@
       https://nuget.bepinex.dev/v3/index.json;
       <!--https://nuget.samboy.dev/v3/index.json-->  <!--this one is down -->
     </RestoreAdditionalProjectSources>
-    <RootNamespace>MegabonkTogether</RootNamespace>
+    <RootNamespace>Megaphonk</RootNamespace>
   </PropertyGroup>
 
   <!-- Define THUNDERSTORE when THUNDERSTORE_BUILD environment variable is set (For GitHub Actions) -->
@@ -35,9 +35,9 @@
 		</None>
 	</ItemGroup>
 
-	<!-- Bundled run music (CustomMusic): copied to the Music folder next to the dll -->
+	<!-- Run music (CustomMusic): the Music folder's tracks as an AssetBundle, built by tools/music-bundle -->
 	<ItemGroup>
-		<None Include="Music\*.mp3">
+		<None Include="Assets\megaphonk-music.bundle" Link="megaphonk-music.bundle" Condition="Exists('Assets\megaphonk-music.bundle')">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
@@ -52,7 +52,6 @@
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
     <PackageReference Include="LiteNetLib" Version="1.3.5" />
 	<PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
-	<PackageReference Include="NLayer" Version="1.16.0" />
 	<PackageReference Include="Profanity.Detector" Version="0.1.8" />
 	<PackageReference Include="TextCopy" Version="6.2.1" />
 	<PackageReference Include="Tomlyn" Version="0.17.0" />
@@ -72,7 +71,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\common\MegabonkTogether.Common.csproj" />
+	  <ProjectReference Include="..\common\Megaphonk.Common.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -108,12 +107,8 @@
 			<HintPath>$(AssemblyPath)/UnityEngine.UIModule.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-		<Reference Include="UnityEngine.UnityWebRequestModule">
-			<HintPath>$(AssemblyPath)/UnityEngine.UnityWebRequestModule.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="UnityEngine.UnityWebRequestAudioModule">
-			<HintPath>$(AssemblyPath)/UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+		<Reference Include="UnityEngine.AssetBundleModule">
+			<HintPath>$(AssemblyPath)/UnityEngine.AssetBundleModule.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="Unity.TextMeshPro">

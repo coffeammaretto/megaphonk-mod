@@ -1,10 +1,10 @@
 ﻿using Assets.Scripts.Game.Spawning.New;
 using Assets.Scripts.Game.Spawning.New.Timelines;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(SummonerController))]
     internal static class SummonerControllerPatches

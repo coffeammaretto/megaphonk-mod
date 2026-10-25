@@ -1,12 +1,12 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Pickups;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MegabonkTogether.Patches
+namespace Megaphonk.Patches
 {
     [HarmonyPatch(typeof(PickupManager))]
     internal static class PickupManagerPatches

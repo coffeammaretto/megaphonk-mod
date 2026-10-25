@@ -1,7 +1,7 @@
 using Il2CppInterop.Runtime.Attributes;
-using MegabonkTogether.Common.Messages.GameNetworkMessages;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MegabonkTogether.Scripts
+namespace Megaphonk.Scripts
 {
     /// <summary>
     /// Co-op leaderboard (see CoopLeaderboardService) in the main menu, above the game's leaderboard and in its style (its

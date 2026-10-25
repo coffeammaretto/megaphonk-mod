@@ -1,7 +1,7 @@
-﻿using MegabonkTogether.Common.Messages;
+﻿using Megaphonk.Common.Messages;
 using UnityEngine;
 
-namespace MegabonkTogether.Extensions
+namespace Megaphonk.Extensions
 {
     public static class AnimatorExtensions
     {

@@ -1,15 +1,15 @@
 ﻿using Assets.Scripts._Data.MapsAndStages;
 using Assets.Scripts.Managers;
 using Il2CppInterop.Runtime;
-using MegabonkTogether.Configuration;
-using MegabonkTogether.Helpers;
-using MegabonkTogether.Services;
+using Megaphonk.Configuration;
+using Megaphonk.Helpers;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace MegabonkTogether.Scripts
+namespace Megaphonk.Scripts
 {
     public class NetworkHandler : MonoBehaviour
     {

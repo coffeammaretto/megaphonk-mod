@@ -1,10 +1,10 @@
 ﻿using Assets.Scripts.Inventory__Items__Pickups.Items;
 using HarmonyLib;
-using MegabonkTogether.Services;
+using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
 
-namespace MegabonkTogether.Patches.Interactables
+namespace Megaphonk.Patches.Interactables
 {
     [HarmonyPatch(typeof(InteractableMicrowave))]
     internal static class InteractableMicroWavePatches

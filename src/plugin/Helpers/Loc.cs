@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine.Localization.Settings;
 
-namespace MegabonkTogether.Helpers
+namespace Megaphonk.Helpers
 {
     /// <summary>
     /// The mod's own texts, in the language the game is set to. Texts are written in English in the code and
