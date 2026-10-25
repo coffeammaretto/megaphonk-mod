@@ -45,6 +45,7 @@ namespace Megaphonk.Services
             { ("Megaphonk", "Rift"), "Rift" },
             { ("Megaphonk", "Rift_Description"), "Hold the zones before time runs out" },
             { ("Megaphonk", "Rift_Shards_Description"), "Collect the shards scattered over the map" },
+            { ("Megaphonk", "Rift_Storm_Description"), "Survive the storm: stay in the shrinking circle, nobody may die" },
         };
 
         private readonly Queue<IEnumerable<string>> NextLocalizedDescription = new();

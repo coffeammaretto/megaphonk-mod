@@ -13,7 +13,13 @@ namespace Megaphonk.Common.Messages.GameNetworkMessages
         /// <summary>
         /// Shards scattered over the map: each is picked up by walking to it
         /// </summary>
-        Shards = 1
+        Shards = 1,
+
+        /// <summary>
+        /// A circle shrinking around one point (Zones[0]) from StartRadius to ZoneRadius: outside, the storm hurts. Survived
+        /// when nobody died and nobody is down at the end.
+        /// </summary>
+        Storm = 2
     }
 
     /// <summary>
@@ -27,6 +33,7 @@ namespace Megaphonk.Common.Messages.GameNetworkMessages
         public Vector3[] Zones { get; set; } = System.Array.Empty<Vector3>();
         public float ZoneRadius { get; set; }
         public float Duration { get; set; }
+        public float StartRadius { get; set; }
     }
 
     /// <summary>

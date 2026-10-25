@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.10.0"]
+changes = [
+    "New rift: survive the storm. A red circle around the party shrinks to 12 m in 60 seconds, then stays 30 seconds; outside, a player loses 8% of their max HP every second. Failed if someone dies, or is down when it ends.",
+]
+
 [version."2.9.0"]
 changes = [
     "New rift: collect the shards (3 per player, 4 to 8) scattered over the map, by walking to them. Each rift is now a random kind.",

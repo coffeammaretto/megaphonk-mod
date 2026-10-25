@@ -1,4 +1,6 @@
+using Assets.Scripts.Actors;
 using Assets.Scripts.Camera;
+using Assets.Scripts.Game.Combat;
 using Assets.Scripts.Managers;
 using Assets.Scripts.Utility;
 using Megaphonk.Common.Messages.GameNetworkMessages;
@@ -16,9 +18,10 @@ namespace Megaphonk.Services
     /// <summary>
     /// Rifts, the co-op endgame's objectives: from the first ascension, every stage but the final boss's opens one now
     /// and then, a random kind: zones to hold (each fills while players, alive and not downed, stand in it, faster with
-    /// more of them) or shards to collect (scattered over the map, picked up by walking to them), all before the time runs
-    /// out. Cleared, every player picks a pact; failed, a curse (CurseService). A rift adds no enemy: the stage's own ones
-    /// are the threat. The host runs it and sends its progress; every machine shows it.
+    /// more of them), shards to collect (scattered over the map, picked up by walking to them), both before the time runs
+    /// out, or a storm to survive (a shrinking circle, outside of which each player loses a share of their HP every
+    /// second, applied by their own machine). Cleared, every player picks a pact; failed, a curse (CurseService). A rift
+    /// adds no enemy: the stage's own ones are the threat. The host runs it and sends its progress; every machine shows it.
     /// </summary>
     public interface IRiftService
     {
@@ -52,10 +55,18 @@ namespace Megaphonk.Services
         private const int SHARDS_PER_PLAYER = 3;
         private const int MIN_SHARDS = 4;
         private const int MAX_SHARDS = 8;
+        private const float STORM_DURATION = 90f;
+        private const float STORM_SHRINK_SECONDS = 60f; //Then the circle stays at its smallest until the end
+        private const float STORM_END_RADIUS = 12f;
+        private const float STORM_MIN_START_RADIUS = 60f;
+        private const float STORM_START_MARGIN = 25f; //Everyone starts well inside
+        private const float STORM_DAMAGE_INTERVAL = 1f;
+        private const float STORM_DAMAGE_SHARE = 0.08f; //Of the max HP, each interval outside
 
         private static readonly Color ZONE_COLOR = new(0.75f, 0.35f, 1f, 1f);
         private static readonly Color ZONE_DONE_COLOR = new(0.4f, 1f, 0.55f, 1f);
         private static readonly Color SHARD_COLOR = new(1f, 0.82f, 0.3f, 1f);
+        private static readonly Color STORM_COLOR = new(1f, 0.35f, 0.2f, 1f);
 
         private readonly IUdpClientService udpClientService;
         private readonly IPlayerManagerService playerManagerService;
@@ -76,6 +87,9 @@ namespace Megaphonk.Services
         private string resultText;
         private string lastHudText;
         private float resultShownUntil;
+        private float stormDamageTimer;
+        private bool isOutsideStorm;
+        private HashSet<uint> deadAtStormStart = [];
 
         public int ClearedCount { get; private set; }
 
@@ -89,6 +103,13 @@ namespace Megaphonk.Services
             public float Radius;
             public float[] Progress;
             public float TimeLeft;
+            public float Duration;
+            public float StartRadius;
+
+            /// <summary>
+            /// A storm's circle now: shrinking from StartRadius to Radius, then staying
+            /// </summary>
+            public float StormRadius => StartRadius + (Radius - StartRadius) * Math.Clamp((Duration - TimeLeft) / STORM_SHRINK_SECONDS, 0f, 1f);
             public readonly List<(GameObject Marker, LineRenderer Ring, LineRenderer Beam)> Visuals = [];
         }
 
@@ -132,6 +153,7 @@ namespace Megaphonk.Services
 
         public void Tick()
         {
+            UpdateStorm();
             UpdateHud();
 
             if (!IsHost || udpClientService.IsSoloSession() || !synchronization.Value.HasNetplaySessionStarted() || synchronization.Value.IsEndgame())
@@ -190,7 +212,13 @@ namespace Megaphonk.Services
                 return;
             }
 
-            var type = random.Next(2) == 0 ? RiftType.HoldZones : RiftType.Shards;
+            var type = (RiftType)random.Next(3);
+            if (type == RiftType.Storm)
+            {
+                StartHostStorm(anchors);
+                return;
+            }
+
             var playerCount = playerManagerService.GetAllPlayers().Count();
             var (count, clearRadius, spacing, radius) = type == RiftType.Shards
                 ? (Math.Clamp(playerCount * SHARDS_PER_PLAYER, MIN_SHARDS, MAX_SHARDS), SHARD_CLEAR_RADIUS, SHARD_SPACING, SHARD_PICKUP_RADIUS)
@@ -214,6 +242,89 @@ namespace Megaphonk.Services
             udpClientService.SendToAllClients(started, LiteNetLib.DeliveryMethod.ReliableOrdered);
             Begin(started);
             nextProgressSendAt = 0f;
+        }
+
+        /// <summary>
+        /// Around the party: the circle starts wide enough to hold everyone with room to spare
+        /// </summary>
+        private void StartHostStorm(List<Vector3> anchors)
+        {
+            var center = PickZonePositionNear(anchors[random.Next(anchors.Count)], [], 0f);
+            var startRadius = Math.Max(STORM_MIN_START_RADIUS, anchors.Max(anchor => HorizontalDistance(anchor, center)) + STORM_START_MARGIN);
+            deadAtStormStart = [.. playerManagerService.GetAllPlayers().Where(player => playerManagerService.IsDead(player.ConnectionId)).Select(player => player.ConnectionId)];
+
+            var started = new RiftStarted
+            {
+                Id = nextId++,
+                Type = RiftType.Storm,
+                Zones = [center.ToNumericsVector3()],
+                ZoneRadius = STORM_END_RADIUS,
+                StartRadius = startRadius,
+                Duration = STORM_DURATION
+            };
+            udpClientService.SendToAllClients(started, LiteNetLib.DeliveryMethod.ReliableOrdered);
+            Begin(started);
+            nextProgressSendAt = 0f;
+        }
+
+        /// <summary>
+        /// Every machine, every frame of a storm: its circle shrinks, and the local player outside of it gets hurt
+        /// </summary>
+        private void UpdateStorm()
+        {
+            isOutsideStorm = false;
+            if (current == null || current.Type != RiftType.Storm)
+            {
+                return;
+            }
+
+            var center = current.Zones[0];
+            var radius = current.StormRadius;
+            if (current.Visuals.Count > 0 && current.Visuals[0].Ring != null)
+            {
+                SetRingRadius(current.Visuals[0].Ring, center, radius);
+            }
+
+            var player = GameManager.Instance?.player;
+            var health = player?.inventory?.playerHealth;
+            var localPlayer = playerManagerService.GetLocalPlayer();
+            if (player == null || health == null || localPlayer == null || health.IsDead() || playerManagerService.IsDowned(localPlayer.ConnectionId))
+            {
+                return;
+            }
+
+            isOutsideStorm = HorizontalDistance(player.transform.position, center) > radius;
+            if (!isOutsideStorm || MyTime.paused)
+            {
+                stormDamageTimer = 0f;
+                return;
+            }
+
+            stormDamageTimer += Time.deltaTime;
+            if (stormDamageTimer < STORM_DAMAGE_INTERVAL)
+            {
+                return;
+            }
+
+            stormDamageTimer = 0f;
+            try
+            {
+                // The game's own damage path: armor, shield, downed state and death as usual
+                health.DamagePlayerExternal(health.GetCombinedMaxHp() * STORM_DAMAGE_SHARE, 0f, Vector3.zero, false, "Megaphonk storm", default(DcFlags), default(EDamageEffect), null);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogError($"Storm damage failed: {ex}");
+            }
+        }
+
+        private static void SetRingRadius(LineRenderer ring, Vector3 center, float radius)
+        {
+            for (var i = 0; i < RING_SEGMENTS; i++)
+            {
+                var angle = i * Math.PI * 2 / RING_SEGMENTS;
+                ring.SetPosition(i, center + new Vector3((float)Math.Cos(angle) * radius, 0.4f, (float)Math.Sin(angle) * radius));
+            }
         }
 
         private List<Vector3> GetActivePlayerPositions()
@@ -386,6 +497,12 @@ namespace Megaphonk.Services
 
         private void UpdateHostRift(float dt)
         {
+            if (current.Type == RiftType.Storm)
+            {
+                UpdateHostStorm(dt);
+                return;
+            }
+
             if (dt > 0f)
             {
                 var players = GetActivePlayerPositions();
@@ -407,7 +524,28 @@ namespace Megaphonk.Services
 
             var cleared = current.Progress.All(progress => progress >= 1f);
             var failed = !cleared && current.TimeLeft <= 0f;
+            SendProgressAndEnd(cleared, failed);
+        }
 
+        /// <summary>
+        /// Survived when the time is up with nobody down; failed as soon as someone dies (a downed player can still be
+        /// revived)
+        /// </summary>
+        private void UpdateHostStorm(float dt)
+        {
+            current.TimeLeft = Math.Max(0f, current.TimeLeft - dt);
+            current.Progress[0] = 1f - current.TimeLeft / current.Duration;
+
+            var players = playerManagerService.GetAllPlayers().ToList();
+            var someoneDied = players.Any(player => playerManagerService.IsDead(player.ConnectionId) && !deadAtStormStart.Contains(player.ConnectionId));
+            var timeUp = current.TimeLeft <= 0f;
+            var someoneDown = players.Any(player => playerManagerService.IsDowned(player.ConnectionId));
+
+            SendProgressAndEnd(timeUp && !someoneDied && !someoneDown, someoneDied || (timeUp && someoneDown));
+        }
+
+        private void SendProgressAndEnd(bool cleared, bool failed)
+        {
             if (cleared || failed || Time.realtimeSinceStartup >= nextProgressSendAt)
             {
                 nextProgressSendAt = Time.realtimeSinceStartup + PROGRESS_SEND_INTERVAL;
@@ -439,14 +577,22 @@ namespace Megaphonk.Services
                 Zones = [.. started.Zones.Select(zone => zone.ToUnityVector3())],
                 Radius = started.ZoneRadius,
                 Progress = new float[started.Zones.Length],
-                TimeLeft = started.Duration
+                TimeLeft = started.Duration,
+                Duration = started.Duration,
+                StartRadius = started.StartRadius
             };
+            stormDamageTimer = 0f;
 
             try
             {
                 foreach (var zone in current.Zones)
                 {
-                    current.Visuals.Add(CreateZoneVisual(zone, current.Radius, current.Type == RiftType.Shards ? SHARD_COLOR : ZONE_COLOR));
+                    current.Visuals.Add(current.Type switch
+                    {
+                        RiftType.Shards => CreateZoneVisual(zone, current.Radius, SHARD_COLOR),
+                        RiftType.Storm => CreateZoneVisual(zone, current.StartRadius, STORM_COLOR),
+                        _ => CreateZoneVisual(zone, current.Radius, ZONE_COLOR)
+                    });
                 }
             }
             catch (Exception ex)
@@ -455,7 +601,13 @@ namespace Megaphonk.Services
             }
 
             Plugin.Log.LogInfo($"Rift {current.Id} opened: {current.Type}, {current.Zones.Length} within {started.Duration}s at {string.Join(", ", current.Zones)}");
-            Plugin.StartNotification(("Megaphonk", "Rift"), ("Megaphonk", current.Type == RiftType.Shards ? "Rift_Shards_Description" : "Rift_Description"), []);
+            var description = current.Type switch
+            {
+                RiftType.Shards => "Rift_Shards_Description",
+                RiftType.Storm => "Rift_Storm_Description",
+                _ => "Rift_Description"
+            };
+            Plugin.StartNotification(("Megaphonk", "Rift"), ("Megaphonk", description), []);
         }
 
         private void Finish(bool cleared)
@@ -623,9 +775,12 @@ namespace Megaphonk.Services
             string text = null;
             if (current != null)
             {
-                var objective = current.Type == RiftType.Shards
-                    ? $"{Loc.T("collect the shards")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}"
-                    : $"{Loc.T("hold the zones")}  {string.Join("  ", current.Progress.Select(progress => progress >= 1f ? "<color=#66FF8C>100%</color>" : $"{(int)(progress * 100f)}%"))}";
+                var objective = current.Type switch
+                {
+                    RiftType.Shards => $"{Loc.T("collect the shards")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}",
+                    RiftType.Storm => $"{Loc.T("survive the storm, stay in the circle")}{(isOutsideStorm ? $"  <color=#FF5555>{Loc.T("OUTSIDE THE CIRCLE!")}</color>" : string.Empty)}",
+                    _ => $"{Loc.T("hold the zones")}  {string.Join("  ", current.Progress.Select(progress => progress >= 1f ? "<color=#66FF8C>100%</color>" : $"{(int)(progress * 100f)}%"))}"
+                };
                 var time = TimeSpan.FromSeconds(Math.Ceiling(current.TimeLeft));
                 text = $"<color=#C08CFF>{Loc.T("Rift")}</color>: {objective}  <color=#FFD27F>{time.Minutes}:{time.Seconds:00}</color>";
             }

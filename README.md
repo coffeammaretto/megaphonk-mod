@@ -61,7 +61,8 @@ Once the final boss is dead, a second portal stands next to the final one. The f
 - 26 curses, from one stat (max HP, damage, attack speed, armor, evasion, shield, lifesteal, luck...) to two or more (crits, elemental damage, power-ups, gold and silver). Each card rolls its strength: lesser (x0.6, 45%), normal (40%) or greater (x1.6, 15%). A curse takes a percentage of what the player has, so a build without that stat doesn't care. One stat loses at most 75% to curses.
 - **Rifts**: from the first ascension, every stage but the final boss's opens a rift 60 seconds in, then 3 minutes after the previous one ends, a random kind, within 120 seconds:
   - zones to hold (one per player, at most two; purple ring): each fills in 20 seconds while a player, alive and not downed, stands in it, faster with more players in it;
-  - shards to collect (3 per player, 4 to 8; golden): each is picked up by walking to it.
+  - shards to collect (3 per player, 4 to 8; golden): each is picked up by walking to it;
+  - a storm to survive (red circle around the party): the circle shrinks to 12 m in 60 seconds, then stays 30 seconds; outside, a player loses 8% of their max HP every second. Failed if someone dies, or is down when it ends.
   They go anywhere on the map on open, even ground, with a beam to the sky and a ring seen through walls at any distance, and an arrow on the minimap. A rift adds no enemy. Cleared: every player picks a **pact**, a boon (+15 to 40% to a stat) paid with a lesser or normal curse. Failed: every player picks a curse.
 - Co-op only, the host decides: a client using the portal asks the host.
 
@@ -101,7 +102,7 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 With a mod manager: install [MegaphonkMod on Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) with r2modman or Gale, the mod manager installs BepInEx and updates the mod. Manual installation:
 
 1. Close the game.
-2. Download `MegaphonkMod-2.9.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Download `MegaphonkMod-2.10.0-full.zip` from the [latest release](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Extract it into the game folder (Steam → Megabonk → Manage → Browse local files), replacing files. The folder must contain `winhttp.dll`, `doorstop_config.ini`, `BepInEx` and `dotnet` next to `Megabonk.exe`.
 4. Start the game through Steam. The first launch takes longer while BepInEx prepares the game.
 
@@ -189,7 +190,8 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - 26 проклятий: на один стат (здоровье, урон, скорость атаки, броня, уклонение, щит, вампиризм, удача...) и на несколько (криты, урон стихиями, усиления, золото и серебро). Сила каждой карточки случайна: слабое (x0,6, 45%), обычное (40%) или тяжёлое (x1,6, 15%). Проклятие снимает процент от того, что есть у игрока, поэтому билду без этого стата оно не мешает. Один стат теряет от проклятий не больше 75%.
 - **Разломы**: с первого восхождения на каждом этапе, кроме арены финального босса, через 60 секунд открывается разлом, следующий через 3 минуты после конца предыдущего, случайного вида, на всё 120 секунд:
   - зоны для удержания (по одной на игрока, не больше двух; фиолетовое кольцо): зона заполняется за 20 секунд, пока в ней стоит живой игрок не в нокдауне, быстрее, если игроков в ней больше;
-  - осколки (по 3 на игрока, от 4 до 8; золотые): осколок подбирается, если подойти к нему.
+  - осколки (по 3 на игрока, от 4 до 8; золотые): осколок подбирается, если подойти к нему;
+  - буря (красный круг вокруг пати): круг сужается до 12 м за 60 секунд и держится ещё 30 секунд; снаружи игрок теряет 8% макс. HP в секунду. Провал, если кто-то погиб или к концу бури лежит в нокдауне.
   Они появляются в любом месте карты на ровной открытой земле, с лучом в небо и кольцом, видными сквозь стены на любой дистанции, и стрелкой на миникарте. Разлом не добавляет врагов. Закрыт: каждый выбирает **пакт**, дар (+15–40% к стату) ценой слабого или обычного проклятия. Провален: каждый выбирает проклятие.
 - Только в коопе, решает хост: портал клиента отправляет запрос хосту.
 
@@ -228,7 +230,7 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 Через менеджер модов: установи [MegaphonkMod из Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) через r2modman или Gale, менеджер сам поставит BepInEx и будет обновлять мод. Ручная установка:
 
 1. Закрой игру.
-2. Скачай `MegaphonkMod-2.9.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
+2. Скачай `MegaphonkMod-2.10.0-full.zip` из [последнего релиза](https://github.com/coffeammaretto/megaphonk-mod/releases/latest).
 3. Распакуй в папку игры (Steam → Megabonk → Управление → Просмотреть локальные файлы) с заменой файлов. Рядом с `Megabonk.exe` должны лежать `winhttp.dll`, `doorstop_config.ini`, `BepInEx` и `dotnet`.
 4. Запусти игру через Steam. Первый запуск дольше обычного.
 
