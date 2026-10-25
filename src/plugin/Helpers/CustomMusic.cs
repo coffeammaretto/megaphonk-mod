@@ -74,6 +74,9 @@ namespace Megaphonk.Helpers
 
             active = true;
             menu = false;
+            // Not ours on the source anymore: a client waiting for the host's track took the game's stage music on the
+            // source for "the game took its source back" and stopped following it (no run music after the menu track)
+            currentClip = null;
             // A new stage starts on the next track
             if (clips != null)
             {
@@ -98,6 +101,7 @@ namespace Megaphonk.Helpers
 
             active = true;
             menu = true;
+            currentClip = null;
             if (clips != null)
             {
                 PlayMenu(controller);

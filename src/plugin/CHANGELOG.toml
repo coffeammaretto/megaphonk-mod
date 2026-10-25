@@ -6,6 +6,11 @@
 #     "Change 2 description",
 # ]
 
+[version."2.5.1"]
+changes = [
+    "Fixed: co-op clients heard the game's stage music instead of the host's track after the main menu track.",
+]
+
 [version."2.5.0"]
 changes = [
     "The main menu has its own music track (turned off with CustomMusic, like the run music).",
