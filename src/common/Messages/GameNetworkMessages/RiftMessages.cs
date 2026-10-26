@@ -19,7 +19,12 @@ namespace Megaphonk.Common.Messages.GameNetworkMessages
         /// A circle shrinking around one point (Zones[0]) from StartRadius to ZoneRadius: outside, the storm hurts. Survived
         /// when nobody died and nobody is down at the end.
         /// </summary>
-        Storm = 2
+        Storm = 2,
+
+        /// <summary>
+        /// Elites spawned around the party (Zones: where they started): each is done when killed
+        /// </summary>
+        EliteHunt = 3
     }
 
     /// <summary>
@@ -45,6 +50,11 @@ namespace Megaphonk.Common.Messages.GameNetworkMessages
         public int Id { get; set; }
         public float[] Progress { get; set; } = System.Array.Empty<float>();
         public float TimeLeft { get; set; }
+
+        /// <summary>
+        /// Elite hunt: where each elite is now (their markers follow them)
+        /// </summary>
+        public Vector3[] Positions { get; set; } = System.Array.Empty<Vector3>();
     }
 
     /// <summary>

@@ -42,6 +42,8 @@ namespace Megaphonk.Helpers
                 ["Hold the zones before time runs out"] = "Удержите зоны, пока не вышло время",
                 ["hold the zones"] = "удержите зоны",
                 ["collect the shards"] = "соберите осколки",
+                ["hunt down the elites"] = "убейте элиту",
+                ["Hunt down the marked elites before time runs out"] = "Убейте отмеченных элитных врагов, пока не вышло время",
                 ["survive the storm, stay in the circle"] = "переживите бурю, держитесь в круге",
                 ["OUTSIDE THE CIRCLE!"] = "ВНЕ КРУГА!",
                 ["Survive the storm: stay in the shrinking circle, nobody may die"] = "Переживите бурю: держитесь в сужающемся круге, никто не должен погибнуть",

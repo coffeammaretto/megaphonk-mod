@@ -1,4 +1,5 @@
 using Assets.Scripts.Actors;
+using Assets.Scripts.Actors.Enemies;
 using Assets.Scripts.Camera;
 using Assets.Scripts.Game.Combat;
 using Assets.Scripts.Managers;
@@ -62,14 +63,23 @@ namespace Megaphonk.Services
         private const float STORM_START_MARGIN = 25f; //Everyone starts well inside
         private const float STORM_DAMAGE_INTERVAL = 1f;
         private const float STORM_DAMAGE_SHARE = 0.08f; //Of the max HP, each interval outside
+        private const float ELITE_DURATION = 90f;
+        private const int MIN_ELITES = 2;
+        private const int MAX_ELITES = 5;
+        private const float ELITE_SIZE = 1.25f;
+        private const float ELITE_MARKER_RADIUS = 2.5f;
+        private const float ELITE_MARKER_SPEED = 10f; //Clients ease their markers to the host's positions
 
         private static readonly Color ZONE_COLOR = new(0.75f, 0.35f, 1f, 1f);
         private static readonly Color ZONE_DONE_COLOR = new(0.4f, 1f, 0.55f, 1f);
         private static readonly Color SHARD_COLOR = new(1f, 0.82f, 0.3f, 1f);
         private static readonly Color STORM_COLOR = new(1f, 0.35f, 0.2f, 1f);
+        private static readonly Color ELITE_COLOR = new(1f, 0.25f, 0.45f, 1f);
 
         private readonly IUdpClientService udpClientService;
         private readonly IPlayerManagerService playerManagerService;
+        private readonly IEnemyManagerService enemyManagerService;
+        private readonly List<Enemy> elites = []; //Host: the elite hunt's elites, in the rift's order
         private readonly IAscensionService ascensionService;
         private readonly ICurseService curseService;
         // Resolved when used: the synchronization service depends on services that depend on this one
@@ -105,6 +115,7 @@ namespace Megaphonk.Services
             public float TimeLeft;
             public float Duration;
             public float StartRadius;
+            public Vector3[] Targets; //Elite hunt on a client: the host's last positions, the markers ease to them
 
             /// <summary>
             /// A storm's circle now: shrinking from StartRadius to Radius, then staying
@@ -113,10 +124,12 @@ namespace Megaphonk.Services
             public readonly List<(GameObject Marker, LineRenderer Ring, LineRenderer Beam)> Visuals = [];
         }
 
-        public RiftService(IUdpClientService udpClientService, IPlayerManagerService playerManagerService, IAscensionService ascensionService, ICurseService curseService)
+        public RiftService(IUdpClientService udpClientService, IPlayerManagerService playerManagerService, IEnemyManagerService enemyManagerService,
+            IAscensionService ascensionService, ICurseService curseService)
         {
             this.udpClientService = udpClientService;
             this.playerManagerService = playerManagerService;
+            this.enemyManagerService = enemyManagerService;
             this.ascensionService = ascensionService;
             this.curseService = curseService;
 
@@ -133,6 +146,10 @@ namespace Megaphonk.Services
                 {
                     current.Progress = progress.Progress;
                     current.TimeLeft = progress.TimeLeft;
+                    if (progress.Positions.Length == current.Zones.Length)
+                    {
+                        current.Targets = [.. progress.Positions.Select(position => position.ToUnityVector3())];
+                    }
                     RefreshVisuals();
                 }
             });
@@ -154,6 +171,7 @@ namespace Megaphonk.Services
         public void Tick()
         {
             UpdateStorm();
+            UpdateEliteMarkers();
             UpdateHud();
 
             if (!IsHost || !synchronization.Value.HasNetplaySessionStarted() || synchronization.Value.IsEndgame())
@@ -212,8 +230,13 @@ namespace Megaphonk.Services
                 return;
             }
 
-            var type = (RiftType)random.Next(3);
-            if (type == RiftType.Storm)
+            var type = (RiftType)random.Next(4);
+            if (type == RiftType.EliteHunt && StartHostEliteHunt(anchors))
+            {
+                return;
+            }
+
+            if (type is RiftType.Storm or RiftType.EliteHunt) //No enemy to make elites from: a storm instead
             {
                 StartHostStorm(anchors);
                 return;
@@ -265,6 +288,129 @@ namespace Megaphonk.Services
             udpClientService.SendToAllClients(started, LiteNetLib.DeliveryMethod.ReliableOrdered);
             Begin(started);
             nextProgressSendAt = 0f;
+        }
+
+        /// <summary>
+        /// Elites of the stage's own kinds, around the players. Spawned by the game's enemy manager, so the clients get
+        /// them like any spawn. False when no ordinary enemy is around to copy.
+        /// </summary>
+        private bool StartHostEliteHunt(List<Vector3> anchors)
+        {
+            var kinds = enemyManagerService.GetAllSpawnedEnemies()
+                .Where(enemy => enemy != null && enemy.CachedPtr() != IntPtr.Zero && !enemy.IsDead() && !enemy.IsElite()
+                    && !enemy.IsBoss() && !enemy.IsStageBoss() && !enemy.IsFinalBoss() && enemy.enemyData != null)
+                .Select(enemy => enemy.enemyData)
+                .ToList();
+            var manager = EnemyManager.Instance;
+            if (kinds.Count == 0 || manager == null)
+            {
+                return false;
+            }
+
+            var playerCount = playerManagerService.GetAllPlayers().Count();
+            var count = Math.Clamp(playerCount + 1, MIN_ELITES, MAX_ELITES);
+            var positions = new List<Vector3>();
+            elites.Clear();
+            for (var i = 0; i < count; i++)
+            {
+                var position = PickZonePositionNear(anchors[i % anchors.Count], positions, 8f) + Vector3.up * 0.5f;
+                try
+                {
+                    var elite = manager.SpawnEnemy(kinds[random.Next(kinds.Count)], position, 0, true, EEnemyFlag.Elite, true, ELITE_SIZE);
+                    if (elite != null)
+                    {
+                        elites.Add(elite);
+                        positions.Add(position);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"Rift elite spawn failed: {ex.Message}");
+                }
+            }
+
+            if (elites.Count == 0)
+            {
+                return false;
+            }
+
+            var started = new RiftStarted
+            {
+                Id = nextId++,
+                Type = RiftType.EliteHunt,
+                Zones = [.. positions.Select(position => position.ToNumericsVector3())],
+                ZoneRadius = ELITE_MARKER_RADIUS,
+                Duration = ELITE_DURATION
+            };
+            udpClientService.SendToAllClients(started, LiteNetLib.DeliveryMethod.ReliableOrdered);
+            Begin(started);
+            nextProgressSendAt = 0f;
+            return true;
+        }
+
+        /// <summary>
+        /// An elite is done once dead, or gone from the stage some other way (nothing left to hunt)
+        /// </summary>
+        private void UpdateHostElites(float dt)
+        {
+            for (var i = 0; i < elites.Count && i < current.Progress.Length; i++)
+            {
+                if (current.Progress[i] >= 1f)
+                {
+                    continue;
+                }
+
+                var elite = elites[i];
+                try
+                {
+                    if (elite == null || elite.CachedPtr() == IntPtr.Zero || elite.IsDeadOrDyingNextFrame() || !elite.gameObject.activeInHierarchy)
+                    {
+                        current.Progress[i] = 1f; //Never back: a pooled enemy may come back as another one
+                        continue;
+                    }
+
+                    current.Zones[i] = elite.transform.position;
+                }
+                catch
+                {
+                    current.Progress[i] = 1f;
+                }
+            }
+
+            current.TimeLeft = Math.Max(0f, current.TimeLeft - dt);
+            var cleared = current.Progress.All(progress => progress >= 1f);
+            SendProgressAndEnd(cleared, !cleared && current.TimeLeft <= 0f);
+        }
+
+        /// <summary>
+        /// Every machine: the markers follow the living elites (the host's own positions, eased on the clients)
+        /// </summary>
+        private void UpdateEliteMarkers()
+        {
+            if (current == null || current.Type != RiftType.EliteHunt)
+            {
+                return;
+            }
+
+            for (var i = 0; i < current.Visuals.Count && i < current.Zones.Length; i++)
+            {
+                if (!IsHost && current.Targets != null && i < current.Targets.Length)
+                {
+                    current.Zones[i] = Vector3.Lerp(current.Zones[i], current.Targets[i], Math.Min(1f, Time.deltaTime * ELITE_MARKER_SPEED));
+                }
+
+                var (marker, ring, beam) = current.Visuals[i];
+                if (marker == null)
+                {
+                    continue;
+                }
+
+                var position = current.Zones[i];
+                marker.transform.position = position;
+                SetRingRadius(ring, position, current.Radius);
+                beam.SetPosition(0, position);
+                beam.SetPosition(1, position + Vector3.up * BEAM_HEIGHT);
+            }
         }
 
         /// <summary>
@@ -503,6 +649,12 @@ namespace Megaphonk.Services
                 return;
             }
 
+            if (current.Type == RiftType.EliteHunt)
+            {
+                UpdateHostElites(dt);
+                return;
+            }
+
             if (dt > 0f)
             {
                 var players = GetActivePlayerPositions();
@@ -553,7 +705,8 @@ namespace Megaphonk.Services
                 {
                     Id = current.Id,
                     Progress = [.. current.Progress],
-                    TimeLeft = current.TimeLeft
+                    TimeLeft = current.TimeLeft,
+                    Positions = current.Type == RiftType.EliteHunt ? [.. current.Zones.Select(zone => zone.ToNumericsVector3())] : []
                 }, LiteNetLib.DeliveryMethod.ReliableOrdered);
                 RefreshVisuals();
             }
@@ -591,6 +744,7 @@ namespace Megaphonk.Services
                     {
                         RiftType.Shards => CreateZoneVisual(zone, current.Radius, SHARD_COLOR),
                         RiftType.Storm => CreateZoneVisual(zone, current.StartRadius, STORM_COLOR),
+                        RiftType.EliteHunt => CreateZoneVisual(zone, current.Radius, ELITE_COLOR),
                         _ => CreateZoneVisual(zone, current.Radius, ZONE_COLOR)
                     });
                 }
@@ -605,6 +759,7 @@ namespace Megaphonk.Services
             {
                 RiftType.Shards => "Rift_Shards_Description",
                 RiftType.Storm => "Rift_Storm_Description",
+                RiftType.EliteHunt => "Rift_Elites_Description",
                 _ => "Rift_Description"
             };
             Plugin.StartNotification(("Megaphonk", "Rift"), ("Megaphonk", description), []);
@@ -625,6 +780,7 @@ namespace Megaphonk.Services
 
             RemoveVisuals();
             current = null;
+            elites.Clear();
             resultText = cleared ? Loc.T("Rift cleared!") : Loc.T("Rift failed...");
             resultShownUntil = Time.realtimeSinceStartup + RESULT_SHOWN_SECONDS;
             curseService.QueueRiftChoice(cleared);
@@ -643,6 +799,7 @@ namespace Megaphonk.Services
             Plugin.Log.LogInfo($"Rift {current.Id} closed with the stage");
             RemoveVisuals();
             current = null;
+            elites.Clear();
         }
 
         private (GameObject, LineRenderer, LineRenderer) CreateZoneVisual(Vector3 center, float radius, Color color)
@@ -710,7 +867,7 @@ namespace Megaphonk.Services
                     continue;
                 }
 
-                if (current.Type == RiftType.Shards)
+                if (current.Type is RiftType.Shards or RiftType.EliteHunt)
                 {
                     if (current.Progress[i] >= 1f)
                     {
@@ -778,6 +935,7 @@ namespace Megaphonk.Services
                 var objective = current.Type switch
                 {
                     RiftType.Shards => $"{Loc.T("collect the shards")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}",
+                    RiftType.EliteHunt => $"{Loc.T("hunt down the elites")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}",
                     RiftType.Storm => $"{Loc.T("survive the storm, stay in the circle")}{(isOutsideStorm ? $"  <color=#FF5555>{Loc.T("OUTSIDE THE CIRCLE!")}</color>" : string.Empty)}",
                     _ => $"{Loc.T("hold the zones")}  {string.Join("  ", current.Progress.Select(progress => progress >= 1f ? "<color=#66FF8C>100%</color>" : $"{(int)(progress * 100f)}%"))}"
                 };
