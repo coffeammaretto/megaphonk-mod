@@ -24,7 +24,12 @@ namespace Megaphonk.Common.Messages.GameNetworkMessages
         /// <summary>
         /// Elites spawned around the party (Zones: where they started): each is done when killed
         /// </summary>
-        EliteHunt = 3
+        EliteHunt = 3,
+
+        /// <summary>
+        /// A mini-boss spawned near the party (Zones[0]: where it started): done when killed, its progress is the HP it lost
+        /// </summary>
+        MiniBoss = 4
     }
 
     /// <summary>

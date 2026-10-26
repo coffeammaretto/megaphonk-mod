@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using EEnemy = global::Actors.Enemies.EEnemy;
 
 namespace Megaphonk.Services
 {
@@ -69,17 +70,24 @@ namespace Megaphonk.Services
         private const float ELITE_SIZE = 1.25f;
         private const float ELITE_MARKER_RADIUS = 2.5f;
         private const float ELITE_MARKER_SPEED = 10f; //Clients ease their markers to the host's positions
+        private const float BOSS_DURATION = 120f;
+        private const float BOSS_SIZE = 1.5f;
+        private const float BOSS_MARKER_RADIUS = 4f;
+
+        // The game's mini-bosses, tried in a random order until one spawns
+        private static readonly EEnemy[] MiniBosses = [EEnemy.MinibossPig, EEnemy.MinibossGolem, EEnemy.MinibossGolemSand, EEnemy.MinibossScorpion];
 
         private static readonly Color ZONE_COLOR = new(0.75f, 0.35f, 1f, 1f);
         private static readonly Color ZONE_DONE_COLOR = new(0.4f, 1f, 0.55f, 1f);
         private static readonly Color SHARD_COLOR = new(1f, 0.82f, 0.3f, 1f);
         private static readonly Color STORM_COLOR = new(1f, 0.35f, 0.2f, 1f);
         private static readonly Color ELITE_COLOR = new(1f, 0.25f, 0.45f, 1f);
+        private static readonly Color BOSS_COLOR = new(1f, 0.6f, 0.1f, 1f);
 
         private readonly IUdpClientService udpClientService;
         private readonly IPlayerManagerService playerManagerService;
         private readonly IEnemyManagerService enemyManagerService;
-        private readonly List<Enemy> elites = []; //Host: the elite hunt's elites, in the rift's order
+        private readonly List<Enemy> elites = []; //Host: the elite hunt's elites or the mini-boss, in the rift's order
         private readonly IAscensionService ascensionService;
         private readonly ICurseService curseService;
         // Resolved when used: the synchronization service depends on services that depend on this one
@@ -230,13 +238,13 @@ namespace Megaphonk.Services
                 return;
             }
 
-            var type = (RiftType)random.Next(4);
-            if (type == RiftType.EliteHunt && StartHostEliteHunt(anchors))
+            var type = (RiftType)random.Next(5);
+            if ((type == RiftType.EliteHunt && StartHostEliteHunt(anchors)) || (type == RiftType.MiniBoss && StartHostMiniBoss(anchors)))
             {
                 return;
             }
 
-            if (type is RiftType.Storm or RiftType.EliteHunt) //No enemy to make elites from: a storm instead
+            if (type is RiftType.Storm or RiftType.EliteHunt or RiftType.MiniBoss) //Nothing could spawn: a storm instead
             {
                 StartHostStorm(anchors);
                 return;
@@ -349,7 +357,59 @@ namespace Megaphonk.Services
         }
 
         /// <summary>
-        /// An elite is done once dead, or gone from the stage some other way (nothing left to hunt)
+        /// One of the game's mini-bosses near a player, with the game's mini-boss flag. Spawned by the game's enemy
+        /// manager like its own bosses, so the clients get it like any spawn.
+        /// </summary>
+        private bool StartHostMiniBoss(List<Vector3> anchors)
+        {
+            var manager = EnemyManager.Instance;
+            if (manager == null)
+            {
+                return false;
+            }
+
+            var position = PickZonePositionNear(anchors[random.Next(anchors.Count)], [], 0f) + Vector3.up * 0.5f;
+            elites.Clear();
+            foreach (var kind in MiniBosses.OrderBy(_ => random.Next()))
+            {
+                try
+                {
+                    var boss = manager.SpawnBoss(kind, 0, EEnemyFlag.SummonerMiniboss, position, BOSS_SIZE);
+                    if (boss != null)
+                    {
+                        elites.Add(boss);
+                        Plugin.Log.LogInfo($"Rift mini-boss: {kind}");
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"Rift mini-boss {kind} could not spawn: {ex.Message}");
+                }
+            }
+
+            if (elites.Count == 0)
+            {
+                return false;
+            }
+
+            var started = new RiftStarted
+            {
+                Id = nextId++,
+                Type = RiftType.MiniBoss,
+                Zones = [position.ToNumericsVector3()],
+                ZoneRadius = BOSS_MARKER_RADIUS,
+                Duration = BOSS_DURATION
+            };
+            udpClientService.SendToAllClients(started, LiteNetLib.DeliveryMethod.ReliableOrdered);
+            Begin(started);
+            nextProgressSendAt = 0f;
+            return true;
+        }
+
+        /// <summary>
+        /// An elite or the mini-boss is done once dead, or gone from the stage some other way (nothing left to hunt). The
+        /// mini-boss's progress meanwhile is the HP it lost.
         /// </summary>
         private void UpdateHostElites(float dt)
         {
@@ -370,6 +430,10 @@ namespace Megaphonk.Services
                     }
 
                     current.Zones[i] = elite.transform.position;
+                    if (current.Type == RiftType.MiniBoss)
+                    {
+                        current.Progress[i] = Math.Clamp(1f - elite.GetHpRatio(), 0f, 0.99f);
+                    }
                 }
                 catch
                 {
@@ -387,7 +451,7 @@ namespace Megaphonk.Services
         /// </summary>
         private void UpdateEliteMarkers()
         {
-            if (current == null || current.Type != RiftType.EliteHunt)
+            if (current == null || current.Type is not (RiftType.EliteHunt or RiftType.MiniBoss))
             {
                 return;
             }
@@ -649,7 +713,7 @@ namespace Megaphonk.Services
                 return;
             }
 
-            if (current.Type == RiftType.EliteHunt)
+            if (current.Type is RiftType.EliteHunt or RiftType.MiniBoss)
             {
                 UpdateHostElites(dt);
                 return;
@@ -706,7 +770,7 @@ namespace Megaphonk.Services
                     Id = current.Id,
                     Progress = [.. current.Progress],
                     TimeLeft = current.TimeLeft,
-                    Positions = current.Type == RiftType.EliteHunt ? [.. current.Zones.Select(zone => zone.ToNumericsVector3())] : []
+                    Positions = (current.Type is RiftType.EliteHunt or RiftType.MiniBoss) ? [.. current.Zones.Select(zone => zone.ToNumericsVector3())] : []
                 }, LiteNetLib.DeliveryMethod.ReliableOrdered);
                 RefreshVisuals();
             }
@@ -745,6 +809,7 @@ namespace Megaphonk.Services
                         RiftType.Shards => CreateZoneVisual(zone, current.Radius, SHARD_COLOR),
                         RiftType.Storm => CreateZoneVisual(zone, current.StartRadius, STORM_COLOR),
                         RiftType.EliteHunt => CreateZoneVisual(zone, current.Radius, ELITE_COLOR),
+                        RiftType.MiniBoss => CreateZoneVisual(zone, current.Radius, BOSS_COLOR),
                         _ => CreateZoneVisual(zone, current.Radius, ZONE_COLOR)
                     });
                 }
@@ -760,6 +825,7 @@ namespace Megaphonk.Services
                 RiftType.Shards => "Rift_Shards_Description",
                 RiftType.Storm => "Rift_Storm_Description",
                 RiftType.EliteHunt => "Rift_Elites_Description",
+                RiftType.MiniBoss => "Rift_MiniBoss_Description",
                 _ => "Rift_Description"
             };
             Plugin.StartNotification(("Megaphonk", "Rift"), ("Megaphonk", description), []);
@@ -867,7 +933,7 @@ namespace Megaphonk.Services
                     continue;
                 }
 
-                if (current.Type is RiftType.Shards or RiftType.EliteHunt)
+                if (current.Type is RiftType.Shards or RiftType.EliteHunt or RiftType.MiniBoss)
                 {
                     if (current.Progress[i] >= 1f)
                     {
@@ -935,6 +1001,7 @@ namespace Megaphonk.Services
                 var objective = current.Type switch
                 {
                     RiftType.Shards => $"{Loc.T("collect the shards")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}",
+                    RiftType.MiniBoss => $"{Loc.T("defeat the mini-boss")}  {Loc.T("HP")} {(int)Math.Ceiling((1f - current.Progress[0]) * 100f)}%",
                     RiftType.EliteHunt => $"{Loc.T("hunt down the elites")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}",
                     RiftType.Storm => $"{Loc.T("survive the storm, stay in the circle")}{(isOutsideStorm ? $"  <color=#FF5555>{Loc.T("OUTSIDE THE CIRCLE!")}</color>" : string.Empty)}",
                     _ => $"{Loc.T("hold the zones")}  {string.Join("  ", current.Progress.Select(progress => progress >= 1f ? "<color=#66FF8C>100%</color>" : $"{(int)(progress * 100f)}%"))}"
