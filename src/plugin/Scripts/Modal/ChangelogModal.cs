@@ -298,6 +298,7 @@ namespace Megaphonk.Scripts.Modal
             ModConfig.ShowChangelog.Value = false;
             ModConfig.Save();
             CloseModal();
+            LeaderboardConsentModal.ShowIfNeeded();
         }
 
         public static void Show(ICollection<VersionChanges> changes)

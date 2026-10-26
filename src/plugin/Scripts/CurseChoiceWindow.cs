@@ -1,3 +1,4 @@
+using Megaphonk.Common.Messages.GameNetworkMessages;
 using Megaphonk.Helpers;
 using Megaphonk.Services;
 using System;
@@ -155,9 +156,11 @@ namespace Megaphonk.Scripts
                 ? $"<color=#{ToHex(tierColor)}>[{index + 1}]</color> {Loc.T(offer.Curse.Name)}\n<size=65%><color=#{ToHex(tierColor)}>{Loc.T(tierName)}</color></size>"
                 : $"<color=#{ToHex(BOON_COLOR)}>[{index + 1}]</color> {Loc.T(choice.Boon.Name)}\n<size=65%><color=#{ToHex(tierColor)}>+ {Loc.T(offer.Curse.Name)} ({Loc.T(tierName)})</color></size>";
 
-            // A boon in green, then the curse in red (an increase on a curse, like chest price, is still a cost)
-            var lines = (choice.Boon?.Effects ?? []).Select(effect => FormatEffect(effect, 1f, "77FF99"))
-                .Concat(offer.Curse.Effects.Select(effect => FormatEffect(effect, offer.Scale, "FF7777")))
+            // The boon, then the curse: what helps in green, what costs in red (a higher chest price is a cost)
+            var lines = (choice.Boon?.Effects ?? []).Select(effect => FormatEffect(effect, 1f))
+                .Concat(FormatPerk(choice.Boon?.Perk ?? Perk.None, 1f))
+                .Concat(offer.Curse.Effects.Select(effect => FormatEffect(effect, offer.Scale)))
+                .Concat(FormatPerk(offer.Curse.Perk, offer.Scale))
                 .ToList();
             var effects = AddText("Effects", card, Vector2.zero, new Vector2(1f, 1f), new Vector2(20f, 16f), new Vector2(-20f, -120f), lines.Count > 5 ? 22f : 28f, TextAlignmentOptions.Top);
             effects.enableWordWrapping = true;
@@ -166,10 +169,19 @@ namespace Megaphonk.Scripts
             cards.Add((border, background));
         }
 
-        private static string FormatEffect(CurseEffect effect, float scale, string color)
+        private static IEnumerable<string> FormatPerk(Perk perk, float strength)
         {
-            var percent = Mathf.RoundToInt(effect.Value * scale * 100f);
-            return $"{Loc.T(effect.Label)} <color=#{color}>{(percent > 0 ? "+" : "-")}{Math.Abs(percent)}%</color>";
+            if (perk != Perk.None)
+            {
+                yield return $"<color=#{(PerkService.IsGood(perk) ? "77FF99" : "FF7777")}>{PerkService.DescribePerk(perk, strength)}</color>";
+            }
+        }
+
+        private static string FormatEffect(CurseEffect effect, float scale)
+        {
+            var color = effect.IsGood ? "77FF99" : "FF7777";
+            var value = effect.IsFlat ? Mathf.RoundToInt(effect.Scaled(scale)) : Mathf.RoundToInt(effect.Scaled(scale) * 100f);
+            return $"{Loc.T(effect.Label)} <color=#{color}>{(value > 0 ? "+" : "-")}{Math.Abs(value)}{(effect.IsFlat ? string.Empty : "%")}</color>";
         }
 
         /// <summary>

@@ -91,6 +91,8 @@ namespace Megaphonk.Common.Messages
     [MemoryPackUnion(86, typeof(RiftStarted))]
     [MemoryPackUnion(87, typeof(RiftProgress))]
     [MemoryPackUnion(88, typeof(RiftEnded))]
+    [MemoryPackUnion(89, typeof(PlayerPerks))]
+    [MemoryPackUnion(90, typeof(PerkFx))]
     // 249 is reserved: first byte of a compressed packet (PacketCompression)
     public partial interface IGameNetworkMessage
     {

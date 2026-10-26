@@ -60,6 +60,8 @@ namespace Megaphonk.Services
         private static event Action<RiftStarted> RiftStartedEvents;
         private static event Action<RiftProgress> RiftProgressEvents;
         private static event Action<RiftEnded> RiftEndedEvents;
+        private static event Action<PlayerPerks> PlayerPerksEvents;
+        private static event Action<PerkFx> PerkFxEvents;
         private static event Action GameStartedEvents;
         private static event Action PortalOpenedEvents;
         private static event Action<SpawnedObjectInCrypt> SpawnedObjectInCryptEvents;
@@ -734,6 +736,32 @@ namespace Megaphonk.Services
             MainThreadDispatcher.Enqueue(() =>
             {
                 RiftEndedEvents?.Invoke(riftEnded);
+            });
+        }
+
+        public static void SubscribePlayerPerksEvents(Action<PlayerPerks> action)
+        {
+            PlayerPerksEvents += action;
+        }
+
+        public static void OnPlayerPerks(PlayerPerks playerPerks)
+        {
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                PlayerPerksEvents?.Invoke(playerPerks);
+            });
+        }
+
+        public static void SubscribePerkFxEvents(Action<PerkFx> action)
+        {
+            PerkFxEvents += action;
+        }
+
+        public static void OnPerkFx(PerkFx perkFx)
+        {
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                PerkFxEvents?.Invoke(perkFx);
             });
         }
 

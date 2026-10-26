@@ -60,6 +60,10 @@ def main():
         dotnet = shutil.which('dotnet')
     subprocess.run([dotnet, 'build', os.path.join(PLUGIN, 'Megaphonk.Plugin.csproj'), '-c', 'Debug', '-p:PluginPath=',
                     '-p:IntermediateOutputPath=obj/thunderstore/', '-o', dist], check=True)
+    # Only what the mod needs to run: no debug symbols or build manifests
+    for name in os.listdir(dist):
+        if name.endswith(('.pdb', '.deps.json')):
+            os.remove(os.path.join(dist, name))
     shutil.copy(os.path.join(ROOT, 'LICENSE'), os.path.join(dist, 'LICENSE.txt'))
     open(os.path.join(HERE, 'README.generated.md'), 'w', encoding='utf-8', newline='\n').write(readme())
 

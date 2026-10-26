@@ -130,6 +130,7 @@ namespace Megaphonk.Patches
             {
                 ascensionService.Reset();
                 Plugin.Services.GetService<IRiftService>()?.Reset();
+                Plugin.Services.GetService<IPerkService>()?.Reset();
             }
         }
 

@@ -54,6 +54,7 @@ namespace Megaphonk.Scripts
         private ITeamMeterService teamMeterService;
         private ICurseService curseService;
         private IRiftService riftService;
+        private IPerkService perkService;
         private IChallengeService challengeService;
         private IRunStatsService runStatsService;
         private ICoopLeaderboardService coopLeaderboardService;
@@ -150,6 +151,7 @@ namespace Megaphonk.Scripts
                     teamMeterService.Tick,
                     curseService.Tick,
                     riftService.Tick,
+                    perkService.Tick,
                     challengeService.Tick,
                     runStatsService.Tick,
                     DebugTools.Tick,
@@ -343,6 +345,7 @@ namespace Megaphonk.Scripts
             teamMeterService?.Reset();
             curseService?.Reset();
             riftService?.Reset();
+            perkService?.Reset();
             challengeService?.Reset();
             runStatsService?.Reset();
             coopLeaderboardService?.Reset();
@@ -395,6 +398,7 @@ namespace Megaphonk.Scripts
                 teamMeterService = Plugin.Services.GetRequiredService<ITeamMeterService>();
                 curseService = Plugin.Services.GetRequiredService<ICurseService>();
                 riftService = Plugin.Services.GetRequiredService<IRiftService>();
+                perkService = Plugin.Services.GetRequiredService<IPerkService>();
                 challengeService = Plugin.Services.GetRequiredService<IChallengeService>();
                 runStatsService = Plugin.Services.GetRequiredService<IRunStatsService>();
                 coopLeaderboardService = Plugin.Services.GetRequiredService<ICoopLeaderboardService>();

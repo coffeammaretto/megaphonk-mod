@@ -55,7 +55,7 @@ namespace Megaphonk.Services
 
         public bool IsStarting => starting;
 
-        public bool CanPlacePortal => udpClientService.IsHost().HasValue && !udpClientService.IsSoloSession() && partySettingsService.Current.AscensionEnabled;
+        public bool CanPlacePortal => udpClientService.IsHost().HasValue && partySettingsService.Current.AscensionEnabled;
 
         private bool IsHost => udpClientService.IsHost() ?? false;
 

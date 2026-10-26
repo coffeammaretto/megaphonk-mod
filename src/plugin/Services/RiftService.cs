@@ -156,7 +156,7 @@ namespace Megaphonk.Services
             UpdateStorm();
             UpdateHud();
 
-            if (!IsHost || udpClientService.IsSoloSession() || !synchronization.Value.HasNetplaySessionStarted() || synchronization.Value.IsEndgame())
+            if (!IsHost || !synchronization.Value.HasNetplaySessionStarted() || synchronization.Value.IsEndgame())
             {
                 return;
             }

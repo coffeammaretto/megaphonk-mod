@@ -97,6 +97,15 @@ Bonuses of several modifiers add up, with caps so that stacking them makes a har
 - The mod's texts follow the game's language: English and Russian (other languages show English).
 - Testing shortcuts (`DebugTools`, off; set by the host for the whole party): the first stage's portal leads to the final boss, F10 on the host kills every enemy, F9 on the host opens a rift.
 
+## Online services and privacy
+
+Besides the game itself, the mod talks to:
+- **Steam**, for rooms (Steam lobbies and Steam relays between the players).
+- **GitHub**, to tell you when a new version is out and to show its changelog (`CheckForUpdates`). It only reads the latest release; it never downloads or runs code.
+- **The Megaphonk co-op leaderboard** (`https://megaphonk-leaderboard.megaphonk-leaderboard.workers.dev`, run by the mod's author), only if you agree. The mod asks once in the main menu (`ShareCoopRuns` in the config: `Ask`, `Yes` or `No`). With `Yes`, a finished co-op run sends your Steam name and Steam ID (proved with a Steam session ticket), your character and kills, and the run's map, tier, modifiers and challenge. A run is listed only when every player of it said `Yes`. The friends tab of the leaderboard sends your Steam friends' IDs to show their runs, also only with `Yes`. Reading the global leaderboard sends nothing about you.
+
+The mod's music was made by the mod's author with Suno (paid plan).
+
 ## Installation
 
 With a mod manager: install [MegaphonkMod on Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) with r2modman or Gale, the mod manager installs BepInEx and updates the mod. Manual installation:
@@ -225,6 +234,15 @@ Megaphonk Mod is based on [Megabonk Together](https://github.com/Fcornaire/megab
 - Уведомление о новой версии на GitHub (`CheckForUpdates`) и окно со списком изменений. Сам мод ничего не скачивает и не устанавливает.
 - Тексты мода следуют языку игры: английский и русский (в остальных языках английский).
 - Отладка (`DebugTools`, выключена; включает хост для всей пати): портал первого этапа ведёт к финальному боссу, F10 у хоста убивает всех врагов, F9 у хоста открывает разлом.
+
+### Онлайн-сервисы и личные данные
+
+Кроме самой игры, мод обращается к:
+- **Steam** — для комнат (лобби Steam и релеи Steam между игроками).
+- **GitHub** — чтобы сообщить о новой версии и показать список изменений (`CheckForUpdates`). Мод только читает последний релиз, ничего не скачивает и не запускает.
+- **Кооп-лидерборду Megaphonk** (`https://megaphonk-leaderboard.megaphonk-leaderboard.workers.dev`, его держит автор мода) — только с твоего согласия. Мод один раз спрашивает в главном меню (`ShareCoopRuns` в конфиге: `Ask`, `Yes` или `No`). При `Yes` завершённый кооп-забег отправляет твоё имя и Steam ID (подтверждённый сессионным тикетом Steam), персонажа и убийства, карту, уровень сложности, модификаторы и испытание забега. Забег попадёт в таблицу, только если все его игроки ответили `Yes`. Вкладка друзей в лидерборде отправляет Steam ID твоих друзей, чтобы показать их забеги, — тоже только при `Yes`. Просмотр общей таблицы ничего о тебе не отправляет.
+
+Музыку мода сделал автор мода в Suno (платный аккаунт).
 
 ### Установка
 Через менеджер модов: установи [MegaphonkMod из Thunderstore](https://thunderstore.io/c/megabonk/p/ROFL_MODS/MegaphonkMod/) через r2modman или Gale, менеджер сам поставит BepInEx и будет обновлять мод. Ручная установка:

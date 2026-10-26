@@ -135,7 +135,7 @@ namespace Megaphonk.Services
         /// </summary>
         public void SubmitRun()
         {
-            if (submitted || !(udpClientService.IsHost() ?? false) || !ModConfig.SubmitCoopRuns.Value)
+            if (submitted || !(udpClientService.IsHost() ?? false) || !ModConfig.CanShareCoopRuns)
             {
                 return;
             }
@@ -152,7 +152,8 @@ namespace Megaphonk.Services
                     Kills = runStatsService.GetKills(player.ConnectionId),
                 }).ToList();
 
-                // Every player proves its Steam id with its ticket (checked by the leaderboard with Steam)
+                // Every player proves its Steam id with its ticket (checked by the leaderboard with Steam). A player who did not
+                // agree to share sends no ticket: the run is not listed.
                 var unverified = players.Where(p => p.SteamId == "0" || string.IsNullOrEmpty(p.Ticket)).Select(p => p.Name).ToList();
                 if (!Maps.Contains(map) || tier < 1 || tier > MAX_TIER || players.Count < MIN_PARTY || players.Count > MAX_PARTY || unverified.Count > 0)
                 {
@@ -205,6 +206,11 @@ namespace Megaphonk.Services
             CoopLeaderboardPage response;
             if (friendsOnly)
             {
+                if (!ModConfig.CanShareCoopRuns)
+                {
+                    return new CoopLeaderboardPage(); //Would send the friends' Steam IDs
+                }
+
                 var steamIds = Steam.SteamApi.Initialize()
                     ? Steam.SteamApi.GetFriendSteamIds().Prepend(Steam.SteamApi.GetLocalSteamId()).Select(id => id.ToString()).ToList()
                     : [];

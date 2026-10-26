@@ -1,6 +1,7 @@
 using Assets.Scripts.Inventory__Items__Pickups.Stats;
 using Assets.Scripts.Menu.Shop;
 using Assets.Scripts.Utility;
+using Megaphonk.Common.Messages.GameNetworkMessages;
 using Megaphonk.Helpers;
 using Megaphonk.Scripts;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,10 +22,30 @@ namespace Megaphonk.Services
     /// <summary>
     /// One stat a curse lowers (or raises, for a price) or a pact raises: an addition to the stat's multiplier, so a
     /// percentage of what the player has. A build without that stat doesn't care, which is the point of choosing.
+    /// Flat effects (projectiles, bounces, jumps) add whole units instead.
     /// </summary>
-    public record CurseEffect(EStat Stat, float Value, string Label);
+    public record CurseEffect(EStat Stat, float Value, string Label, EStatModifyType Type = EStatModifyType.Addition)
+    {
+        public bool IsFlat => Type == EStatModifyType.Flat;
 
-    public record CurseDefinition(string Name, CurseEffect[] Effects);
+        /// <summary>
+        /// Lower is better for these
+        /// </summary>
+        public bool IsGood => Value > 0f != (Stat == EStat.ChestPriceMultiplier);
+
+        /// <summary>
+        /// The value at a tier's scale: whole units, at least one, for flat effects
+        /// </summary>
+        public float Scaled(float scale)
+        {
+            return IsFlat ? Math.Sign(Value) * Math.Max(1f, MathF.Round(Math.Abs(Value * scale))) : Value * scale;
+        }
+    }
+
+    /// <summary>
+    /// A curse or a boon: stat effects, and a mechanic beyond stats (PerkService), a curse's at its tier's scale
+    /// </summary>
+    public record CurseDefinition(string Name, CurseEffect[] Effects, Perk Perk = Perk.None);
 
     public record CurseOffer(CurseDefinition Curse, CurseTier Tier)
     {
@@ -88,57 +109,87 @@ namespace Megaphonk.Services
         private const int OFFER_COUNT = 3;
         private const float OPEN_DELAY = 2f;
         private const float MAX_PENALTY = 0.75f; //Most a stat loses to curses together
-        private const float MAX_INCREASE = 1.5f;
+        private const float MAX_INCREASE = 2f;
+        private const float MAX_FLAT = 3f; //Most projectiles, bounces or jumps added together
 
-        // Stats are summed per stat, so a curse twice is twice the penalty
+        // Stats are summed per stat, so a curse twice is twice the penalty. Some curses pay back with an upside.
         private static readonly CurseDefinition[] Curses =
         [
-            new("Frailty", [new(EStat.MaxHealth, -0.15f, "Max HP")]),
-            new("Weakness", [new(EStat.DamageMultiplier, -0.12f, "Damage")]),
-            new("Lethargy", [new(EStat.AttackSpeed, -0.12f, "Attack speed")]),
-            new("Burden", [new(EStat.MoveSpeedMultiplier, -0.1f, "Movement speed")]),
-            new("Rot", [new(EStat.HealingMultiplier, -0.3f, "Healing"), new(EStat.HealthRegen, -0.4f, "HP regen")]),
-            new("Myopia", [new(EStat.PickupRange, -0.3f, "Pickup range")]),
-            new("Avarice", [new(EStat.GoldIncreaseMultiplier, -0.25f, "Gold"), new(EStat.SilverIncreaseMultiplier, -0.25f, "Silver")]),
-            new("Misfortune", [new(EStat.Luck, -0.2f, "Luck")]),
-            new("Exposure", [new(EStat.Armor, -0.25f, "Armor")]),
-            new("Stiffness", [new(EStat.Evasion, -0.3f, "Evasion")]),
-            new("Fading", [new(EStat.DurationMultiplier, -0.15f, "Duration"), new(EStat.EffectDurationMultiplier, -0.2f, "Effect duration")]),
-            new("Withering", [new(EStat.SizeMultiplier, -0.15f, "Size")]),
-            new("Dull Edge", [new(EStat.CritChance, -0.2f, "Crit chance"), new(EStat.CritDamage, -0.15f, "Crit damage")]),
-            new("Cracked Shield", [new(EStat.Shield, -0.35f, "Shield")]),
-            new("Bloodless", [new(EStat.Lifesteal, -0.35f, "Lifesteal")]),
-            new("Blunted Thorns", [new(EStat.Thorns, -0.4f, "Thorns")]),
-            new("Thick Air", [new(EStat.ProjectileSpeedMultiplier, -0.2f, "Projectile speed"), new(EStat.KnockbackMultiplier, -0.3f, "Knockback")]),
-            new("Cowardice", [new(EStat.EliteDamageMultiplier, -0.25f, "Elite damage")]),
-            new("Elemental Silence", [new(EStat.FireDamage, -0.2f, "Fire damage"), new(EStat.IceDamage, -0.2f, "Ice damage"), new(EStat.LightningDamage, -0.2f, "Lightning damage"), new(EStat.PoisonDamageMultiplier, -0.2f, "Poison damage")]),
-            new("Cold Ashes", [new(EStat.BurnChance, -0.3f, "Burn chance"), new(EStat.FreezeChance, -0.3f, "Freeze chance")]),
-            new("Dim Power", [new(EStat.PowerupChance, -0.3f, "Power-up chance"), new(EStat.PowerupBoostMultiplier, -0.2f, "Power-up strength")]),
-            new("Inflation", [new(EStat.ChestPriceMultiplier, 0.2f, "Chest price")]),
-            new("Grounded", [new(EStat.JumpHeight, -0.25f, "Jump height"), new(EStat.MoveSpeedMultiplier, -0.05f, "Movement speed")]),
-            new("Glass Bones", [new(EStat.MaxHealth, -0.08f, "Max HP"), new(EStat.Armor, -0.15f, "Armor")]),
-            new("Tremor", [new(EStat.DamageMultiplier, -0.06f, "Damage"), new(EStat.CritChance, -0.1f, "Crit chance")]),
-            new("Exhaustion", [new(EStat.AttackSpeed, -0.06f, "Attack speed"), new(EStat.MoveSpeedMultiplier, -0.06f, "Movement speed")]),
+            new("Frailty", [new(EStat.MaxHealth, -0.25f, "Max HP")]),
+            new("Weakness", [new(EStat.DamageMultiplier, -0.22f, "Damage")]),
+            new("Lethargy", [new(EStat.AttackSpeed, -0.22f, "Attack speed")]),
+            new("Burden", [new(EStat.MoveSpeedMultiplier, -0.18f, "Movement speed")]),
+            new("Rot", [new(EStat.HealingMultiplier, -0.5f, "Healing"), new(EStat.HealthRegen, -0.6f, "HP regen")]),
+            new("Myopia", [new(EStat.PickupRange, -0.5f, "Pickup range")]),
+            new("Avarice", [new(EStat.GoldIncreaseMultiplier, -0.4f, "Gold"), new(EStat.SilverIncreaseMultiplier, -0.4f, "Silver")]),
+            new("Misfortune", [new(EStat.Luck, -0.35f, "Luck")]),
+            new("Exposure", [new(EStat.Armor, -0.45f, "Armor")]),
+            new("Stiffness", [new(EStat.Evasion, -0.5f, "Evasion")]),
+            new("Fading", [new(EStat.DurationMultiplier, -0.25f, "Duration"), new(EStat.EffectDurationMultiplier, -0.35f, "Effect duration")]),
+            new("Withering", [new(EStat.SizeMultiplier, -0.25f, "Size")]),
+            new("Dull Edge", [new(EStat.CritChance, -0.35f, "Crit chance"), new(EStat.CritDamage, -0.25f, "Crit damage")]),
+            new("Cracked Shield", [new(EStat.Shield, -0.55f, "Shield")]),
+            new("Bloodless", [new(EStat.Lifesteal, -0.6f, "Lifesteal")]),
+            new("Blunted Thorns", [new(EStat.Thorns, -0.6f, "Thorns")]),
+            new("Thick Air", [new(EStat.ProjectileSpeedMultiplier, -0.35f, "Projectile speed"), new(EStat.KnockbackMultiplier, -0.5f, "Knockback")]),
+            new("Cowardice", [new(EStat.EliteDamageMultiplier, -0.4f, "Elite damage")]),
+            new("Elemental Silence", [new(EStat.FireDamage, -0.35f, "Fire damage"), new(EStat.IceDamage, -0.35f, "Ice damage"), new(EStat.LightningDamage, -0.35f, "Lightning damage"), new(EStat.PoisonDamageMultiplier, -0.35f, "Poison damage")]),
+            new("Cold Ashes", [new(EStat.BurnChance, -0.5f, "Burn chance"), new(EStat.FreezeChance, -0.5f, "Freeze chance")]),
+            new("Dim Power", [new(EStat.PowerupChance, -0.5f, "Power-up chance"), new(EStat.PowerupBoostMultiplier, -0.35f, "Power-up strength")]),
+            new("Inflation", [new(EStat.ChestPriceMultiplier, 0.35f, "Chest price")]),
+            new("Grounded", [new(EStat.JumpHeight, -0.4f, "Jump height"), new(EStat.MoveSpeedMultiplier, -0.1f, "Movement speed")]),
+            new("Glass Bones", [new(EStat.MaxHealth, -0.15f, "Max HP"), new(EStat.Armor, -0.25f, "Armor")]),
+            new("Tremor", [new(EStat.DamageMultiplier, -0.12f, "Damage"), new(EStat.CritChance, -0.18f, "Crit chance")]),
+            new("Exhaustion", [new(EStat.AttackSpeed, -0.12f, "Attack speed"), new(EStat.MoveSpeedMultiplier, -0.12f, "Movement speed")]),
+            new("Dull Mind", [new(EStat.XpIncreaseMultiplier, -0.3f, "XP gain")]),
+            new("Leaden Rounds", [new(EStat.ProjectileSpeedMultiplier, -0.35f, "Projectile speed"), new(EStat.AttackSpeed, -0.1f, "Attack speed")]),
+            new("Scattershot", [new(EStat.Projectiles, 1f, "Projectiles", EStatModifyType.Flat), new(EStat.DamageMultiplier, -0.35f, "Damage")]),
+            new("Reckless", [new(EStat.DamageMultiplier, 0.25f, "Damage"), new(EStat.MaxHealth, -0.35f, "Max HP")]),
+            new("Bloodlust", [new(EStat.AttackSpeed, 0.2f, "Attack speed"), new(EStat.Armor, -0.5f, "Armor"), new(EStat.HealingMultiplier, -0.4f, "Healing")]),
+            new("Giant", [new(EStat.SizeMultiplier, 0.3f, "Size"), new(EStat.MoveSpeedMultiplier, -0.2f, "Movement speed"), new(EStat.Evasion, -0.3f, "Evasion")]),
+            new("Short Fuse", [new(EStat.AttackSpeed, 0.15f, "Attack speed"), new(EStat.DurationMultiplier, -0.35f, "Duration")]),
+            new("Wild Bounce", [new(EStat.ProjectileBounces, 1f, "Projectile bounces", EStatModifyType.Flat), new(EStat.DamageMultiplier, -0.2f, "Damage"), new(EStat.ProjectileSpeedMultiplier, -0.2f, "Projectile speed")]),
+            new("Recoil", [new(EStat.ProjectileSpeedMultiplier, 0.15f, "Projectile speed")], Perk.Recoil),
+            new("Jammed", [], Perk.Misfire),
+            new("Vengeful Dead", [], Perk.VengefulDead),
+            new("Blood Price", [new(EStat.DamageMultiplier, 0.2f, "Damage")], Perk.BloodPrice),
+            new("Short Range", [], Perk.ShortRange),
+            new("Jinx", [], Perk.Unlucky),
         ];
 
         // Pact boons: worth more than the lesser or normal curse that comes with them
         private static readonly CurseDefinition[] Boons =
         [
-            new("Might", [new(EStat.DamageMultiplier, 0.15f, "Damage")]),
-            new("Haste", [new(EStat.AttackSpeed, 0.15f, "Attack speed")]),
-            new("Vigor", [new(EStat.MaxHealth, 0.2f, "Max HP")]),
-            new("Swiftness", [new(EStat.MoveSpeedMultiplier, 0.12f, "Movement speed")]),
-            new("Precision", [new(EStat.CritChance, 0.25f, "Crit chance"), new(EStat.CritDamage, 0.15f, "Crit damage")]),
-            new("Reach", [new(EStat.SizeMultiplier, 0.15f, "Size"), new(EStat.PickupRange, 0.3f, "Pickup range")]),
-            new("Endurance", [new(EStat.DurationMultiplier, 0.2f, "Duration"), new(EStat.EffectDurationMultiplier, 0.2f, "Effect duration")]),
-            new("Bulwark", [new(EStat.Armor, 0.3f, "Armor"), new(EStat.Shield, 0.3f, "Shield")]),
-            new("Fortune", [new(EStat.Luck, 0.25f, "Luck"), new(EStat.GoldIncreaseMultiplier, 0.2f, "Gold")]),
-            new("Leech", [new(EStat.Lifesteal, 0.4f, "Lifesteal"), new(EStat.HealingMultiplier, 0.3f, "Healing")]),
-            new("Velocity", [new(EStat.ProjectileSpeedMultiplier, 0.25f, "Projectile speed"), new(EStat.KnockbackMultiplier, 0.3f, "Knockback")]),
-            new("Elemental Fury", [new(EStat.FireDamage, 0.25f, "Fire damage"), new(EStat.IceDamage, 0.25f, "Ice damage"), new(EStat.LightningDamage, 0.25f, "Lightning damage"), new(EStat.PoisonDamageMultiplier, 0.25f, "Poison damage")]),
-            new("Wisdom", [new(EStat.XpIncreaseMultiplier, 0.2f, "XP gain")]),
-            new("Agility", [new(EStat.Evasion, 0.4f, "Evasion"), new(EStat.JumpHeight, 0.25f, "Jump height")]),
-            new("Slayer", [new(EStat.EliteDamageMultiplier, 0.3f, "Elite damage")]),
+            new("Might", [new(EStat.DamageMultiplier, 0.25f, "Damage")]),
+            new("Haste", [new(EStat.AttackSpeed, 0.25f, "Attack speed")]),
+            new("Vigor", [new(EStat.MaxHealth, 0.35f, "Max HP")]),
+            new("Swiftness", [new(EStat.MoveSpeedMultiplier, 0.2f, "Movement speed")]),
+            new("Precision", [new(EStat.CritChance, 0.4f, "Crit chance"), new(EStat.CritDamage, 0.3f, "Crit damage")]),
+            new("Reach", [new(EStat.SizeMultiplier, 0.25f, "Size"), new(EStat.PickupRange, 0.5f, "Pickup range")]),
+            new("Endurance", [new(EStat.DurationMultiplier, 0.35f, "Duration"), new(EStat.EffectDurationMultiplier, 0.35f, "Effect duration")]),
+            new("Bulwark", [new(EStat.Armor, 0.5f, "Armor"), new(EStat.Shield, 0.5f, "Shield")]),
+            new("Fortune", [new(EStat.Luck, 0.4f, "Luck"), new(EStat.GoldIncreaseMultiplier, 0.35f, "Gold")]),
+            new("Leech", [new(EStat.Lifesteal, 0.6f, "Lifesteal"), new(EStat.HealingMultiplier, 0.5f, "Healing")]),
+            new("Velocity", [new(EStat.ProjectileSpeedMultiplier, 0.4f, "Projectile speed"), new(EStat.KnockbackMultiplier, 0.5f, "Knockback")]),
+            new("Elemental Fury", [new(EStat.FireDamage, 0.4f, "Fire damage"), new(EStat.IceDamage, 0.4f, "Ice damage"), new(EStat.LightningDamage, 0.4f, "Lightning damage"), new(EStat.PoisonDamageMultiplier, 0.4f, "Poison damage")]),
+            new("Wisdom", [new(EStat.XpIncreaseMultiplier, 0.35f, "XP gain")]),
+            new("Agility", [new(EStat.Evasion, 0.6f, "Evasion"), new(EStat.JumpHeight, 0.4f, "Jump height")]),
+            new("Slayer", [new(EStat.EliteDamageMultiplier, 0.5f, "Elite damage")]),
+            new("Multishot", [new(EStat.Projectiles, 1f, "Projectiles", EStatModifyType.Flat)]),
+            new("Ricochet", [new(EStat.ProjectileBounces, 2f, "Projectile bounces", EStatModifyType.Flat), new(EStat.ProjectileSpeedMultiplier, 0.2f, "Projectile speed")]),
+            new("Skywalker", [new(EStat.ExtraJumps, 1f, "Extra jumps", EStatModifyType.Flat), new(EStat.MoveSpeedMultiplier, 0.1f, "Movement speed")]),
+            new("Inferno", [new(EStat.BurnChance, 0.5f, "Burn chance"), new(EStat.FreezeChance, 0.5f, "Freeze chance")]),
+            new("Empowered", [new(EStat.PowerupChance, 0.6f, "Power-up chance"), new(EStat.PowerupBoostMultiplier, 0.4f, "Power-up strength")]),
+            new("Juggernaut", [new(EStat.Thorns, 0.8f, "Thorns"), new(EStat.MaxHealth, 0.15f, "Max HP")]),
+            new("Barrage", [new(EStat.Projectiles, 1f, "Projectiles", EStatModifyType.Flat), new(EStat.ProjectileBounces, 1f, "Projectile bounces", EStatModifyType.Flat)]),
+            new("Blast Rounds", [], Perk.Explosive),
+            new("Splinter", [], Perk.Splitting),
+            new("Storm Caller", [], Perk.ChainLightning),
+            new("Lance", [], Perk.Piercing),
+            new("Reaper", [], Perk.Execute),
+            new("Hunter's Mark", [], Perk.Mark),
+            new("Echo", [], Perk.Echo),
+            new("Plague", [], Perk.PoisonCloud),
         ];
 
         private readonly IEncounterService encounterService;
@@ -194,23 +245,25 @@ namespace Megaphonk.Services
 
         public void AddModifiers(Dictionary<string, (EStat Stat, EStatModifyType Type, float Value)> wanted)
         {
-            var totals = new Dictionary<EStat, float>();
+            var totals = new Dictionary<(EStat Stat, EStatModifyType Type), float>();
             foreach (var offer in taken)
             {
                 foreach (var effect in offer.Curse.Curse.Effects)
                 {
-                    totals[effect.Stat] = totals.GetValueOrDefault(effect.Stat) + effect.Value * offer.Curse.Scale;
+                    totals[(effect.Stat, effect.Type)] = totals.GetValueOrDefault((effect.Stat, effect.Type)) + effect.Scaled(offer.Curse.Scale);
                 }
 
                 foreach (var effect in offer.Boon?.Effects ?? [])
                 {
-                    totals[effect.Stat] = totals.GetValueOrDefault(effect.Stat) + effect.Value;
+                    totals[(effect.Stat, effect.Type)] = totals.GetValueOrDefault((effect.Stat, effect.Type)) + effect.Value;
                 }
             }
 
-            foreach (var (stat, total) in totals)
+            foreach (var ((stat, type), total) in totals)
             {
-                wanted["Curse" + stat] = (stat, EStatModifyType.Addition, Mathf.Clamp(total, -MAX_PENALTY, MAX_INCREASE));
+                wanted[type == EStatModifyType.Flat ? "CurseFlat" + stat : "Curse" + stat] = type == EStatModifyType.Flat
+                    ? (stat, type, Mathf.Clamp(total, -MAX_FLAT, MAX_FLAT))
+                    : (stat, type, Mathf.Clamp(total, -MAX_PENALTY, MAX_INCREASE));
             }
         }
 
@@ -246,10 +299,9 @@ namespace Megaphonk.Services
 
         private void Open((ChoiceKind Kind, int Level) choice)
         {
-            var curses = Curses.OrderBy(_ => random.Next()).Take(OFFER_COUNT);
             offers = choice.Kind == ChoiceKind.RiftPact
-                ? curses.Zip(Boons.OrderBy(_ => random.Next()), (curse, boon) => new ChoiceOffer(new CurseOffer(curse, RollPactTier()), boon)).ToList()
-                : curses.Select(curse => new ChoiceOffer(new CurseOffer(curse, RollTier()))).ToList();
+                ? RollPacts()
+                : Curses.OrderBy(_ => random.Next()).Take(OFFER_COUNT).Select(curse => new ChoiceOffer(new CurseOffer(curse, RollTier()))).ToList();
 
             var (title, subtitle) = choice.Kind switch
             {
@@ -265,9 +317,9 @@ namespace Megaphonk.Services
             }
 
             encounterService.IsCurseChoiceOpen = true;
-            if (synchronization.Value.IsPartyPauseEnabled())
+            if (synchronization.Value.IsPartyPauseEnabled() || IsSolo)
             {
-                MyTime.Pause(); //The host pauses the others when it sees this player choosing
+                MyTime.Pause(); //The host pauses the others when it sees this player choosing; alone, a plain pause
             }
             Plugin.Log.LogInfo($"{choice.Kind} choice: {string.Join(", ", offers.Select(Describe))}");
         }
@@ -275,6 +327,32 @@ namespace Megaphonk.Services
         private static string Describe(ChoiceOffer offer)
         {
             return $"{(offer.Boon == null ? string.Empty : offer.Boon.Name + " + ")}{offer.Curse.Curse.Name} ({offer.Curse.Tier})";
+        }
+
+        /// <summary>
+        /// Pairs each boon with a curse that touches none of its stats, so a pact never raises and lowers the same stat
+        /// </summary>
+        private List<ChoiceOffer> RollPacts()
+        {
+            var curses = Curses.OrderBy(_ => random.Next()).ToList();
+            var pacts = new List<ChoiceOffer>();
+            foreach (var boon in Boons.OrderBy(_ => random.Next()))
+            {
+                var stats = boon.Effects.Select(effect => effect.Stat).ToHashSet();
+                var curse = curses.FirstOrDefault(c => c.Effects.All(effect => !stats.Contains(effect.Stat)));
+                if (curse == null)
+                {
+                    continue;
+                }
+
+                curses.Remove(curse);
+                pacts.Add(new ChoiceOffer(new CurseOffer(curse, RollPactTier()), boon));
+                if (pacts.Count == OFFER_COUNT)
+                {
+                    break;
+                }
+            }
+            return pacts;
         }
 
         private CurseTier RollPactTier()
@@ -308,7 +386,13 @@ namespace Megaphonk.Services
                     ScreenTextHelper.Show("Waiting for other player(s) choices...", new Vector2(0, -350));
                 }
             }
+            else if (IsSolo && MyTime.paused)
+            {
+                MyTime.Unpause();
+            }
         }
+
+        private static bool IsSolo => Plugin.Services.GetService<IUdpClientService>()?.IsSoloSession() ?? false;
 
         /// <summary>
         /// Without choosing: the choice stays pending

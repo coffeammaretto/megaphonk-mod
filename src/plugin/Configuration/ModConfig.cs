@@ -3,6 +3,13 @@ using Megaphonk.Common.Messages.GameNetworkMessages;
 
 namespace Megaphonk.Configuration
 {
+    public enum LeaderboardConsent
+    {
+        Ask,
+        Yes,
+        No
+    }
+
     public static class ModConfig
     {
         private static ConfigFile configFile;
@@ -49,7 +56,12 @@ namespace Megaphonk.Configuration
 
         public static ConfigEntry<bool> CustomMusic { get; private set; }
         public static ConfigEntry<int> MaxPickupObjects { get; private set; }
-        public static ConfigEntry<bool> SubmitCoopRuns { get; private set; }
+        public static ConfigEntry<LeaderboardConsent> ShareCoopRuns { get; private set; }
+
+        /// <summary>
+        /// The player agreed to send their Steam identity and runs to the co-op leaderboard
+        /// </summary>
+        public static bool CanShareCoopRuns => ShareCoopRuns.Value == LeaderboardConsent.Yes;
         public static ConfigEntry<string> LeaderboardUrl { get; private set; }
 
         public static ConfigEntry<bool> PerformanceLog { get; private set; }
@@ -187,8 +199,8 @@ namespace Megaphonk.Configuration
                 new ConfigDescription("Co-op runs: most xp orbs (and as many gold coins) lying on the map. Over it the oldest ones merge into one worth as much (fewer objects, less lag), as the game does in solo with a lower limit.",
                     new AcceptableValueRange<int>(50, 10000)));
 
-            SubmitCoopRuns = config.Bind("Leaderboard", "SubmitCoopRuns", true,
-                "Host: submit each finished co-op run to the Megaphonk co-op leaderboard (map, tier, players' names, Steam IDs, characters and kills). The game's own leaderboards do not count co-op runs.");
+            ShareCoopRuns = config.Bind("Leaderboard", "ShareCoopRuns", LeaderboardConsent.Ask,
+                "Share your finished co-op runs with the Megaphonk co-op leaderboard, an online server run by the mod's author: your Steam name, Steam ID (proved with a Steam session ticket), character and kills, with the run's map, tier, modifiers and challenge. A run is listed only when every player of it said Yes. Ask: the mod asks in the main menu. The game's own leaderboards do not count co-op runs.");
             LeaderboardUrl = config.Bind("Leaderboard", "LeaderboardUrl", "https://megaphonk-leaderboard.megaphonk-leaderboard.workers.dev",
                 "The URL of the co-op leaderboard. Do not change this unless you know what you're doing (e.g. for self-hosting).");
 

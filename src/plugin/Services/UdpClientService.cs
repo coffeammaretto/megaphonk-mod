@@ -884,6 +884,9 @@ namespace Megaphonk.Services
                     case RiftEnded riftEnded:
                         EventManager.OnRiftEnded(riftEnded);
                         break;
+                    case PerkFx perkFx:
+                        EventManager.OnPerkFx(perkFx);
+                        break;
                     default:
                         Plugin.Log.LogWarning($"Unknown message type received. message={message}");
                         break;
@@ -1163,6 +1166,9 @@ namespace Megaphonk.Services
                         break;
                     case AscensionStarted ascensionStarted: //A client asks for the next ascension
                         EventManager.OnAscensionStarted(ascensionStarted);
+                        break;
+                    case PlayerPerks playerPerks: //Only the host runs hit perks: not forwarded
+                        EventManager.OnPlayerPerks(playerPerks);
                         break;
                     case ModVersionInfo modVersionInfo:
                         EventManager.OnModVersionInfo(modVersionInfo);

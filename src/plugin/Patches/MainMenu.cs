@@ -100,6 +100,10 @@ namespace Megaphonk.Patches
                 {
                     ShowChangelogModal();
                 }
+                else
+                {
+                    Scripts.Modal.LeaderboardConsentModal.ShowIfNeeded();
+                }
             }
         }
 

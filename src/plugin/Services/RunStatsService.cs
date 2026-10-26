@@ -1,5 +1,6 @@
 using Megaphonk.Common.Messages;
 using Megaphonk.Common.Messages.GameNetworkMessages;
+using Megaphonk.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -91,7 +92,7 @@ namespace Megaphonk.Services
                 OwnerId = localPlayer.ConnectionId,
                 GoldEarned = localGoldEarned,
                 SteamId = GetLocalSteamId(),
-                SteamTicket = Steam.SteamApi.GetAuthTicket()
+                SteamTicket = ModConfig.CanShareCoopRuns ? Steam.SteamApi.GetAuthTicket() : null //Only for the leaderboard
             };
             udpClientService.SendToHost(message, LiteNetLib.DeliveryMethod.ReliableOrdered);
         }
@@ -155,7 +156,7 @@ namespace Megaphonk.Services
         {
             var localPlayer = playerManagerService.GetLocalPlayer();
             return localPlayer != null && localPlayer.ConnectionId == connectionId
-                ? Steam.SteamApi.GetAuthTicket()
+                ? (ModConfig.CanShareCoopRuns ? Steam.SteamApi.GetAuthTicket() : "")
                 : steamTickets.GetValueOrDefault(connectionId, "");
         }
 

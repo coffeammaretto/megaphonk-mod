@@ -157,6 +157,7 @@ namespace Megaphonk
             ClassInjector.RegisterTypeInIl2Cpp<NetplayOptionsModal>();
             ClassInjector.RegisterTypeInIl2Cpp<LoadingModal>();
             ClassInjector.RegisterTypeInIl2Cpp<UpdateAvailableModal>();
+            ClassInjector.RegisterTypeInIl2Cpp<LeaderboardConsentModal>();
             ClassInjector.RegisterTypeInIl2Cpp<ChangelogModal>();
             ClassInjector.RegisterTypeInIl2Cpp<CoopLeaderboardPanel>();
             ClassInjector.RegisterTypeInIl2Cpp<TargetSwitcher>();
@@ -199,6 +200,7 @@ namespace Megaphonk
                 services.AddSingleton<IAscensionService, AscensionService>();
                 services.AddSingleton<ICurseService, CurseService>();
                 services.AddSingleton<IRiftService, RiftService>();
+                services.AddSingleton<IPerkService, PerkService>();
                 services.AddSingleton<IRunStatsService, RunStatsService>();
                 services.AddSingleton<ICoopLeaderboardService, CoopLeaderboardService>();
                 services.AddSingleton<ITrackerService, TrackerService>();
