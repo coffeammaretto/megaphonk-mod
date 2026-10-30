@@ -99,6 +99,10 @@ namespace Megaphonk.Services
         private int procFrame = -1;
         private int procsThisFrame;
         private int enemiesFrame = -1;
+        private readonly List<(float Distance, int Index)> nearestCandidates = [];
+        private readonly List<IntPtr> excludedPointers = [];
+        // Nearest first, ties in list order like the stable sort it replaced
+        private static readonly Comparison<(float Distance, int Index)> NearestFirst = (a, b) => a.Distance != b.Distance ? a.Distance.CompareTo(b.Distance) : a.Index.CompareTo(b.Index);
         private float fxWindowStart;
         private int fxInWindow;
         private float nextVengefulAt;
@@ -361,14 +365,48 @@ namespace Megaphonk.Services
         private List<(Enemy Enemy, Vector3 Position)> Nearest(Vector3 center, float range, int count, Enemy[] exclude, Func<Vector3, bool> filter = null)
         {
             RefreshEnemies();
-            var excluded = exclude.Where(e => e != null).Select(e => e.Ptr()).ToHashSet();
+            excludedPointers.Clear();
+            foreach (var enemy in exclude)
+            {
+                if (enemy != null)
+                {
+                    excludedPointers.Add(enemy.Ptr());
+                }
+            }
+
+            // Plain float math: Unity's vector operators are native calls here, and this runs for every enemy on every proc
             var squared = range * range;
-            return enemies
-                .Where(e => !excluded.Contains(e.Enemy.Ptr()) && (e.Position - center).sqrMagnitude <= squared && (filter == null || filter(e.Position)))
-                .OrderBy(e => (e.Position - center).sqrMagnitude)
-                .Where(e => e.Enemy != null && e.Enemy.CachedPtr() != IntPtr.Zero && !e.Enemy.IsDeadOrDyingNextFrame())
-                .Take(count)
-                .ToList();
+            nearestCandidates.Clear();
+            for (var i = 0; i < enemies.Count; i++)
+            {
+                var (enemy, position) = enemies[i];
+                var dx = position.x - center.x;
+                var dy = position.y - center.y;
+                var dz = position.z - center.z;
+                var distance = dx * dx + dy * dy + dz * dz;
+                if (distance <= squared && !excludedPointers.Contains(enemy.Ptr()) && (filter == null || filter(position)))
+                {
+                    nearestCandidates.Add((distance, i));
+                }
+            }
+
+            nearestCandidates.Sort(NearestFirst);
+            var nearest = new List<(Enemy Enemy, Vector3 Position)>();
+            foreach (var (_, index) in nearestCandidates)
+            {
+                if (nearest.Count >= count)
+                {
+                    break;
+                }
+
+                var candidate = enemies[index];
+                if (candidate.Enemy != null && candidate.Enemy.CachedPtr() != IntPtr.Zero && !candidate.Enemy.IsDeadOrDyingNextFrame())
+                {
+                    nearest.Add(candidate);
+                }
+            }
+
+            return nearest;
         }
 
         private void RefreshEnemies()

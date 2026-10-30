@@ -4,6 +4,8 @@ using Megaphonk.Helpers;
 using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
+using System;
+using System.Collections.Generic;
 
 namespace Megaphonk.Patches
 {
@@ -77,12 +79,31 @@ namespace Megaphonk.Patches
                 return;
             }
 
-            var inGame = Il2CppFindHelper.FindAllGameObjects();
-            foreach (var obj in inGame)
+            // Every name read once (each read is a native call and a new string), one pass over the scene
+            var prefixes = new List<string>();
+            foreach (var prefab in stageData.stageTilePrefabs.flatTilePrefabs)
             {
-                foreach (var prefab in stageData.stageTilePrefabs.flatTilePrefabs)
+                prefixes.Add(prefab.name);
+            }
+
+            foreach (var prefab in stageData.stageTilePrefabs.mapSpecificTilesPrefabs)
+            {
+                prefixes.Add(prefab.name);
+            }
+
+            prefixes.Add(__instance.bossSpawner.name);
+            prefixes.Add(__instance.bossSpawnerFinal.name);
+            if (MapController.currentMap.eMap == Assets.Scripts._Data.MapsAndStages.EMap.Graveyard)
+            {
+                prefixes.Add(__instance.graveyardBossPortal.name);
+            }
+
+            foreach (var obj in Il2CppFindHelper.FindAllGameObjects())
+            {
+                var name = obj.name;
+                foreach (var prefix in prefixes)
                 {
-                    if (obj.name.StartsWith(prefab.name))
+                    if (name.StartsWith(prefix, StringComparison.Ordinal))
                     {
                         var dynamic = DynamicData.For(obj);
                         var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
@@ -91,54 +112,7 @@ namespace Megaphonk.Patches
                             synchronizationService.OnSpawnedObject(obj);
                             dynamic.Set("hasBeenSetByServer", true);
                         }
-                    }
-                }
-
-                foreach (var prefab in stageData.stageTilePrefabs.mapSpecificTilesPrefabs)
-                {
-                    if (obj.name.StartsWith(prefab.name))
-                    {
-                        var dynamic = DynamicData.For(obj);
-                        var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
-                        if (!hasBeenSet.HasValue)
-                        {
-                            synchronizationService.OnSpawnedObject(obj);
-                            dynamic.Set("hasBeenSetByServer", true);
-                        }
-                    }
-                }
-
-                if (obj.name.StartsWith(__instance.bossSpawner.name))
-                {
-                    var dynamic = DynamicData.For(obj);
-                    var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
-                    if (!hasBeenSet.HasValue)
-                    {
-                        synchronizationService.OnSpawnedObject(obj);
-                        dynamic.Set("hasBeenSetByServer", true);
-                    }
-                }
-
-                if (obj.name.StartsWith(__instance.bossSpawnerFinal.name))
-                {
-                    var dynamic = DynamicData.For(obj);
-                    var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
-                    if (!hasBeenSet.HasValue)
-                    {
-                        synchronizationService.OnSpawnedObject(obj);
-                        dynamic.Set("hasBeenSetByServer", true);
-                    }
-                }
-
-                if (MapController.currentMap.eMap == Assets.Scripts._Data.MapsAndStages.EMap.Graveyard &&
-                    obj.name.StartsWith(__instance.graveyardBossPortal.name))
-                {
-                    var dynamic = DynamicData.For(obj);
-                    var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
-                    if (!hasBeenSet.HasValue)
-                    {
-                        synchronizationService.OnSpawnedObject(obj);
-                        dynamic.Set("hasBeenSetByServer", true);
+                        break;
                     }
                 }
             }

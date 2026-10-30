@@ -77,6 +77,7 @@ namespace Megaphonk.Services
         /// </summary>
         public void SetDowned(uint connectionId, bool downed);
         public bool IsDowned(uint connectionId);
+        public bool IsAnyoneDowned();
         public IEnumerable<(uint, Rigidbody)> GetConnectionIdsAndRigidBodies();
         public void Disconnect(uint connectionId);
         public void Reset();
@@ -112,6 +113,12 @@ namespace Megaphonk.Services
         private readonly ManualLogSource logger;
         private ConcurrentDictionary<uint, NetPlayer> spawnedPlayers = [];
         private uint localConnectionId = 0;
+        // Read from the game's dictionaries (dozens of native calls): rebuilt every few ticks (a quarter of a second at
+        // 60 ticks/s) or when the inventory changed owner, not on every tick
+        private const int LOCAL_INVENTORY_REFRESH_TICKS = 15;
+        private InventoryInfo localInventory;
+        private IntPtr localInventoryOwner;
+        private int localInventoryAge;
         private bool isLocalPlayerSet = false;
         private bool hasSelectedCharacter = false;
         private int seed = 0;
@@ -197,6 +204,11 @@ namespace Megaphonk.Services
         public bool IsDowned(uint connectionId)
         {
             return downedPlayers.ContainsKey(connectionId);
+        }
+
+        public bool IsAnyoneDowned()
+        {
+            return !downedPlayers.IsEmpty;
         }
 
         public void MarkDead(uint connectionId)
@@ -452,11 +464,8 @@ namespace Megaphonk.Services
                 return null;
             }
 
-            var position = new Vector3(
-                player.transform.position.x,
-                player.transform.position.y - Plugin.PLAYER_FEET_OFFSET_Y,
-                player.transform.position.z
-            );
+            var playerPosition = player.transform.position;
+            var position = new Vector3(playerPosition.x, playerPosition.y - Plugin.PLAYER_FEET_OFFSET_Y, playerPosition.z);
 
             if (player.character == ECharacter.TonyMcZoom)
             {
@@ -469,6 +478,8 @@ namespace Megaphonk.Services
 
             var animatorState = player.GetAnimatorState();
             var axisInput = new UnityEngine.Vector2(MyInputManager.GetPlayer().GetAxis("Move Horizontal"), MyInputManager.GetPlayer().GetAxis("Move Vertical"));
+            var inventory = player.inventory;
+            var health = inventory.playerHealth;
 
             return new PlayerUpdate
             {
@@ -481,14 +492,26 @@ namespace Megaphonk.Services
                 },
                 AnimatorState = animatorState,
                 ConnectionId = localConnectionId,
-                Hp = (uint)Math.Max(0, player.inventory.playerHealth.hp),
-                MaxHp = (uint)Math.Max(0, player.inventory.playerHealth.maxHp),
+                Hp = (uint)Math.Max(0, health.hp),
+                MaxHp = (uint)Math.Max(0, health.maxHp),
                 //Xp = (uint)Math.Max(0, player.inventory.playerXp.xp),
-                Shield = (uint)Math.Max(0, player.inventory.playerHealth.shield),
-                MaxShield = (uint)Math.Max(0, player.inventory.playerHealth.maxShield),
-                Inventory = player.inventory.ToInventoryInfos(),
+                Shield = (uint)Math.Max(0, health.shield),
+                MaxShield = (uint)Math.Max(0, health.maxShield),
+                Inventory = GetLocalInventory(inventory),
                 Name = Configuration.ModConfig.PlayerName.Value
             };
+        }
+
+        private InventoryInfo GetLocalInventory(PlayerInventory inventory)
+        {
+            if (localInventory == null || inventory.Pointer != localInventoryOwner || ++localInventoryAge >= LOCAL_INVENTORY_REFRESH_TICKS)
+            {
+                localInventory = inventory.ToInventoryInfos();
+                localInventoryOwner = inventory.Pointer;
+                localInventoryAge = 0;
+            }
+
+            return localInventory;
         }
 
         public Player? GetLocalPlayer()

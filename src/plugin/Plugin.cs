@@ -419,16 +419,10 @@ namespace Megaphonk
         {
             if (AchievementPopup == null)
             {
-                var gameObject = Il2CppFindHelper.FindAllGameObjects()
-                    .FirstOrDefault(go => go.GetComponent<AchievementPopup>() != null);
-                if (gameObject != null)
+                AchievementPopup = Il2CppFindHelper.FindAll<AchievementPopup>().FirstOrDefault();
+                if (AchievementPopup != null && NotificationQueueManager != null)
                 {
-                    AchievementPopup = gameObject.GetComponent<AchievementPopup>();
-
-                    if (AchievementPopup != null && NotificationQueueManager != null)
-                    {
-                        NotificationQueueManager.Initialize();
-                    }
+                    NotificationQueueManager.Initialize();
                 }
             }
             return AchievementPopup;
@@ -558,9 +552,7 @@ namespace Megaphonk
         {
             if (mapEventsManager == null)
             {
-                mapEventsManager = Il2CppFindHelper.FindAllGameObjects()
-                    .FirstOrDefault(go => go.GetComponent<MapEventsManager>() != null)
-                    .GetComponent<MapEventsManager>();
+                mapEventsManager = Il2CppFindHelper.FindAll<MapEventsManager>().FirstOrDefault();
             }
             return mapEventsManager;
         }

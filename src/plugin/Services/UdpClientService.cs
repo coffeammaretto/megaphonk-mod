@@ -51,6 +51,10 @@ namespace Megaphonk.Services
 
         public Task<bool> HandleMatch(MatchInfo matchInfo, uint selfConnectionId, string rdvServerHost, uint rdvServerPort, bool enabledSharedExperience);
         public bool HasAllPeersConnected();
+        /// <summary>
+        /// Host: someone to send to, a connected or a relayed peer. Nobody: messages are not even built
+        /// </summary>
+        public bool HasReceivers();
 
         public void SendToAllClients<T>(T data, DeliveryMethod deliveryMethod) where T : IGameNetworkMessage;
         public void SendToAllClients(byte[] data, DeliveryMethod deliveryMethod);
@@ -157,6 +161,7 @@ namespace Megaphonk.Services
         private string rdvServerHost;
         private int rdvServerPort;
         private readonly HashSet<uint> usesRelay = [];
+        private bool snapshotsSkipped;
         private NetPeer relayPeer = null;
         private readonly object relayPeerLock = new();
 
@@ -211,7 +216,8 @@ namespace Megaphonk.Services
                 NatPunchEnabled = true,
                 EnableStatistics = true,
                 DisconnectTimeout = 15000,
-                UpdateTime = POLL_INTERVAL_MS
+                UpdateTime = POLL_INTERVAL_MS,
+                AutoRecycle = true //Each received packet goes back to the pool once handled (the handler copies what it keeps)
             };
 
             bool portInUse = true;
@@ -1571,7 +1577,10 @@ namespace Megaphonk.Services
                     return;
                 }
 
-                SendLobbyUpdate();
+                if (HasReceivers())
+                {
+                    SendLobbyUpdate();
+                }
             }
             else
             {
@@ -1618,7 +1627,7 @@ namespace Megaphonk.Services
                 return;
             }
 
-            if (!EnsureIsHost())
+            if (!EnsureIsHost() || !ShouldSendSnapshots())
             {
                 return;
             }
@@ -1633,12 +1642,34 @@ namespace Megaphonk.Services
                 return;
             }
 
-            if (!EnsureIsHost())
+            if (!EnsureIsHost() || !ShouldSendSnapshots())
             {
                 return;
             }
 
             SendTumbleWeedsUpdate();
+        }
+
+        /// <summary>
+        /// Host: someone to send the projectile and tumbleweed snapshots to, else they are not built. Once someone is there
+        /// again the next ones are full: what did not move meanwhile would never be sent otherwise
+        /// </summary>
+        private bool ShouldSendSnapshots()
+        {
+            if (!HasReceivers())
+            {
+                snapshotsSkipped = true;
+                return false;
+            }
+
+            if (snapshotsSkipped)
+            {
+                snapshotsSkipped = false;
+                projectileManagerService.ResendAll();
+                spawnedObjectManagerService.ResendAllTumbleWeeds();
+            }
+
+            return true;
         }
 
         private void UpdateLocalPlayer(PlayerUpdate localPlayer)
@@ -1889,11 +1920,16 @@ namespace Megaphonk.Services
             }
         }
 
+        public bool HasReceivers()
+        {
+            return !gamePeers.IsEmpty || usesRelay.Count > 0;
+        }
+
         public void SendToAllClients<T>(T data, DeliveryMethod deliveryMethod) where T : IGameNetworkMessage
         {
-            if (!EnsureIsHost())
+            if (!EnsureIsHost() || !HasReceivers())
             {
-                return;
+                return; //Nobody to send to: not even serialized
             }
 
             var msgBytes = MemoryPackSerializer.Serialize<IGameNetworkMessage>(data);
@@ -2173,6 +2209,7 @@ namespace Megaphonk.Services
 
         private void FlushPendingMessagesLocked()
         {
+            flushCount++;
             foreach (var ((peer, deliveryMethod), pending) in pendingByPeer)
             {
                 if (pending.Count == 0)
@@ -2183,7 +2220,10 @@ namespace Megaphonk.Services
                 try
                 {
                     var maxSize = Math.Min(MAX_PACKET_SIZE_BYTES, peer.GetMaxSinglePacketSize(deliveryMethod));
-                    SendPacked(pending, maxSize, compressionPeerIds.ContainsKey(peer.Id), data => TrySendQueued(() => peer.Send(data, deliveryMethod)));
+                    foreach (var packet in GetPacked(pending, deliveryMethod, maxSize, compressionPeerIds.ContainsKey(peer.Id)))
+                    {
+                        TrySendQueued(() => peer.Send(packet, deliveryMethod));
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -2293,6 +2333,63 @@ namespace Megaphonk.Services
             {
                 send(MaybeCompress(PackBatch(batch, batchSize), compress));
             }
+        }
+
+        private sealed class PackedMessages
+        {
+            public readonly List<byte[]> Messages = [];
+            public readonly List<byte[]> Packets = [];
+            public int MaxSize;
+            public bool Compress;
+            public int Flush = -1;
+        }
+
+        private readonly Dictionary<DeliveryMethod, PackedMessages> packedByDelivery = [];
+        private int flushCount;
+
+        /// <summary>
+        /// The packets for these messages. A broadcast queues the same byte arrays for every peer: when this peer has the same
+        /// messages as the previous one, the packets packed (and compressed) for it are sent again instead of packing anew
+        /// </summary>
+        private List<byte[]> GetPacked(List<byte[]> messages, DeliveryMethod deliveryMethod, int maxSize, bool compress)
+        {
+            if (!packedByDelivery.TryGetValue(deliveryMethod, out var packed))
+            {
+                packed = new PackedMessages();
+                packedByDelivery[deliveryMethod] = packed;
+            }
+
+            if (packed.Flush != flushCount || packed.MaxSize != maxSize || packed.Compress != compress || !IsSameMessages(packed.Messages, messages))
+            {
+                packed.Flush = -1; //Packing may throw halfway: the next peer must not reuse partial packets
+                packed.Packets.Clear();
+                SendPacked(messages, maxSize, compress, packed.Packets.Add);
+                packed.Messages.Clear();
+                packed.Messages.AddRange(messages);
+                packed.MaxSize = maxSize;
+                packed.Compress = compress;
+                packed.Flush = flushCount;
+            }
+
+            return packed.Packets;
+        }
+
+        private static bool IsSameMessages(List<byte[]> first, List<byte[]> second)
+        {
+            if (first.Count != second.Count)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < first.Count; i++)
+            {
+                if (!ReferenceEquals(first[i], second[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

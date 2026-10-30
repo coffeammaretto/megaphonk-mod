@@ -196,6 +196,7 @@ namespace Megaphonk.Services
         private readonly Dictionary<uint, string> peerModVersions = [];
         private readonly HashSet<uint> warnedModVersions = [];
         private float? gameStartedAt = null;
+        private float nextModVersionCheckAt;
 
         private const float INVENTORY_REPLAY_TIMEOUT = 30f;
         private readonly List<(uint OwnerId, float DeferredAt, Func<bool> TryReplay)> pendingInventoryReplays = [];
@@ -718,11 +719,13 @@ namespace Megaphonk.Services
         /// </summary>
         public void CheckPeerModVersions()
         {
-            if (!gameStartedAt.HasValue || Time.realtimeSinceStartup - gameStartedAt.Value < MOD_VERSION_TIMEOUT)
+            var now = Time.realtimeSinceStartup;
+            if (!gameStartedAt.HasValue || now - gameStartedAt.Value < MOD_VERSION_TIMEOUT || now < nextModVersionCheckAt)
             {
                 return;
             }
 
+            nextModVersionCheckAt = now + 1f; //Soon enough to warn, without copying the player list every frame
             foreach (var player in playerManagerService.GetAllPlayersExceptLocal())
             {
                 if (peerModVersions.ContainsKey(player.ConnectionId) || !warnedModVersions.Add(player.ConnectionId))
@@ -1718,6 +1721,14 @@ namespace Megaphonk.Services
                 return; //Might already be dead
             }
 
+            var isHost = IsServerMode() ?? false;
+            if (isHost && !udpClientService.HasReceivers())
+            {
+                // Nobody to show the hit to: only the run stats need it, no message is built (this runs on every hit)
+                GetRunStatsService()?.OnDamage(GetDamageAttackerId(damageContainer), damageContainer.damage);
+                return;
+            }
+
             var message = new EnemyDamaged
             {
                 EnemyId = enemySpawned.Key,
@@ -1733,7 +1744,6 @@ namespace Megaphonk.Services
                 AttackerId = GetDamageAttackerId(damageContainer)
             };
 
-            var isHost = IsServerMode() ?? false;
             if (isHost)
             {
                 GetRunStatsService()?.OnDamage(message.AttackerId, damageContainer.damage);
@@ -2937,9 +2947,8 @@ namespace Megaphonk.Services
                 }
 
                 // Not the ascension portal next to it: it is a final portal too
-                var finalPortal = Il2CppFindHelper.FindAllGameObjects()
-                    .Select(go => go.GetComponent<InteractablePortalFinal>())
-                    .FirstOrDefault(portal => portal != null && !Patches.AscensionPatches.IsAscensionPortal(portal));
+                var finalPortal = Il2CppFindHelper.FindAll<InteractablePortalFinal>()
+                    .FirstOrDefault(portal => !Patches.AscensionPatches.IsAscensionPortal(portal));
                 if (finalPortal != null)
                 {
                     Plugin.CAN_SEND_MESSAGES = false;
@@ -2975,8 +2984,7 @@ namespace Megaphonk.Services
 
                 if (finalBossSpawner == null)
                 {
-                    var found = Il2CppFindHelper.FindAllGameObjects().FirstOrDefault(go => go.GetComponent<InteractableBossSpawnerFinal>() != null);
-                    finalBossSpawner = found?.GetComponent<InteractableBossSpawnerFinal>();
+                    finalBossSpawner = Il2CppFindHelper.FindAll<InteractableBossSpawnerFinal>().FirstOrDefault();
                 }
 
                 if (finalBossSpawner == null)

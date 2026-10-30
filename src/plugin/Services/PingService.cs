@@ -63,8 +63,13 @@ namespace Megaphonk.Services
             var isPressed = isDown && !wasPingKeyDown;
             wasPingKeyDown = isDown;
 
+            if (!isPressed || Time.realtimeSinceStartup < nextPingAllowedAt)
+            {
+                return;
+            }
+
             var localPlayer = playerManagerService.GetLocalPlayer();
-            if (!isPressed || Time.realtimeSinceStartup < nextPingAllowedAt || localPlayer == null)
+            if (localPlayer == null)
             {
                 return;
             }
@@ -190,6 +195,11 @@ namespace Megaphonk.Services
 
         private void RemoveExpiredPings()
         {
+            if (pings.Count == 0)
+            {
+                return;
+            }
+
             var now = Time.realtimeSinceStartup;
             foreach (var ownerId in pings.Where(entry => entry.Value.ExpiresAt <= now).Select(entry => entry.Key).ToList())
             {

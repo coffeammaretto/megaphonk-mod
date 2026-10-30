@@ -14,6 +14,10 @@ namespace Megaphonk.Services
     {
         public IEnumerable<Projectile> GetAllProjectiles();
         public List<Projectile> GetAllProjectilesDeltaAndUpdate();
+        /// <summary>
+        /// The next snapshot holds every projectile
+        /// </summary>
+        public void ResendAll();
         public uint AddSpawnedProjectile(ProjectileBase projectile);
         public ProjectileBase GetProjectileById(uint id);
         public KeyValuePair<uint, ProjectileBase> GetProjectileByReference(ProjectileBase projectile);
@@ -230,6 +234,11 @@ namespace Megaphonk.Services
             }
 
             return projectile;
+        }
+
+        public void ResendAll()
+        {
+            previousTickProjectileCount = 0;
         }
 
         public void ResetForNextLevel()

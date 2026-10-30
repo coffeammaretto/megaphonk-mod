@@ -51,6 +51,7 @@ namespace Megaphonk.Services
         private const float RESULT_SHOWN_SECONDS = 4f;
         private const int RING_SEGMENTS = 48;
         private const float BEAM_HEIGHT = 200f;
+        private const float STORM_RING_STEP = 0.1f; //The shrinking storm circle is redrawn by steps this big
         private const float SHARD_PICKUP_RADIUS = 3f;
         private const float SHARD_CLEAR_RADIUS = 2f; //Open ground needed around a shard
         private const float SHARD_SPACING = 25f;
@@ -104,6 +105,10 @@ namespace Megaphonk.Services
         private TextMeshProUGUI hudText;
         private string resultText;
         private string lastHudText;
+        private (int Id, int Seconds, long Progress) riftHudKey;
+        private string riftHudText;
+        private bool hudShown;
+        private float stormRingRadius;
         private float resultShownUntil;
         private float stormDamageTimer;
         private bool isOutsideStorm;
@@ -463,17 +468,14 @@ namespace Megaphonk.Services
                     current.Zones[i] = Vector3.Lerp(current.Zones[i], current.Targets[i], Math.Min(1f, Time.deltaTime * ELITE_MARKER_SPEED));
                 }
 
-                var (marker, ring, beam) = current.Visuals[i];
+                var marker = current.Visuals[i].Marker;
                 if (marker == null)
                 {
                     continue;
                 }
 
-                var position = current.Zones[i];
-                marker.transform.position = position;
-                SetRingRadius(ring, position, current.Radius);
-                beam.SetPosition(0, position);
-                beam.SetPosition(1, position + Vector3.up * BEAM_HEIGHT);
+                // The ring and the beam are drawn in the marker's space: they follow it
+                marker.transform.position = current.Zones[i];
             }
         }
 
@@ -490,9 +492,13 @@ namespace Megaphonk.Services
 
             var center = current.Zones[0];
             var radius = current.StormRadius;
-            if (current.Visuals.Count > 0 && current.Visuals[0].Ring != null)
+            // Redrawn by visible steps while it shrinks (48 native writes, not every frame), then once at its final size
+            var shrinking = current.Duration - current.TimeLeft < STORM_SHRINK_SECONDS;
+            if (radius != stormRingRadius && (!shrinking || Math.Abs(radius - stormRingRadius) >= STORM_RING_STEP)
+                && current.Visuals.Count > 0 && current.Visuals[0].Ring != null)
             {
-                SetRingRadius(current.Visuals[0].Ring, center, radius);
+                SetRingRadius(current.Visuals[0].Ring, radius);
+                stormRingRadius = radius;
             }
 
             var player = GameManager.Instance?.player;
@@ -528,12 +534,15 @@ namespace Megaphonk.Services
             }
         }
 
-        private static void SetRingRadius(LineRenderer ring, Vector3 center, float radius)
+        /// <summary>
+        /// The ring's points around its marker (rings are drawn in their marker's space)
+        /// </summary>
+        private static void SetRingRadius(LineRenderer ring, float radius)
         {
             for (var i = 0; i < RING_SEGMENTS; i++)
             {
                 var angle = i * Math.PI * 2 / RING_SEGMENTS;
-                ring.SetPosition(i, center + new Vector3((float)Math.Cos(angle) * radius, 0.4f, (float)Math.Sin(angle) * radius));
+                ring.SetPosition(i, new Vector3((float)Math.Cos(angle) * radius, 0.4f, (float)Math.Sin(angle) * radius));
             }
         }
 
@@ -799,6 +808,8 @@ namespace Megaphonk.Services
                 StartRadius = started.StartRadius
             };
             stormDamageTimer = 0f;
+            stormRingRadius = current.StartRadius;
+            riftHudText = null; //Never the previous rift's text: ids start over with another host
 
             try
             {
@@ -875,23 +886,19 @@ namespace Megaphonk.Services
 
             var ring = new GameObject("Ring").AddComponent<LineRenderer>();
             ring.transform.SetParent(marker.transform, false);
-            ring.useWorldSpace = true;
+            ring.useWorldSpace = false; //In the marker's space: moving the marker moves the ring and the beam
             ring.loop = true;
             ring.positionCount = RING_SEGMENTS;
-            for (var i = 0; i < RING_SEGMENTS; i++)
-            {
-                var angle = i * Math.PI * 2 / RING_SEGMENTS;
-                ring.SetPosition(i, center + new Vector3((float)Math.Cos(angle) * radius, 0.4f, (float)Math.Sin(angle) * radius));
-            }
+            SetRingRadius(ring, radius);
             ring.startWidth = 0.6f;
             ring.endWidth = 0.6f;
 
             var beam = new GameObject("Beam").AddComponent<LineRenderer>();
             beam.transform.SetParent(marker.transform, false);
-            beam.useWorldSpace = true;
+            beam.useWorldSpace = false;
             beam.positionCount = 2;
-            beam.SetPosition(0, center);
-            beam.SetPosition(1, center + Vector3.up * BEAM_HEIGHT);
+            beam.SetPosition(0, Vector3.zero);
+            beam.SetPosition(1, new Vector3(0f, BEAM_HEIGHT, 0f));
             beam.startWidth = 3f;
             beam.endWidth = 1.5f;
 
@@ -993,21 +1000,65 @@ namespace Megaphonk.Services
         /// <summary>
         /// Under the team meter and the stage timer: the zones' progress and the time left, then the result for a few seconds
         /// </summary>
+        private string BuildRiftHudText()
+        {
+            var objective = current.Type switch
+            {
+                RiftType.Shards => $"{Loc.T("collect the shards")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}",
+                RiftType.MiniBoss => $"{Loc.T("defeat the mini-boss")}  {Loc.T("HP")} {(int)Math.Ceiling((1f - current.Progress[0]) * 100f)}%",
+                RiftType.EliteHunt => $"{Loc.T("hunt down the elites")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}",
+                RiftType.Storm => $"{Loc.T("survive the storm, stay in the circle")}{(isOutsideStorm ? $"  <color=#FF5555>{Loc.T("OUTSIDE THE CIRCLE!")}</color>" : string.Empty)}",
+                _ => $"{Loc.T("hold the zones")}  {string.Join("  ", current.Progress.Select(progress => progress >= 1f ? "<color=#66FF8C>100%</color>" : $"{(int)(progress * 100f)}%"))}"
+            };
+            var time = TimeSpan.FromSeconds(Math.Ceiling(current.TimeLeft));
+            return $"<color=#C08CFF>{Loc.T("Rift")}</color>: {objective}  <color=#FFD27F>{time.Minutes}:{time.Seconds:00}</color>";
+        }
+
+        /// <summary>
+        /// The progress as the HUD shows it, as one number: the text is built again when it changes
+        /// </summary>
+        private long HudProgressKey()
+        {
+            switch (current.Type)
+            {
+                case RiftType.Shards:
+                case RiftType.EliteHunt:
+                    var done = 0;
+                    foreach (var progress in current.Progress)
+                    {
+                        if (progress >= 1f)
+                        {
+                            done++;
+                        }
+                    }
+                    return done;
+                case RiftType.MiniBoss:
+                    return (int)Math.Ceiling((1f - current.Progress[0]) * 100f);
+                case RiftType.Storm:
+                    return isOutsideStorm ? 1 : 0;
+                default:
+                    long percents = 0;
+                    foreach (var progress in current.Progress)
+                    {
+                        percents = percents * 101 + (progress >= 1f ? 100 : (int)(progress * 100f));
+                    }
+                    return percents;
+            }
+        }
+
         private void UpdateHud()
         {
             string text = null;
             if (current != null)
             {
-                var objective = current.Type switch
+                // Built again only when what it shows changed (each second at least): a new string every frame was garbage
+                var key = (current.Id, (int)Math.Ceiling(current.TimeLeft), HudProgressKey());
+                if (riftHudText == null || key != riftHudKey)
                 {
-                    RiftType.Shards => $"{Loc.T("collect the shards")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}",
-                    RiftType.MiniBoss => $"{Loc.T("defeat the mini-boss")}  {Loc.T("HP")} {(int)Math.Ceiling((1f - current.Progress[0]) * 100f)}%",
-                    RiftType.EliteHunt => $"{Loc.T("hunt down the elites")}  {current.Progress.Count(progress => progress >= 1f)}/{current.Progress.Length}",
-                    RiftType.Storm => $"{Loc.T("survive the storm, stay in the circle")}{(isOutsideStorm ? $"  <color=#FF5555>{Loc.T("OUTSIDE THE CIRCLE!")}</color>" : string.Empty)}",
-                    _ => $"{Loc.T("hold the zones")}  {string.Join("  ", current.Progress.Select(progress => progress >= 1f ? "<color=#66FF8C>100%</color>" : $"{(int)(progress * 100f)}%"))}"
-                };
-                var time = TimeSpan.FromSeconds(Math.Ceiling(current.TimeLeft));
-                text = $"<color=#C08CFF>{Loc.T("Rift")}</color>: {objective}  <color=#FFD27F>{time.Minutes}:{time.Seconds:00}</color>";
+                    riftHudKey = key;
+                    riftHudText = BuildRiftHudText();
+                }
+                text = riftHudText;
             }
             else if (resultText != null && Time.realtimeSinceStartup < resultShownUntil)
             {
@@ -1016,10 +1067,11 @@ namespace Megaphonk.Services
 
             if (text == null)
             {
-                if (hudText != null)
+                if (hudShown && hudText != null)
                 {
                     hudText.enabled = false;
                 }
+                hudShown = false;
                 return;
             }
 
@@ -1048,7 +1100,12 @@ namespace Megaphonk.Services
                 hudText.color = Color.white;
             }
 
-            hudText.enabled = true;
+            if (!hudShown)
+            {
+                hudText.enabled = true;
+                hudShown = true;
+            }
+
             if (text != lastHudText)
             {
                 hudText.text = text;
@@ -1067,6 +1124,7 @@ namespace Megaphonk.Services
             {
                 hudText.enabled = false;
             }
+            hudShown = false;
         }
     }
 }

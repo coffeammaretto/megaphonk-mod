@@ -22,6 +22,13 @@ namespace Megaphonk.Patches.Projectiles
                 return true;
             }
 
+            // Host only, like the postfix: a client queued the request and never took it back
+            var isHost = synchronizationService.IsServerMode() ?? false;
+            if (!isHost)
+            {
+                return true;
+            }
+
             var netPlayer = playerManagerService.GetNetPlayerByWeapon(__instance.weaponBase);
             if (netPlayer == null)
             {

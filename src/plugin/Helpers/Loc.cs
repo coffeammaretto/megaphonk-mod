@@ -1,3 +1,4 @@
+using Megaphonk.Scripts;
 using System.Collections.Generic;
 using UnityEngine.Localization.Settings;
 
@@ -336,25 +337,41 @@ namespace Megaphonk.Helpers
         {
             get
             {
-                try
+                // Looked up once per frame: several native calls and new strings, and the HUDs translate every frame
+                var frame = NetworkHandler.FrameIndex;
+                if (language == null || frame != languageFrame)
                 {
-                    if (LocalizationSettings.HasSettings)
-                    {
-                        var code = LocalizationSettings.SelectedLocale?.Identifier.Code;
-                        if (!string.IsNullOrEmpty(code))
-                        {
-                            var dash = code.IndexOf('-');
-                            return (dash > 0 ? code.Substring(0, dash) : code).ToLowerInvariant();
-                        }
-                    }
-                }
-                catch
-                {
-                    // Not ready: English
+                    language = ReadLanguage();
+                    languageFrame = frame;
                 }
 
-                return "en";
+                return language;
             }
+        }
+
+        private static string language;
+        private static int languageFrame;
+
+        private static string ReadLanguage()
+        {
+            try
+            {
+                if (LocalizationSettings.HasSettings)
+                {
+                    var code = LocalizationSettings.SelectedLocale?.Identifier.Code;
+                    if (!string.IsNullOrEmpty(code))
+                    {
+                        var dash = code.IndexOf('-');
+                        return (dash > 0 ? code.Substring(0, dash) : code).ToLowerInvariant();
+                    }
+                }
+            }
+            catch
+            {
+                // Not ready: English
+            }
+
+            return "en";
         }
 
         /// <summary>

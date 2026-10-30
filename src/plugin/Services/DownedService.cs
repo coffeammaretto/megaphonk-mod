@@ -55,6 +55,7 @@ namespace Megaphonk.Services
         private float bleedingFor = 0f;
         private float reviveProgress = 0f;
         private TextMeshProUGUI hudText;
+        private bool isHudShown;
 
         public bool IsLocalDowned { get; private set; } = false;
 
@@ -106,6 +107,12 @@ namespace Megaphonk.Services
 
         public void Tick()
         {
+            // Nobody down and no hint up: nothing to do (this runs every frame)
+            if (!IsLocalDowned && !isHudShown && !playerManagerService.IsAnyoneDowned())
+            {
+                return;
+            }
+
             var localPlayer = playerManagerService.GetLocalPlayer();
             var player = GameManager.Instance?.player;
             if (localPlayer == null || player == null || player.inventory?.playerHealth == null)
@@ -284,6 +291,7 @@ namespace Megaphonk.Services
             hudText.enabled = true;
             hudText.text = text;
             hudText.color = color;
+            isHudShown = true;
         }
 
         private void HideHud()
@@ -292,6 +300,7 @@ namespace Megaphonk.Services
             {
                 hudText.enabled = false;
             }
+            isHudShown = false;
         }
 
         public void ResetForNextLevel()
@@ -329,6 +338,12 @@ namespace Megaphonk.Services
 
         public void ApplyDownedPose()
         {
+            // Nobody down and nobody to put back on its feet: nothing to pose (this runs every frame)
+            if (!IsLocalDowned && dazedModels.Count == 0 && !playerManagerService.IsAnyoneDowned())
+            {
+                return;
+            }
+
             downedModels.Clear();
             posedIds.Clear();
 

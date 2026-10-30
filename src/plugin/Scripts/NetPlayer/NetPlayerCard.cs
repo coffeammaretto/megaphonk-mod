@@ -168,8 +168,7 @@ namespace Megaphonk.Scripts.NetPlayer
             tomeParentRect.anchoredPosition = new Vector2(iconSize + spacing, -(inventoryIconSize + spacing));
             tomeParentRect.sizeDelta = new Vector2(healthBarWidth, inventoryIconSize);
 
-            var originalInventoryHud = Il2CppFindHelper.FindAllGameObjects()
-                .FirstOrDefault(go => go.GetComponent<InventoryHud>() != null)?.GetComponent<InventoryHud>();
+            var originalInventoryHud = Il2CppFindHelper.FindAll<InventoryHud>().FirstOrDefault();
 
             if (originalInventoryHud != null && originalInventoryHud.itemContainerPrefab != null)
             {

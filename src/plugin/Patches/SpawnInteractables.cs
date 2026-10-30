@@ -4,6 +4,8 @@ using Megaphonk.Helpers;
 using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Megaphonk.Patches
@@ -53,22 +55,14 @@ namespace Megaphonk.Patches
             var isServer = synchronizationService.IsServerMode();
             if (isServer.HasValue && isServer.Value)
             {
-                var inGame = Il2CppFindHelper.FindAllGameObjects();
-                foreach (var obj in inGame)
+                // Names read once (each read is a native call and a new string). Chests and free chests, not the crypt ones
+                var chestName = __instance.chest.name;
+                var chestFreeName = __instance.chestFree.name;
+                foreach (var obj in Il2CppFindHelper.FindAllGameObjects())
                 {
-                    if (obj.name.StartsWith(__instance.chest.name) && !obj.name.StartsWith(__instance.chestFree.name) && !obj.name.StartsWith("ChestFreeCrypt"))
-                    {
-                        var dynamic = DynamicData.For(obj);
-                        var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
-                        if (!hasBeenSet.HasValue)
-                        {
-                            synchronizationService.OnSpawnedObject(obj);
-
-                            dynamic.Set("hasBeenSetByServer", true);
-                        }
-                    }
-
-                    if (obj.name.StartsWith(__instance.chestFree.name) && !obj.name.StartsWith("ChestFreeCrypt"))
+                    var name = obj.name;
+                    if ((name.StartsWith(chestName, StringComparison.Ordinal) || name.StartsWith(chestFreeName, StringComparison.Ordinal))
+                        && !name.StartsWith("ChestFreeCrypt", StringComparison.Ordinal))
                     {
                         var dynamic = DynamicData.For(obj);
                         var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
@@ -119,12 +113,18 @@ namespace Megaphonk.Patches
             var isServer = synchronizationService.IsServerMode();
             if (isServer.HasValue && isServer.Value)
             {
-                var inGame = Il2CppFindHelper.FindAllGameObjects();
-                foreach (var obj in inGame)
+                var railNames = new List<string>();
+                foreach (var rail in __instance.rails)
                 {
-                    foreach (var rail in __instance.rails)
+                    railNames.Add(rail.name);
+                }
+
+                foreach (var obj in Il2CppFindHelper.FindAllGameObjects())
+                {
+                    var name = obj.name;
+                    foreach (var railName in railNames)
                     {
-                        if (obj.name.StartsWith(rail.name))
+                        if (name.StartsWith(railName, StringComparison.Ordinal))
                         {
                             var dynamic = DynamicData.For(obj);
                             var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
@@ -133,6 +133,7 @@ namespace Megaphonk.Patches
                                 synchronizationService.OnSpawnedObject(obj);
                                 dynamic.Set("hasBeenSetByServer", true);
                             }
+                            break;
                         }
                     }
                 }
@@ -172,14 +173,23 @@ namespace Megaphonk.Patches
             var isServer = synchronizationService.IsServerMode();
             if (isServer.HasValue && isServer.Value)
             {
-                var inGame = Il2CppFindHelper.FindAllGameObjects();
-                var shrinesWithoutInteractablesRarity = MapController.currentMap.shrines
-                    .Where(obj => obj.GetComponentInChildren<InteractableShadyGuy>() == null && obj.GetComponentInChildren<InteractableMicrowave>() == null); //Handle in those respective patches
-                foreach (var obj in inGame)
+                // Filtered once: the lazy filter used to run again (two GetComponentInChildren per shrine) for every object of
+                // the scene
+                var shrineNames = new List<string>();
+                foreach (var shrine in MapController.currentMap.shrines)
                 {
-                    foreach (var shrine in shrinesWithoutInteractablesRarity)
+                    if (shrine.GetComponentInChildren<InteractableShadyGuy>() == null && shrine.GetComponentInChildren<InteractableMicrowave>() == null) //Handle in those respective patches
                     {
-                        if (obj.name.StartsWith(shrine.name))
+                        shrineNames.Add(shrine.name);
+                    }
+                }
+
+                foreach (var obj in Il2CppFindHelper.FindAllGameObjects())
+                {
+                    var name = obj.name;
+                    foreach (var shrineName in shrineNames)
+                    {
+                        if (name.StartsWith(shrineName, StringComparison.Ordinal))
                         {
                             var dynamic = DynamicData.For(obj);
                             var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
@@ -188,6 +198,7 @@ namespace Megaphonk.Patches
                                 synchronizationService.OnSpawnedObject(obj);
                                 dynamic.Set("hasBeenSetByServer", true);
                             }
+                            break;
                         }
                     }
                 }

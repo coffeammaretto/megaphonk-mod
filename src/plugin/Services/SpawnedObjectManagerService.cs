@@ -21,6 +21,10 @@ namespace Megaphonk.Services
         public void ResetForNextLevel();
         public Material GetExtraEnemyMaterial(EEnemy enemyName);
         public IEnumerable<TumbleWeedModel> GetAllTumbleWeedsDeltaAndUpdate();
+        /// <summary>
+        /// The next tumbleweed snapshot holds all of them
+        /// </summary>
+        public void ResendAllTumbleWeeds();
         public void RegisterTumbleWeedForInterpolation(uint id, GameObject tumbleWeed);
         public void UpdateTumbleWeedSnapshots(List<TumbleWeedSnapshot> snapshots);
         public void UnregisterTumbleWeedFromInterpolation(uint id);
@@ -127,6 +131,11 @@ namespace Megaphonk.Services
                     .Where(o => o != null)
                     .Select(o => o.GetComponent<T>())
                     .FirstOrDefault(c => c != null);
+        }
+
+        public void ResendAllTumbleWeeds()
+        {
+            previousTumbleWeedsDelta.Clear();
         }
 
         public void ResetForNextLevel()

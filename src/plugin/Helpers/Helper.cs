@@ -25,6 +25,15 @@ namespace Megaphonk.Helpers
 
         public static GameObject[] FindAllGameObjects()
         {
+            return FindAll<GameObject>();
+        }
+
+        /// <summary>
+        /// Every active object of type T, found by the engine: far cheaper than wrapping every GameObject of the scene to
+        /// look for a component on each
+        /// </summary>
+        public static T[] FindAll<T>() where T : UnityEngine.Object
+        {
             if (findObjectsByType == null)
             {
                 findObjectsByType = AccessTools.GetDeclaredMethods(typeof(UnityEngine.Object))
@@ -33,17 +42,17 @@ namespace Megaphonk.Helpers
                 if (findObjectsByType == null)
                 {
                     Plugin.Log.LogError("Could not find FindObjectsByType<T>");
-                    return Array.Empty<GameObject>();
+                    return Array.Empty<T>();
                 }
             }
 
-            var closedMethod = findObjectsByType.MakeGenericMethod(typeof(GameObject));
+            var closedMethod = findObjectsByType.MakeGenericMethod(typeof(T));
             var result = closedMethod.Invoke(null, [FindObjectsSortMode.None]);
 
-            if (result is Il2CppArrayBase<GameObject> array)
+            if (result is Il2CppArrayBase<T> array)
                 return [.. array];
 
-            return Array.Empty<GameObject>();
+            return Array.Empty<T>();
         }
 
         public static AnimatorClipInfo[] RuntimeGetCurrentAnimatorClipInfo(this Animator animator, int layer)

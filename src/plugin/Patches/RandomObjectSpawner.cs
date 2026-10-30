@@ -4,6 +4,8 @@ using Megaphonk.Helpers;
 using Megaphonk.Services;
 using Microsoft.Extensions.DependencyInjection;
 using MonoMod.Utils;
+using System;
+using System.Collections.Generic;
 
 namespace Megaphonk.Patches
 {
@@ -53,18 +55,35 @@ namespace Megaphonk.Patches
                 return;
             }
 
+            // One scene scan, every name read once (each read is a native call and a new string): scanning the whole scene
+            // again for every prefab made map generation hitch
+            var prefabNames = new List<string>();
             foreach (var prefab in randomObject.prefabs)
             {
-                var inGame = Il2CppFindHelper.FindAllGameObjects();
-                foreach (var obj in inGame)
+                var prefabName = prefab.name;
+                if (!prefabName.Contains("Microwave")) //Skip microwaves , handled in MicrowavePatches
                 {
-                    if (obj.name.StartsWith(prefab.name) && obj.name != "BarrelMesh" && obj.name != "ArchCollider")
-                    {
-                        if (prefab.name.Contains("Microwave"))
-                        {
-                            continue; //Skip microwaves , handled in MicrowavePatches
-                        }
+                    prefabNames.Add(prefabName);
+                }
+            }
 
+            if (prefabNames.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var obj in Il2CppFindHelper.FindAllGameObjects())
+            {
+                var name = obj.name;
+                if (name == "BarrelMesh" || name == "ArchCollider")
+                {
+                    continue;
+                }
+
+                foreach (var prefabName in prefabNames)
+                {
+                    if (name.StartsWith(prefabName, StringComparison.Ordinal))
+                    {
                         var dynamic = DynamicData.For(obj);
                         var hasBeenSet = dynamic.Get<bool?>("hasBeenSetByServer");
                         if (!hasBeenSet.HasValue)
@@ -73,6 +92,7 @@ namespace Megaphonk.Patches
 
                             dynamic.Set("hasBeenSetByServer", true);
                         }
+                        break;
                     }
                 }
             }
